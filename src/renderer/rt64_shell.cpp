@@ -4,6 +4,7 @@
 
 #include "hle/rt64_application.h"
 #include "hle/rt64_vi.h"
+#include "render/rt64_texture_cache.h"
 #include "rhi/rt64_render_hooks.h"
 
 #include <atomic>
@@ -13,10 +14,17 @@
 #include <cstdint>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 #include <mutex>
 #include <vector>
+
+namespace RT64 {
+// Defined in RT64 hle/rt64_framebuffer_manager.cpp (JFG local change).
+extern float ShadowBlurTexels;
+}
 
 namespace jfg {
 namespace {
@@ -24,8 +32,76 @@ namespace {
 constexpr std::size_t kRspMemoryBytes = 4096U;
 constexpr std::size_t kMaximumUcodeBytes = 4096U;
 constexpr std::size_t kMaximumUcodeDataBytes = 2048U;
+constexpr std::uint32_t kMinimumWritebackWidth = 128U;
 
 void ignore_rt64_interrupts() {}
+
+// JFG_SHADOW_BLUR=<native texels> sets the soft edge on actor shadows
+// (unset or 0 = off).
+void apply_shadow_blur_setting() noexcept {
+#ifdef _WIN32
+    char* value = nullptr;
+    std::size_t value_length = 0U;
+    if (_dupenv_s(&value, &value_length, "JFG_SHADOW_BLUR") == 0 && value != nullptr) {
+        char* end = nullptr;
+        const float parsed = std::strtof(value, &end);
+        if (end != value && parsed >= 0.0f && parsed <= 16.0f) {
+            RT64::ShadowBlurTexels = parsed;
+        }
+    }
+    std::free(value);
+#endif
+}
+
+// Auto-load RT64 texture packs: every subfolder of %LOCALAPPDATA%\\JFGRecomp\\texture-packs
+// that contains an rt64.json is loaded at startup (sorted by name).
+void load_user_texture_packs(RT64::Application& application) noexcept {
+    try {
+        if (application.textureCache == nullptr) {
+            return;
+        }
+        std::filesystem::path local_app_data;
+#ifdef _WIN32
+        wchar_t* value = nullptr;
+        std::size_t value_length = 0U;
+        if (_wdupenv_s(&value, &value_length, L"LOCALAPPDATA") == 0 && value != nullptr) {
+            local_app_data = value;
+        }
+        std::free(value);
+#else
+        if (const char* value = std::getenv("LOCALAPPDATA"); value != nullptr) {
+            local_app_data = value;
+        }
+#endif
+        if (local_app_data.empty()) {
+            return;
+        }
+        const std::filesystem::path root =
+            local_app_data / "JFGRecomp" / "texture-packs";
+        std::error_code ec;
+        if (!std::filesystem::is_directory(root, ec)) {
+            return;
+        }
+        std::vector<std::filesystem::path> packs;
+        for (const auto& entry : std::filesystem::directory_iterator(root, ec)) {
+            if (entry.is_directory(ec) &&
+                std::filesystem::is_regular_file(entry.path() / "rt64.json", ec)) {
+                packs.push_back(entry.path());
+            }
+        }
+        if (packs.empty()) {
+            return;
+        }
+        std::sort(packs.begin(), packs.end());
+        std::vector<RT64::ReplacementDirectory> directories;
+        for (const auto& pack : packs) {
+            directories.emplace_back(pack);
+        }
+        application.textureCache->loadReplacementDirectories(directories);
+    }
+    catch (...) {
+    }
+}
 
 [[nodiscard]] bool address_range_valid(
     const std::uint32_t address,
@@ -323,6 +399,7 @@ struct Rt64Shell::Impl {
     bool setup_started = false;
     bool cpu_writeback = false;
     bool writeback_pending = false;
+    bool last_submit_paused = false;
     std::vector<Rt64RdramRange> writeback_ranges;
     std::uint64_t last_rdram_check_microseconds = 0U;
 
@@ -663,6 +740,8 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
             return nullptr;
         }
         impl->initialized = true;
+        load_user_texture_packs(*impl->application);
+        apply_shadow_blur_setting();
         impl->f3ddkr = std::make_unique<Rt64F3ddkr>(*impl->application);
         error = Rt64ShellError::none;
         return std::unique_ptr<Rt64Shell>(
@@ -689,6 +768,23 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
         RT64::Application& application = *impl_->application;
         if (impl_->writeback_pending)
             return Rt64ShellError::conflicting_cpu_write;
+        if (application.state->debuggerInspector.paused) {
+            // Developer inspector paused (F4): RT64 skips the display list and
+            // only raises the DP interrupt. Keep the game running without
+            // treating the uninterpreted task as a renderer failure.
+            impl_->last_submit_paused = true;
+            application.processDisplayLists(
+                const_cast<std::uint8_t*>(impl_->task_rdram.data()),
+                task.command_address & 0x00FF'FFFFU,
+                0U,
+                true);
+            if (impl_->cpu_writeback) {
+                impl_->writeback_ranges.clear();
+                impl_->writeback_pending = true;
+            }
+            return Rt64ShellError::none;
+        }
+        impl_->last_submit_paused = false;
         const auto previous_write = application.state->framebufferManager.writeTimestamp;
         impl_->writeback_ranges.clear();
         application.state->rsp->reset();
@@ -718,6 +814,13 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
             // pixels, so same-value GPU writes cannot hide CPU conflicts.
             for (const auto& [address, framebuffer] : application.state->framebufferManager.framebuffers) {
                 (void)address;
+                // Skip small offscreen targets (e.g. the 64x64 actor shadow
+                // buffers). Writing those back forces RT64 to re-read them
+                // from RDRAM at native resolution, which makes shadows blocky.
+                // The lens-flare depth check only needs full-size buffers.
+                if (framebuffer.width < kMinimumWritebackWidth) {
+                    continue;
+                }
                 if (framebuffer.lastWriteTimestamp > previous_write) {
                     impl_->writeback_ranges.push_back(
                         {framebuffer.addressStart, framebuffer.addressEnd});
@@ -821,6 +924,7 @@ Rt64GraphicsDiagnostics Rt64Shell::last_graphics_diagnostics()
     diagnostics.triangles_drawn = stats.triangles_drawn;
     diagnostics.dma_display_lists = stats.dma_display_lists;
     diagnostics.color_image_address = stats.color_image_address;
+    diagnostics.renderer_paused = impl_->last_submit_paused;
     diagnostics.rejected_command_word0 = stats.rejected_command_word0;
     diagnostics.rejected_command_word1 = stats.rejected_command_word1;
     diagnostics.rejected_command_address = stats.rejected_command_address;

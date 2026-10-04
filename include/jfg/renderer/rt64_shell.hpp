@@ -144,6 +144,9 @@ struct Rt64GraphicsDiagnostics {
     std::size_t display_list_branches = 0U;
     std::uint32_t last_display_list_address = 0U;
     std::uint32_t last_display_list_target = 0U;
+    // True when the RT64 developer inspector was paused and the last task was
+    // not interpreted (RT64 only acknowledges it with a DP interrupt).
+    bool renderer_paused = false;
 };
 
 [[nodiscard]] Rt64ShellError validate_rt64_shell_configuration(

@@ -3259,12 +3259,17 @@ bool initialize_live_renderer(State &state, LiveRt64Window &window) {
       _close(null_stdout);
     return false;
   }
+  // Opt-in RT64 developer inspector (press F1 in game): JFG_RT64_DEVELOPER=1.
+  char rt64_developer_flag[2]{};
+  const bool rt64_developer_mode =
+      GetEnvironmentVariableA("JFG_RT64_DEVELOPER", rt64_developer_flag, 2U) == 1U &&
+      rt64_developer_flag[0] == '1';
   state.rt64_shell = jfg::Rt64Shell::create(
       {window.get(), GetCurrentThreadId(),
        std::span<const std::byte>(
            reinterpret_cast<const std::byte *>(state.rom),
            jfg::kRt64RequiredHeaderBytes),
-       state.rt64_rdram, &state.rt64_vi, false,
+       state.rt64_rdram, &state.rt64_vi, rt64_developer_mode,
        jfg::Rt64MemoryLayout::host_word_swapped, state.renderer_writeback_probe},
       error);
   std::fflush(stdout);
@@ -3473,6 +3478,43 @@ LONG WINAPI child_exception_filter(EXCEPTION_POINTERS *exception) {
                               ? "access-rva-%08llx"
                               : "exception-rva-%08llx",
                           static_cast<unsigned long long>(instruction - module));
+      // Name the module that faulted plus a short call stack, so crashes in
+      // driver/system DLLs can be attributed (module+offset per frame).
+      {
+        auto describe = [](const std::uintptr_t address, char* out, const std::size_t size) {
+          HMODULE owner = nullptr;
+          char path[MAX_PATH]{};
+          if (address != 0U &&
+              GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                                     GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                 reinterpret_cast<LPCSTR>(address), &owner) &&
+              owner != nullptr &&
+              GetModuleFileNameA(owner, path, MAX_PATH) != 0U) {
+            const char* base = path;
+            for (const char* c = path; *c != '\0'; ++c)
+              if (*c == '\\' || *c == '/') base = c + 1;
+            (void)std::snprintf(out, size, "%s+%llx", base,
+                                static_cast<unsigned long long>(
+                                    address - reinterpret_cast<std::uintptr_t>(owner)));
+          } else {
+            (void)std::snprintf(out, size, "?%llx",
+                                static_cast<unsigned long long>(address));
+          }
+        };
+        char where[160]{};
+        describe(instruction, where, sizeof(where));
+        std::fprintf(stderr, "{\"kind\":\"jfg-crash-site\",\"code\":\"0x%08lx\",\"at\":\"%s\",\"stack\":[",
+                     static_cast<unsigned long>(code), where);
+        void* frames[32]{};
+        const USHORT count = RtlCaptureStackBackTrace(0U, 32U, frames, nullptr);
+        for (USHORT i = 0U; i < count; ++i) {
+          char frame[160]{};
+          describe(reinterpret_cast<std::uintptr_t>(frames[i]), frame, sizeof(frame));
+          std::fprintf(stderr, "%s\"%s\"", i == 0U ? "" : ",", frame);
+        }
+        std::fprintf(stderr, "]}\n");
+        std::fflush(stderr);
+      }
       ledger(*state, "native-crash", operation.data(), target);
     }
   }
@@ -4297,7 +4339,7 @@ void complete_pending_live_graphics_tasks(
         state.vi_current_framebuffer & 0x00FFFFFFU;
     const std::uint32_t next_target =
         state.vi_next_framebuffer & 0x00FFFFFFU;
-    if (require_offscreen_target &&
+    if (require_offscreen_target && !graphics.renderer_paused &&
         (graphics.color_image_address == 0U ||
          graphics.color_image_address == current_target ||
          graphics.color_image_address == next_target))
