@@ -1,4 +1,5 @@
 #include "jfg/renderer/rt64_shell.hpp"
+#include "jfg/renderer/vi_presentation.hpp"
 
 #include "rt64_f3ddkr.hpp"
 
@@ -15,6 +16,8 @@
 #include <cmath>
 #include <cstring>
 #include <cstdlib>
+#include <cstdio>
+#include <string>
 #include <algorithm>
 #include <filesystem>
 #include <memory>
@@ -36,9 +39,143 @@ constexpr std::uint32_t kMinimumWritebackWidth = 128U;
 
 void ignore_rt64_interrupts() {}
 
+// JFG_ZB_TRACE=<file>: diagnostic log of the game's lens-flare depth checks
+// (mainAddZBCheck/mainUpdateZBCheck). For each graphics task it records the
+// 8 check slots (0x800FD750), the z-buffer pointer (0x800FECBC) and, for each
+// active slot, depth statistics of RT64's rendered RDRAM inside the slot rect
+// plus whether the z-buffer range is being written back to the game.
+struct ZbTrace {
+    std::FILE* file = nullptr;
+    std::FILE* summary = nullptr;
+    std::string base;
+    std::uint32_t dumps = 0U;
+    bool checked = false;
+    std::uint64_t task = 0U;
+    std::uint64_t lines = 0U;
+};
+ZbTrace g_zb_trace;
+
+std::uint32_t zb_u8(const std::vector<std::uint8_t>& r, std::uint32_t a) noexcept {
+    a &= 0x00FFFFFFU;
+    return a < r.size() ? r[a ^ 3U] : 0U;
+}
+std::uint32_t zb_u16(const std::vector<std::uint8_t>& r, std::uint32_t a) noexcept {
+    return (zb_u8(r, a) << 8U) | zb_u8(r, a + 1U);
+}
+std::uint32_t zb_u32(const std::vector<std::uint8_t>& r, std::uint32_t a) noexcept {
+    return (zb_u16(r, a) << 16U) | zb_u16(r, a + 2U);
+}
+
+void trace_zb_checks(const std::vector<std::uint8_t>& r,
+                     const std::vector<Rt64RdramRange>& ranges,
+                     std::uint32_t color_image,
+                     const RT64::FramebufferManager* fbm = nullptr) noexcept {
+    if (!g_zb_trace.checked) {
+        g_zb_trace.checked = true;
+#ifdef _WIN32
+        char* value = nullptr;
+        std::size_t length = 0U;
+        if (_dupenv_s(&value, &length, "JFG_ZB_TRACE") == 0 && value != nullptr && *value != '\0') {
+            g_zb_trace.base = value;
+            (void)fopen_s(&g_zb_trace.file, value, "w");
+            (void)fopen_s(&g_zb_trace.summary, (g_zb_trace.base + ".summary.tsv").c_str(), "w");
+            if (g_zb_trace.summary != nullptr)
+                std::fputs("task\tcolor\tzbuf\tzb_written\tnonfar\tzero\tranges\tfb_found\tever_depth\tlast_type\tfb_w\tfb_h\tfb_end\tlast_rect\tnfb\tms\tdelay\tvdt\tvdc\n", g_zb_trace.summary);
+        }
+        std::free(value);
+#endif
+        if (g_zb_trace.file != nullptr)
+            std::fputs("task\tcolor\tzbuf\tzb_written\tslot\tx\ty\tw\th\tresult\tfar\tnear_min\tcount\n", g_zb_trace.file);
+    }
+    if (g_zb_trace.file == nullptr || g_zb_trace.lines > 400000U)
+        return;
+    ++g_zb_trace.task;
+    const std::uint32_t zbuf = zb_u32(r, 0x800FECBCU) & 0x00FFFFFFU;
+    bool zb_written = false;
+    for (const auto range : ranges)
+        if (zbuf >= range.begin && zbuf < range.end) zb_written = true;
+    if (g_zb_trace.summary != nullptr && zbuf != 0U && zbuf + 320U * 240U * 2U <= r.size()) {
+        std::uint32_t nonfar = 0U, zero = 0U;
+        for (std::uint32_t i = 0U; i < 320U * 240U; ++i) {
+            const std::uint32_t z = zb_u16(r, zbuf + i * 2U);
+            if ((z & 0xFFFCU) != 0xFFFCU) ++nonfar;
+            if (z == 0U) ++zero;
+        }
+        int fb_found = 0, ever_depth = -1, last_type = -1;
+        unsigned fb_w = 0U, fb_h = 0U, fb_end = 0U, nfb = 0U;
+        int rl = 0, rt = 0, rr = 0, rb = 0;
+        if (fbm != nullptr) {
+            nfb = static_cast<unsigned>(fbm->framebuffers.size());
+            const auto it = fbm->framebuffers.find(zbuf);
+            if (it != fbm->framebuffers.end()) {
+                const auto& fb = it->second;
+                fb_found = 1;
+                ever_depth = fb.everUsedAsDepth ? 1 : 0;
+                last_type = static_cast<int>(fb.lastWriteType);
+                fb_w = fb.width; fb_h = fb.height; fb_end = fb.addressEnd;
+                rl = fb.lastWriteRect.ulx; rt = fb.lastWriteRect.uly;
+                rr = fb.lastWriteRect.lrx; rb = fb.lastWriteRect.lry;
+            }
+        }
+        static const auto zb_start = std::chrono::steady_clock::now();
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - zb_start).count();
+        std::fprintf(g_zb_trace.summary, "%llu\t%06x\t%06x\t%d\t%u\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%06x\t%d,%d,%d,%d\t%u\t%lld\t%u\t%u\t%u\n",
+            static_cast<unsigned long long>(g_zb_trace.task), color_image, zbuf,
+            zb_written ? 1 : 0, nonfar, zero, static_cast<unsigned>(ranges.size()),
+            fb_found, ever_depth, last_type, fb_w, fb_h, fb_end, rl, rt, rr, rb, nfb,
+            static_cast<long long>(ms), zb_u32(r, 0x800A3374U), zb_u8(r, 0x800FECACU),
+            zb_u8(r, 0x800FECABU));
+        // Raw dumps (big-endian 16-bit, 320x240) of the z-buffer and the last
+        // color image for a few dozen tasks, to see what depth the game gets.
+        if (g_zb_trace.dumps == 0xFFFFFFFFU) {
+            ++g_zb_trace.dumps;
+            const std::uint32_t addrs[2] = {zbuf, color_image & 0x00FFFFFFU};
+            const char* names[2] = {"z", "c"};
+            for (int k = 0; k < 2; ++k) {
+                if (addrs[k] == 0U || addrs[k] + 320U * 240U * 2U > r.size()) continue;
+                std::FILE* f = nullptr;
+                char suffix[64];
+                std::snprintf(suffix, sizeof(suffix), ".%05llu.%s.bin",
+                    static_cast<unsigned long long>(g_zb_trace.task), names[k]);
+                (void)fopen_s(&f, (g_zb_trace.base + suffix).c_str(), "wb");
+                if (f == nullptr) continue;
+                for (std::uint32_t i = 0U; i < 320U * 240U * 2U; ++i) {
+                    const unsigned char b = static_cast<unsigned char>(zb_u8(r, addrs[k] + i));
+                    std::fputc(b, f);
+                }
+                std::fclose(f);
+            }
+        }
+        if ((g_zb_trace.task & 63U) == 0U) std::fflush(g_zb_trace.summary);
+    }
+    for (std::uint32_t slot = 0U; slot < 8U; ++slot) {
+        const std::uint32_t e = 0x800FD750U + slot * 8U;
+        const std::uint32_t x = zb_u16(r, e), y = zb_u16(r, e + 2U);
+        const std::uint32_t w = zb_u8(r, e + 5U), h = zb_u8(r, e + 6U);
+        const std::uint32_t result = zb_u8(r, e + 7U);
+        if (w == 0U || h == 0U || x >= 640U || y >= 480U) continue;
+        std::uint32_t far_count = 0U, near_min = 0xFFFFU, count = 0U;
+        for (std::uint32_t yy = y; yy < y + h; ++yy)
+            for (std::uint32_t xx = x; xx < x + w; ++xx) {
+                const std::uint32_t z = zb_u16(r, zbuf + (yy * 320U + xx) * 2U);
+                ++count;
+                if ((z & 0xFFFCU) == 0xFFFCU) ++far_count;
+                else if (z < near_min) near_min = z;
+            }
+        std::fprintf(g_zb_trace.file, "%llu\t%06x\t%06x\t%d\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%04x\t%u\n",
+            static_cast<unsigned long long>(g_zb_trace.task), color_image, zbuf,
+            zb_written ? 1 : 0, slot, x, y, w, h, result, far_count, near_min, count);
+        ++g_zb_trace.lines;
+    }
+    if ((g_zb_trace.task & 63U) == 0U) std::fflush(g_zb_trace.file);
+}
+
 // JFG_SHADOW_BLUR=<native texels> sets the soft edge on actor shadows
-// (unset or 0 = off).
+// (0 = off). Defaults to 1.5 so the launcher, which clears JFG_* variables,
+// still gets soft shadows.
 void apply_shadow_blur_setting() noexcept {
+    RT64::ShadowBlurTexels = 1.5f;
 #ifdef _WIN32
     char* value = nullptr;
     std::size_t value_length = 0U;
@@ -214,18 +351,16 @@ void clear_vi_guard_texel(
     // undefined, so linear VI sampling otherwise repeats it as a colored
     // edge. Clip exactly one source texel after VI scaling without touching
     // guest RDRAM or the rendered image interior.
+    const auto display = jfg::vi_presentation_size(vi.hRegion.word, vi.vRegion.word);
+    if (!display.valid()) return;
     const double scale = (std::min)(
-        static_cast<double>(window_width) /
-            static_cast<double>(framebuffer_size.x),
-        static_cast<double>(window_height) /
-            static_cast<double>(framebuffer_size.y));
+        static_cast<double>(window_width) / display.width,
+        static_cast<double>(window_height) / display.height);
     if (!std::isfinite(scale) || scale <= 0.0) {
         return;
     }
-    const double rendered_width =
-        static_cast<double>(framebuffer_size.x) * scale;
-    const double rendered_height =
-        static_cast<double>(framebuffer_size.y) * scale;
+    const double rendered_width = display.width * scale;
+    const double rendered_height = display.height * scale;
     const std::int32_t left = static_cast<std::int32_t>(std::lround(
         (static_cast<double>(window_width) - rendered_width) * 0.5));
     const std::int32_t top = static_cast<std::int32_t>(std::lround(
@@ -234,14 +369,16 @@ void clear_vi_guard_texel(
         static_cast<double>(left) + rendered_width));
     const std::int32_t bottom = static_cast<std::int32_t>(std::lround(
         static_cast<double>(top) + rendered_height));
-    const std::int32_t guard = static_cast<std::int32_t>(std::ceil(scale));
+    const std::int32_t guard_x = static_cast<std::int32_t>(std::ceil(rendered_width / framebuffer_size.x));
+    const std::int32_t guard_y = static_cast<std::int32_t>(std::ceil(rendered_height / framebuffer_size.y));
+    const std::int32_t guard = (std::max)(guard_x, guard_y);
     if (right <= left || bottom <= top || guard <= 0) {
         return;
     }
 
     const std::array<RenderRect, 2U> guard_rectangles{
-        RenderRect((std::max)(left, right - guard), top, right, bottom),
-        RenderRect(left, (std::max)(top, bottom - guard), right, bottom),
+        RenderRect((std::max)(left, right - guard_x), top, right, bottom),
+        RenderRect(left, (std::max)(top, bottom - guard_y), right, bottom),
     };
     list->clearColor(
         0U,
@@ -603,6 +740,48 @@ Rt64Shell::Rt64Shell(std::unique_ptr<Impl> impl) noexcept
 
 Rt64Shell::~Rt64Shell() = default;
 
+// Community backport of upstream v0.4.0-preview.4 ("CPU texture refresh after
+// framebuffer reuse"): refresh every byte outside live framebuffers from the
+// CPU snapshot so recycled framebuffer memory cannot leave stale texels in
+// CPU textures (opaque boxes/rectangles around alpha textures).
+static Rt64ShellError refresh_rt64_cpu_memory(
+    const std::span<const std::byte> source,
+    const std::span<std::byte> destination,
+    const std::span<const Rt64RdramRange> gpu_ranges,
+    const Rt64MemoryLayout layout) noexcept {
+    if (source.size() != kRt64RequiredRdramBytes || destination.size() != source.size())
+        return Rt64ShellError::invalid_memory;
+    std::size_t previous_begin = 0U;
+    for (const auto range : gpu_ranges) {
+        if (range.begin >= range.end || range.end > source.size() || range.begin < previous_begin)
+            return Rt64ShellError::invalid_memory;
+        previous_begin = range.begin;
+    }
+    const auto copy_gap = [&](std::size_t begin, const std::size_t end) {
+        if (layout == Rt64MemoryLayout::big_endian) {
+            for (; begin < end; ++begin)
+                destination[begin ^ 3U] = source[begin];
+            return;
+        }
+        for (; begin < end && (begin & 3U) != 0U; ++begin)
+            destination[begin ^ 3U] = source[begin ^ 3U];
+        const std::size_t aligned_end = end & ~std::size_t{3U};
+        if (aligned_end > begin) {
+            std::memcpy(destination.data() + begin, source.data() + begin, aligned_end - begin);
+            begin = aligned_end;
+        }
+        for (; begin < end; ++begin)
+            destination[begin ^ 3U] = source[begin ^ 3U];
+    };
+    std::size_t cursor = 0U;
+    for (const auto range : gpu_ranges) {
+        if (range.begin > cursor) copy_gap(cursor, range.begin);
+        cursor = (std::max)(cursor, range.end);
+    }
+    if (cursor < source.size()) copy_gap(cursor, source.size());
+    return Rt64ShellError::none;
+}
+
 Rt64ShellError Rt64Shell::replace_rdram_snapshot(
     const std::span<const std::byte> rdram,
     const Rt64MemoryLayout layout) noexcept {
@@ -620,6 +799,22 @@ Rt64ShellError Rt64Shell::replace_rdram_snapshot(
     if (merge_error != Rt64ShellError::none) {
         return merge_error;
     }
+    std::vector<Rt64RdramRange> gpu_ranges;
+    try {
+        for (const auto& [address, framebuffer] : impl_->application->state->framebufferManager.framebuffers) {
+            (void)address;
+            if (framebuffer.lastWriteType != RT64::Framebuffer::Type::None &&
+                framebuffer.addressStart < framebuffer.addressEnd)
+                gpu_ranges.push_back({framebuffer.addressStart, framebuffer.addressEnd});
+        }
+        std::sort(gpu_ranges.begin(), gpu_ranges.end(), [](const auto left, const auto right) {
+            return left.begin < right.begin;
+        });
+    }
+    catch (...) { return Rt64ShellError::renderer_exception; }
+    const auto refresh_error = refresh_rt64_cpu_memory(rdram,
+        std::as_writable_bytes(std::span(impl_->rdram)), gpu_ranges, layout);
+    if (refresh_error != Rt64ShellError::none) return refresh_error;
     if (layout == Rt64MemoryLayout::host_word_swapped) {
         impl_->task_rdram = {
             reinterpret_cast<const std::uint8_t*>(rdram.data()),
@@ -826,6 +1021,9 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
                         {framebuffer.addressStart, framebuffer.addressEnd});
                 }
             }
+            trace_zb_checks(impl_->rdram, impl_->writeback_ranges,
+                application.state->rdp->colorImage.address,
+                &application.state->framebufferManager);
             impl_->writeback_pending = true;
         }
         return Rt64ShellError::none;
@@ -848,6 +1046,48 @@ Rt64ShellError Rt64Shell::commit_cpu_writeback(
         impl_->writeback_ranges.clear();
     }
     return result;
+}
+
+// Community backport of upstream preview.2+: presentation asks RT64 whether
+// the VI-selected color target is resident instead of trusting a small
+// snapshot cache that cutscene effects targets can evict.
+bool Rt64Shell::has_color_framebuffer(const std::uint32_t address) const noexcept {
+    if (impl_ == nullptr || !impl_->initialized || impl_->application == nullptr ||
+        impl_->application->state == nullptr || address >= impl_->rdram.size()) {
+        return false;
+    }
+    const auto* framebuffer = impl_->application->state->framebufferManager.find(address);
+    return framebuffer != nullptr &&
+        framebuffer->lastWriteType == RT64::Framebuffer::Type::Color;
+}
+
+std::string Rt64Shell::debug_framebuffers_overlapping(
+    const std::uint32_t begin, const std::uint32_t end) const {
+    std::string text;
+    if (impl_ == nullptr || !impl_->initialized || impl_->application == nullptr ||
+        impl_->application->state == nullptr)
+        return text;
+    const auto& manager = impl_->application->state->framebufferManager;
+    for (const auto& [address, framebuffer] : manager.framebuffers) {
+        if (framebuffer.addressEnd <= begin || framebuffer.addressStart >= end)
+            continue;
+        char line[256];
+        (void)std::snprintf(line, sizeof(line),
+            " fb=%x-%x w=%u h=%u maxh=%u siz=%u ram=%u type=%d last=%llu now=%llu",
+            static_cast<unsigned>(framebuffer.addressStart),
+            static_cast<unsigned>(framebuffer.addressEnd),
+            static_cast<unsigned>(framebuffer.width),
+            static_cast<unsigned>(framebuffer.height),
+            static_cast<unsigned>(framebuffer.maxHeight),
+            static_cast<unsigned>(framebuffer.siz),
+            static_cast<unsigned>(framebuffer.RAMBytes),
+            static_cast<int>(framebuffer.lastWriteType),
+            static_cast<unsigned long long>(framebuffer.lastWriteTimestamp),
+            static_cast<unsigned long long>(manager.writeTimestamp));
+        (void)address;
+        text += line;
+    }
+    return text;
 }
 
 Rt64ShellError Rt64Shell::present(const bool capture_frame) noexcept {

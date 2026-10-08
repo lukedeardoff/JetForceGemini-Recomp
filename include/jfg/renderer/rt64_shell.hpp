@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <memory>
 #include <span>
 
@@ -193,6 +194,12 @@ public:
         Rt64MemoryLayout layout) const noexcept;
     [[nodiscard]] Rt64ShellError commit_cpu_writeback(
         std::span<const std::byte> submitted, std::span<std::byte> live) noexcept;
+    [[nodiscard]] bool has_color_framebuffer(std::uint32_t address) const noexcept;
+    // Community diagnostic (AI-assisted, Claude, 2026-10): one line per RT64
+    // framebuffer whose RDRAM range overlaps [begin, end): address, size and
+    // write state. Empty when none overlap.
+    [[nodiscard]] std::string debug_framebuffers_overlapping(
+        std::uint32_t begin, std::uint32_t end) const;
     [[nodiscard]] Rt64ShellError present(bool capture_frame = true) noexcept;
     [[nodiscard]] bool developer_debugger_available() const noexcept;
     [[nodiscard]] std::size_t last_command_count() const noexcept;
