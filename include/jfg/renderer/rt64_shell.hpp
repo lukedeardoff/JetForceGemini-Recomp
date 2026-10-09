@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <memory>
 #include <span>
 
@@ -149,6 +150,9 @@ struct Rt64GraphicsDiagnostics {
     std::size_t display_list_branches = 0U;
     std::uint32_t last_display_list_address = 0U;
     std::uint32_t last_display_list_target = 0U;
+    // True when the RT64 developer inspector was paused and the last task was
+    // not interpreted (RT64 only acknowledges it with a DP interrupt).
+    bool renderer_paused = false;
 };
 
 [[nodiscard]] Rt64ShellError validate_rt64_shell_configuration(
@@ -204,6 +208,11 @@ public:
     // Query on the same frontend thread as submit/present. This follows RT64's
     // resident framebuffer registry, independently of host snapshot lifetimes.
     [[nodiscard]] bool has_color_framebuffer(std::uint32_t address) const noexcept;
+    // Community diagnostic (AI-assisted, Claude, 2026-10): one line per RT64
+    // framebuffer whose RDRAM range overlaps [begin, end): address, size and
+    // write state. Empty when none overlap.
+    [[nodiscard]] std::string debug_framebuffers_overlapping(
+        std::uint32_t begin, std::uint32_t end) const;
     [[nodiscard]] Rt64ShellError present(bool capture_frame = true) noexcept;
     [[nodiscard]] bool developer_debugger_available() const noexcept;
     [[nodiscard]] std::size_t last_command_count() const noexcept;

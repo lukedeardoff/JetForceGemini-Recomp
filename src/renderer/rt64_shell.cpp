@@ -5,6 +5,7 @@
 
 #include "hle/rt64_application.h"
 #include "hle/rt64_vi.h"
+#include "render/rt64_texture_cache.h"
 #include "rhi/rt64_render_hooks.h"
 
 #include <algorithm>
@@ -15,6 +16,10 @@
 #include <cstdint>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
+#include <cstdio>
+#include <string>
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -28,6 +33,188 @@ constexpr std::size_t kMaximumUcodeBytes = 4096U;
 constexpr std::size_t kMaximumUcodeDataBytes = 2048U;
 
 void ignore_rt64_interrupts() {}
+
+// JFG_ZB_TRACE=<file>: diagnostic log of the game's lens-flare depth checks
+// (mainAddZBCheck/mainUpdateZBCheck). For each graphics task it records the
+// 8 check slots (0x800FD750), the z-buffer pointer (0x800FECBC) and, for each
+// active slot, depth statistics of RT64's rendered RDRAM inside the slot rect
+// plus whether the z-buffer range is being written back to the game.
+struct ZbTrace {
+    std::FILE* file = nullptr;
+    std::FILE* summary = nullptr;
+    std::string base;
+    std::uint32_t dumps = 0U;
+    bool checked = false;
+    std::uint64_t task = 0U;
+    std::uint64_t lines = 0U;
+};
+ZbTrace g_zb_trace;
+
+std::uint32_t zb_u8(const std::vector<std::uint8_t>& r, std::uint32_t a) noexcept {
+    a &= 0x00FFFFFFU;
+    return a < r.size() ? r[a ^ 3U] : 0U;
+}
+std::uint32_t zb_u16(const std::vector<std::uint8_t>& r, std::uint32_t a) noexcept {
+    return (zb_u8(r, a) << 8U) | zb_u8(r, a + 1U);
+}
+std::uint32_t zb_u32(const std::vector<std::uint8_t>& r, std::uint32_t a) noexcept {
+    return (zb_u16(r, a) << 16U) | zb_u16(r, a + 2U);
+}
+
+void trace_zb_checks(const std::vector<std::uint8_t>& r,
+                     const std::vector<Rt64RdramRange>& ranges,
+                     std::uint32_t color_image,
+                     const RT64::FramebufferManager* fbm = nullptr) noexcept {
+    if (!g_zb_trace.checked) {
+        g_zb_trace.checked = true;
+#ifdef _WIN32
+        char* value = nullptr;
+        std::size_t length = 0U;
+        if (_dupenv_s(&value, &length, "JFG_ZB_TRACE") == 0 && value != nullptr && *value != '\0') {
+            g_zb_trace.base = value;
+            (void)fopen_s(&g_zb_trace.file, value, "w");
+            (void)fopen_s(&g_zb_trace.summary, (g_zb_trace.base + ".summary.tsv").c_str(), "w");
+            if (g_zb_trace.summary != nullptr)
+                std::fputs("task\tcolor\tzbuf\tzb_written\tnonfar\tzero\tranges\tfb_found\tever_depth\tlast_type\tfb_w\tfb_h\tfb_end\tlast_rect\tnfb\tms\tdelay\tvdt\tvdc\n", g_zb_trace.summary);
+        }
+        std::free(value);
+#endif
+        if (g_zb_trace.file != nullptr)
+            std::fputs("task\tcolor\tzbuf\tzb_written\tslot\tx\ty\tw\th\tresult\tfar\tnear_min\tcount\n", g_zb_trace.file);
+    }
+    if (g_zb_trace.file == nullptr || g_zb_trace.lines > 400000U)
+        return;
+    ++g_zb_trace.task;
+    const std::uint32_t zbuf = zb_u32(r, 0x800FECBCU) & 0x00FFFFFFU;
+    bool zb_written = false;
+    for (const auto range : ranges)
+        if (zbuf >= range.begin && zbuf < range.end) zb_written = true;
+    if (g_zb_trace.summary != nullptr && zbuf != 0U && zbuf + 320U * 240U * 2U <= r.size()) {
+        std::uint32_t nonfar = 0U, zero = 0U;
+        for (std::uint32_t i = 0U; i < 320U * 240U; ++i) {
+            const std::uint32_t z = zb_u16(r, zbuf + i * 2U);
+            if ((z & 0xFFFCU) != 0xFFFCU) ++nonfar;
+            if (z == 0U) ++zero;
+        }
+        int fb_found = 0, ever_depth = -1, last_type = -1;
+        unsigned fb_w = 0U, fb_h = 0U, fb_end = 0U, nfb = 0U;
+        int rl = 0, rt = 0, rr = 0, rb = 0;
+        if (fbm != nullptr) {
+            nfb = static_cast<unsigned>(fbm->framebuffers.size());
+            const auto it = fbm->framebuffers.find(zbuf);
+            if (it != fbm->framebuffers.end()) {
+                const auto& fb = it->second;
+                fb_found = 1;
+                ever_depth = fb.everUsedAsDepth ? 1 : 0;
+                last_type = static_cast<int>(fb.lastWriteType);
+                fb_w = fb.width; fb_h = fb.height; fb_end = fb.addressEnd;
+                rl = fb.lastWriteRect.ulx; rt = fb.lastWriteRect.uly;
+                rr = fb.lastWriteRect.lrx; rb = fb.lastWriteRect.lry;
+            }
+        }
+        static const auto zb_start = std::chrono::steady_clock::now();
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - zb_start).count();
+        std::fprintf(g_zb_trace.summary, "%llu\t%06x\t%06x\t%d\t%u\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%06x\t%d,%d,%d,%d\t%u\t%lld\t%u\t%u\t%u\n",
+            static_cast<unsigned long long>(g_zb_trace.task), color_image, zbuf,
+            zb_written ? 1 : 0, nonfar, zero, static_cast<unsigned>(ranges.size()),
+            fb_found, ever_depth, last_type, fb_w, fb_h, fb_end, rl, rt, rr, rb, nfb,
+            static_cast<long long>(ms), zb_u32(r, 0x800A3374U), zb_u8(r, 0x800FECACU),
+            zb_u8(r, 0x800FECABU));
+        // Raw dumps (big-endian 16-bit, 320x240) of the z-buffer and the last
+        // color image for a few dozen tasks, to see what depth the game gets.
+        if (g_zb_trace.dumps == 0xFFFFFFFFU) {
+            ++g_zb_trace.dumps;
+            const std::uint32_t addrs[2] = {zbuf, color_image & 0x00FFFFFFU};
+            const char* names[2] = {"z", "c"};
+            for (int k = 0; k < 2; ++k) {
+                if (addrs[k] == 0U || addrs[k] + 320U * 240U * 2U > r.size()) continue;
+                std::FILE* f = nullptr;
+                char suffix[64];
+                std::snprintf(suffix, sizeof(suffix), ".%05llu.%s.bin",
+                    static_cast<unsigned long long>(g_zb_trace.task), names[k]);
+                (void)fopen_s(&f, (g_zb_trace.base + suffix).c_str(), "wb");
+                if (f == nullptr) continue;
+                for (std::uint32_t i = 0U; i < 320U * 240U * 2U; ++i) {
+                    const unsigned char b = static_cast<unsigned char>(zb_u8(r, addrs[k] + i));
+                    std::fputc(b, f);
+                }
+                std::fclose(f);
+            }
+        }
+        if ((g_zb_trace.task & 63U) == 0U) std::fflush(g_zb_trace.summary);
+    }
+    for (std::uint32_t slot = 0U; slot < 8U; ++slot) {
+        const std::uint32_t e = 0x800FD750U + slot * 8U;
+        const std::uint32_t x = zb_u16(r, e), y = zb_u16(r, e + 2U);
+        const std::uint32_t w = zb_u8(r, e + 5U), h = zb_u8(r, e + 6U);
+        const std::uint32_t result = zb_u8(r, e + 7U);
+        if (w == 0U || h == 0U || x >= 640U || y >= 480U) continue;
+        std::uint32_t far_count = 0U, near_min = 0xFFFFU, count = 0U;
+        for (std::uint32_t yy = y; yy < y + h; ++yy)
+            for (std::uint32_t xx = x; xx < x + w; ++xx) {
+                const std::uint32_t z = zb_u16(r, zbuf + (yy * 320U + xx) * 2U);
+                ++count;
+                if ((z & 0xFFFCU) == 0xFFFCU) ++far_count;
+                else if (z < near_min) near_min = z;
+            }
+        std::fprintf(g_zb_trace.file, "%llu\t%06x\t%06x\t%d\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%04x\t%u\n",
+            static_cast<unsigned long long>(g_zb_trace.task), color_image, zbuf,
+            zb_written ? 1 : 0, slot, x, y, w, h, result, far_count, near_min, count);
+        ++g_zb_trace.lines;
+    }
+    if ((g_zb_trace.task & 63U) == 0U) std::fflush(g_zb_trace.file);
+}
+
+// Auto-load RT64 texture packs: every subfolder of %LOCALAPPDATA%\\JFGRecomp\\texture-packs
+// that contains an rt64.json is loaded at startup (sorted by name).
+void load_user_texture_packs(RT64::Application& application) noexcept {
+    try {
+        if (application.textureCache == nullptr) {
+            return;
+        }
+        std::filesystem::path local_app_data;
+#ifdef _WIN32
+        wchar_t* value = nullptr;
+        std::size_t value_length = 0U;
+        if (_wdupenv_s(&value, &value_length, L"LOCALAPPDATA") == 0 && value != nullptr) {
+            local_app_data = value;
+        }
+        std::free(value);
+#else
+        if (const char* value = std::getenv("LOCALAPPDATA"); value != nullptr) {
+            local_app_data = value;
+        }
+#endif
+        if (local_app_data.empty()) {
+            return;
+        }
+        const std::filesystem::path root =
+            local_app_data / "JFGRecomp" / "texture-packs";
+        std::error_code ec;
+        if (!std::filesystem::is_directory(root, ec)) {
+            return;
+        }
+        std::vector<std::filesystem::path> packs;
+        for (const auto& entry : std::filesystem::directory_iterator(root, ec)) {
+            if (entry.is_directory(ec) &&
+                std::filesystem::is_regular_file(entry.path() / "rt64.json", ec)) {
+                packs.push_back(entry.path());
+            }
+        }
+        if (packs.empty()) {
+            return;
+        }
+        std::sort(packs.begin(), packs.end());
+        std::vector<RT64::ReplacementDirectory> directories;
+        for (const auto& pack : packs) {
+            directories.emplace_back(pack);
+        }
+        application.textureCache->loadReplacementDirectories(directories);
+    }
+    catch (...) {
+    }
+}
 
 [[nodiscard]] bool address_range_valid(
     const std::uint32_t address,
@@ -322,6 +509,7 @@ struct Rt64Shell::Impl {
     bool cpu_writeback = false;
     bool cpu_mask_writeback = false;
     bool writeback_pending = false;
+    bool last_submit_paused = false;
     std::vector<Rt64RdramRange> writeback_ranges;
     std::uint64_t last_rdram_check_microseconds = 0U;
 
@@ -726,6 +914,7 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
             return nullptr;
         }
         impl->initialized = true;
+        load_user_texture_packs(*impl->application);
         impl->f3ddkr = std::make_unique<Rt64F3ddkr>(*impl->application);
         error = Rt64ShellError::none;
         return std::unique_ptr<Rt64Shell>(
@@ -752,6 +941,23 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
         RT64::Application& application = *impl_->application;
         if (impl_->writeback_pending)
             return Rt64ShellError::conflicting_cpu_write;
+        if (application.state->debuggerInspector.paused) {
+            // Developer inspector paused (F4): RT64 skips the display list and
+            // only raises the DP interrupt. Keep the game running without
+            // treating the uninterpreted task as a renderer failure.
+            impl_->last_submit_paused = true;
+            application.processDisplayLists(
+                const_cast<std::uint8_t*>(impl_->task_rdram.data()),
+                task.command_address & 0x00FF'FFFFU,
+                0U,
+                true);
+            if (impl_->cpu_writeback) {
+                impl_->writeback_ranges.clear();
+                impl_->writeback_pending = true;
+            }
+            return Rt64ShellError::none;
+        }
+        impl_->last_submit_paused = false;
         const auto previous_write = application.state->framebufferManager.writeTimestamp;
         impl_->writeback_ranges.clear();
         application.state->rsp->reset();
@@ -791,6 +997,9 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
                         {framebuffer.addressStart, framebuffer.addressEnd});
                 }
             }
+            trace_zb_checks(impl_->rdram, impl_->writeback_ranges,
+                application.state->rdp->colorImage.address,
+                &application.state->framebufferManager);
             impl_->writeback_pending = true;
         }
         return Rt64ShellError::none;
@@ -825,6 +1034,35 @@ bool Rt64Shell::has_color_framebuffer(const std::uint32_t address) const noexcep
     const auto* framebuffer = impl_->application->state->framebufferManager.find(address);
     return framebuffer != nullptr &&
         framebuffer->lastWriteType == RT64::Framebuffer::Type::Color;
+}
+
+std::string Rt64Shell::debug_framebuffers_overlapping(
+    const std::uint32_t begin, const std::uint32_t end) const {
+    std::string text;
+    if (impl_ == nullptr || !impl_->initialized || impl_->application == nullptr ||
+        impl_->application->state == nullptr)
+        return text;
+    const auto& manager = impl_->application->state->framebufferManager;
+    for (const auto& [address, framebuffer] : manager.framebuffers) {
+        if (framebuffer.addressEnd <= begin || framebuffer.addressStart >= end)
+            continue;
+        char line[256];
+        (void)std::snprintf(line, sizeof(line),
+            " fb=%x-%x w=%u h=%u maxh=%u siz=%u ram=%u type=%d last=%llu now=%llu",
+            static_cast<unsigned>(framebuffer.addressStart),
+            static_cast<unsigned>(framebuffer.addressEnd),
+            static_cast<unsigned>(framebuffer.width),
+            static_cast<unsigned>(framebuffer.height),
+            static_cast<unsigned>(framebuffer.maxHeight),
+            static_cast<unsigned>(framebuffer.siz),
+            static_cast<unsigned>(framebuffer.RAMBytes),
+            static_cast<int>(framebuffer.lastWriteType),
+            static_cast<unsigned long long>(framebuffer.lastWriteTimestamp),
+            static_cast<unsigned long long>(manager.writeTimestamp));
+        (void)address;
+        text += line;
+    }
+    return text;
 }
 
 Rt64ShellError Rt64Shell::present(const bool capture_frame) noexcept {
@@ -901,6 +1139,7 @@ Rt64GraphicsDiagnostics Rt64Shell::last_graphics_diagnostics()
     diagnostics.triangles_drawn = stats.triangles_drawn;
     diagnostics.dma_display_lists = stats.dma_display_lists;
     diagnostics.color_image_address = stats.color_image_address;
+    diagnostics.renderer_paused = impl_->last_submit_paused;
     diagnostics.rejected_command_word0 = stats.rejected_command_word0;
     diagnostics.rejected_command_word1 = stats.rejected_command_word1;
     diagnostics.rejected_command_address = stats.rejected_command_address;

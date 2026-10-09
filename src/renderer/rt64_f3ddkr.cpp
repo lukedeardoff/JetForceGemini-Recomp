@@ -14,9 +14,81 @@
 #include <cstdint>
 #include <mutex>
 #include <unordered_map>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
 
 namespace jfg {
 namespace {
+
+// Asteroid investigation (2026-10-07): texture-image log + texture-shift switch.
+//   JFG_TEXLOG=1          write diag\texlog.tsv (between JFG_TEXLOG_FROM_S and
+//                         JFG_TEXLOG_TO_S seconds after the first graphics task)
+//   JFG_TEXSHIFT_MODE=1   ignore DKR/JFG texture-offset shifts (test only)
+// Lines: T task ms | O offset_addr | I fmt siz width base final offset count shift
+//        | B lrs block_bytes shift action(0=count++,1=undo)
+// JFG's texture-offset tables are 40 u16 entries (0x50 bytes), double
+// buffered back to back (two tables 0x50 apart per scene). A texture image
+// past entry 39 reads the other buffer's entry 0 (an animated frame offset
+// such as 4096) and is loaded from the wrong address: the intro asteroids
+// turned "psychedelic" every other frame. Stop applying the table past its
+// last entry. JFG_TEXTABLE_ENTRIES overrides the size (0 = no limit).
+constexpr std::size_t kDefaultTextureOffsetEntries = 40U;
+
+struct TexLog {
+    bool ready = false;
+    std::size_t table_entries = kDefaultTextureOffsetEntries;
+    bool enabled = false;
+    int shift_mode = 0;
+    long long from_ms = 20000, to_ms = 75000;
+    std::FILE* file = nullptr;
+    std::uint64_t task = 0U;
+    long long now_ms = 0;
+    std::uint64_t lines = 0U;
+    std::chrono::steady_clock::time_point start{};
+    bool started = false;
+};
+TexLog texlog;
+
+long long texlog_env(const char* name, long long fallback) {
+    char* value = nullptr;
+    std::size_t length = 0U;
+    long long result = fallback;
+    if (_dupenv_s(&value, &length, name) == 0 && value != nullptr) {
+        if (*value != '\0') result = std::atoll(value);
+    }
+    std::free(value);
+    return result;
+}
+
+void texlog_init() {
+    if (texlog.ready) return;
+    texlog.ready = true;
+    texlog.enabled = texlog_env("JFG_TEXLOG", 0) != 0;
+    texlog.shift_mode = static_cast<int>(texlog_env("JFG_TEXSHIFT_MODE", 0));
+    texlog.table_entries = static_cast<std::size_t>(
+        texlog_env("JFG_TEXTABLE_ENTRIES", static_cast<long long>(kDefaultTextureOffsetEntries)));
+    texlog.from_ms = texlog_env("JFG_TEXLOG_FROM_S", 20) * 1000;
+    texlog.to_ms = texlog_env("JFG_TEXLOG_TO_S", 75) * 1000;
+    if (!texlog.enabled) return;
+    wchar_t* base = nullptr;
+    std::size_t length = 0U;
+    if (_wdupenv_s(&base, &length, L"LOCALAPPDATA") == 0 && base != nullptr) {
+        std::wstring path = std::wstring(base) + L"\\JFGRecomp\\diag\\texlog.tsv";
+        if (_wfopen_s(&texlog.file, path.c_str(), L"w") != 0) texlog.file = nullptr;
+    }
+    std::free(base);
+    if (texlog.file != nullptr)
+        std::fprintf(texlog.file, "# texlog v2 shift_mode=%d table_entries=%zu\n", texlog.shift_mode, texlog.table_entries);
+    else
+        texlog.enabled = false;
+}
+
+bool texlog_on() {
+    return texlog.enabled && texlog.file != nullptr &&
+           texlog.now_ms >= texlog.from_ms && texlog.now_ms <= texlog.to_ms &&
+           texlog.lines < 3000000U;
+}
 
 constexpr std::uint8_t kOpDmaMatrix = 0x01U;
 constexpr std::uint8_t kOpDmaTextureOffset = 0x02U;
@@ -250,6 +322,13 @@ void dma_texture_offset(RT64::State* state, RT64::DisplayList** dl) {
         0x00FF'FFF8U;
     context->texture_shift = 0U;
     context->texture_count = 0U;
+    if (texlog_on()) {
+        ++texlog.lines;
+        std::fprintf(texlog.file, "O\t%x\t%x\t%x\n", context->texture_offset, (*dl)->w0, (*dl)->w1);
+    }
+    if (texlog.shift_mode == 1) {
+        context->texture_offset = 0U;
+    }
 }
 
 void set_color_image(RT64::State* state, RT64::DisplayList** dl) {
@@ -287,6 +366,21 @@ void set_texture_image(RT64::State* state, RT64::DisplayList** dl) {
     const std::uint16_t width = static_cast<std::uint16_t>(
         (*dl)->p0(0U, 12U) + 1U);
     std::uint32_t address = segmented_physical(*state, (*dl)->w1);
+    const std::uint32_t texlog_base = address;
+    const std::uint32_t texlog_offset = context->texture_offset;
+    const std::size_t texlog_count = context->texture_count;
+    if (context->texture_offset != 0U && texlog.table_entries != 0U &&
+        context->texture_count >= texlog.table_entries) {
+        // Past the end of the table: stop applying it (see note above).
+        if (texlog_on()) {
+            ++texlog.lines;
+            std::fprintf(texlog.file, "X\t%x\t%zu\n", context->texture_offset,
+                context->texture_count);
+        }
+        context->texture_offset = 0U;
+        context->texture_shift = 0U;
+        context->texture_count = 0U;
+    }
     if (context->texture_offset != 0U) {
         if (format == G_IM_FMT_RGBA) {
             const std::uint32_t shift_address = context->texture_offset +
@@ -305,6 +399,12 @@ void set_texture_image(RT64::State* state, RT64::DisplayList** dl) {
             context->texture_shift = 0U;
             context->texture_count = 0U;
         }
+    }
+    if (texlog_on()) {
+        ++texlog.lines;
+        std::fprintf(texlog.file, "I\t%u\t%u\t%u\t%x\t%x\t%x\t%zu\t%u\t%x\n",
+            format, size, width, texlog_base, address, texlog_offset,
+            texlog_count, static_cast<unsigned>(context->texture_shift), (*dl)->w0);
     }
     state->rdp->setTextureImage(format, size, width, address);
 }
@@ -330,12 +430,22 @@ void load_block(RT64::State* state, RT64::DisplayList** dl) {
                 reject(state, dl);
                 return;
             }
+            if (texlog_on()) {
+                ++texlog.lines;
+                std::fprintf(texlog.file, "B\t%u\t%u\t%u\t1\n", lrs,
+                    block_bytes, static_cast<unsigned>(context->texture_shift));
+            }
             state->rdp->texture.address -= context->texture_shift;
             context->texture_offset = 0U;
             context->texture_shift = 0U;
             context->texture_count = 0U;
         }
         else {
+            if (texlog_on()) {
+                ++texlog.lines;
+                std::fprintf(texlog.file, "B\t%u\t%u\t%u\t0\n", lrs,
+                    block_bytes, static_cast<unsigned>(context->texture_shift));
+            }
             ++context->texture_count;
         }
     }
@@ -732,6 +842,18 @@ void cull_display_list(RT64::State* state, RT64::DisplayList** dl) {
     *dl = state->popReturnAddress();
 }
 
+// JFG uses full G_RDPSETOTHERMODE (0xEF) for its render modes. RT64's stock
+// handler only updates the RDP copy, but RT64's RSP keeps its own other-mode
+// stack and uses it to decide which framebuffer pairs write depth. With the
+// stale RSP copy no draw counted as Z_UPD, so the native render-to-RAM pass
+// never copied depth back and the game's lens-flare z-buffer test always saw
+// open sky. Keep both copies in sync.
+void set_other_mode_full(RT64::State* state, RT64::DisplayList** dl) {
+    const std::uint32_t high = (*dl)->p0(0U, 24U);
+    const std::uint32_t low = (*dl)->w1;
+    state->rsp->setOtherMode(high, low);
+}
+
 void move_mem(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     if (context == nullptr) {
@@ -783,6 +905,11 @@ void dma_offsets(RT64::State* state, RT64::DisplayList** dl) {
     ++context->commands;
     context->matrix_offset = (*dl)->w0 & 0x00FF'FFFFU;
     context->vertex_offset = (*dl)->w1 & 0x00FF'FFFFU;
+    if (texlog_on()) {
+        ++texlog.lines;
+        std::fprintf(texlog.file, "D\t%x\t%x\n", context->matrix_offset,
+            context->vertex_offset);
+    }
 }
 
 void run_display_list(RT64::State* state, RT64::DisplayList** dl) {
@@ -963,6 +1090,17 @@ void Rt64F3ddkr::begin(
     impl_->context.commands = 0U;
     impl_->context.stats = {};
     impl_->context.failed = false;
+    texlog_init();
+    if (!texlog.started) { texlog.started = true; texlog.start = std::chrono::steady_clock::now(); }
+    texlog.now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - texlog.start).count();
+    ++texlog.task;
+    if (texlog_on()) {
+        ++texlog.lines;
+        std::fprintf(texlog.file, "T\t%llu\t%lld\n",
+            static_cast<unsigned long long>(texlog.task), texlog.now_ms);
+        std::fflush(texlog.file);
+    }
     reset(impl_->context.application->state.get());
 }
 
@@ -994,6 +1132,7 @@ void Rt64F3ddkr::install() noexcept {
     context.gbi.map[kOpSetColorImage] = &set_color_image;
     context.gbi.map[G_LOADBLOCK] = &load_block;
     context.gbi.map[F3D_G_MOVEMEM] = &move_mem;
+    context.gbi.map[G_RDPSETOTHERMODE] = &set_other_mode_full;
     // F3DDKR has no sprite microcode; stock F3D would interpret 0x09 as a
     // Sprite2D base pointer and dereference it unchecked.
     context.gbi.map[F3D_G_SPRITE2D_BASE] = &unsupported;

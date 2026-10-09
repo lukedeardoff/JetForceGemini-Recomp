@@ -1652,6 +1652,44 @@ struct State {
   std::array<std::uint32_t, 32U> recent_dispatches{};
   std::size_t recent_dispatch_position = 0U;
   std::array<std::uint32_t, 16U> last_si_dispatch_trace{};
+#if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
+  // Community effect recorder and teleport pacing (community_effect_*).
+  std::ofstream community_effect_stream;
+  bool community_effect_log_tried = false;
+  std::chrono::steady_clock::time_point community_effect_start{};
+  std::unordered_map<std::uint32_t, std::uint32_t> community_effect_counts;
+  std::uint64_t community_effect_frame = 0U;
+  std::uint32_t community_teleport_pacing = 0U;
+  std::uint32_t community_teleport_n64_rate = 0U;
+  std::unordered_map<std::uint32_t, std::uint32_t> community_teleport_pending;
+  std::unordered_set<std::uint32_t> community_teleport_seen;
+  std::uint32_t community_teleport_speed_percent = 100U;
+  std::uint32_t community_beam_flash_ticks = 0U;
+  std::uint32_t community_beam_strand_percent = 100U;
+  std::unordered_map<std::uint32_t, std::pair<std::uint32_t, std::uint32_t>>
+      community_flash_gates;
+  std::uint32_t community_beam_bolt_style = 1U;
+  std::unordered_set<std::uint32_t> community_beam_has_bolt;
+  std::uint32_t community_capture_left = 0U;
+  std::uint32_t community_capture_count = 0U;
+  std::uint32_t community_capture_limit = 0U;
+  std::uint64_t community_beam_seen_frame = 0U;
+  std::filesystem::path community_capture_dir;
+  std::uint32_t community_last_presented_vi = 0U;
+  bool community_skip_stale_presents = true;
+  std::uint64_t community_watch_hash = 0U;
+  std::uint32_t community_watch_dumps = 0U;
+  std::string community_fb_summary;
+  bool community_hide_splats = true;
+  bool community_hide_reflections = false;
+  std::uint32_t community_capture_every = 0U;
+  std::int64_t community_capture_from_ms = 0;
+  std::int64_t community_capture_to_ms = 0;
+  std::uint64_t community_blur_state = ~0ULL;
+  std::uint32_t community_reflect_lines = 0U;
+  std::uint32_t community_blood_lines = 0U;
+  bool community_blood_base_logged = false;
+#endif
 };
 
 #if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
@@ -3616,12 +3654,17 @@ bool initialize_live_renderer(State &state, LiveRt64Window &window) {
       _close(null_stdout);
     return false;
   }
+  // Opt-in RT64 developer inspector (press F1 in game): JFG_RT64_DEVELOPER=1.
+  char rt64_developer_flag[2]{};
+  const bool rt64_developer_mode =
+      GetEnvironmentVariableA("JFG_RT64_DEVELOPER", rt64_developer_flag, 2U) == 1U &&
+      rt64_developer_flag[0] == '1';
   state.rt64_shell = jfg::Rt64Shell::create(
       {window.get(), GetCurrentThreadId(),
        std::span<const std::byte>(
            reinterpret_cast<const std::byte *>(state.rom),
            jfg::kRt64RequiredHeaderBytes),
-       state.rt64_rdram, &state.rt64_vi, false,
+       state.rt64_rdram, &state.rt64_vi, rt64_developer_mode,
        jfg::Rt64MemoryLayout::host_word_swapped, state.renderer_writeback_probe, true},
       error);
   std::fflush(stdout);
@@ -3831,6 +3874,43 @@ LONG WINAPI child_exception_filter(EXCEPTION_POINTERS *exception) {
                               ? "access-rva-%08llx"
                               : "exception-rva-%08llx",
                           static_cast<unsigned long long>(instruction - module));
+      // Name the module that faulted plus a short call stack, so crashes in
+      // driver/system DLLs can be attributed (module+offset per frame).
+      {
+        auto describe = [](const std::uintptr_t address, char* out, const std::size_t size) {
+          HMODULE owner = nullptr;
+          char path[MAX_PATH]{};
+          if (address != 0U &&
+              GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                                     GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                 reinterpret_cast<LPCSTR>(address), &owner) &&
+              owner != nullptr &&
+              GetModuleFileNameA(owner, path, MAX_PATH) != 0U) {
+            const char* base = path;
+            for (const char* c = path; *c != '\0'; ++c)
+              if (*c == '\\' || *c == '/') base = c + 1;
+            (void)std::snprintf(out, size, "%s+%llx", base,
+                                static_cast<unsigned long long>(
+                                    address - reinterpret_cast<std::uintptr_t>(owner)));
+          } else {
+            (void)std::snprintf(out, size, "?%llx",
+                                static_cast<unsigned long long>(address));
+          }
+        };
+        char where[160]{};
+        describe(instruction, where, sizeof(where));
+        std::fprintf(stderr, "{\"kind\":\"jfg-crash-site\",\"code\":\"0x%08lx\",\"at\":\"%s\",\"stack\":[",
+                     static_cast<unsigned long>(code), where);
+        void* frames[32]{};
+        const USHORT count = RtlCaptureStackBackTrace(0U, 32U, frames, nullptr);
+        for (USHORT i = 0U; i < count; ++i) {
+          char frame[160]{};
+          describe(reinterpret_cast<std::uintptr_t>(frames[i]), frame, sizeof(frame));
+          std::fprintf(stderr, "%s\"%s\"", i == 0U ? "" : ",", frame);
+        }
+        std::fprintf(stderr, "]}\n");
+        std::fflush(stderr);
+      }
       ledger(*state, "native-crash", operation.data(), target);
     }
   }
@@ -4663,7 +4743,7 @@ void complete_pending_live_graphics_tasks(
         state.vi_current_framebuffer & 0x00FFFFFFU;
     const std::uint32_t next_target =
         state.vi_next_framebuffer & 0x00FFFFFFU;
-    if (require_offscreen_target &&
+    if (require_offscreen_target && !graphics.renderer_paused &&
         (graphics.color_image_address == 0U ||
          graphics.color_image_address == current_target ||
          graphics.color_image_address == next_target))
@@ -4892,6 +4972,989 @@ void advance_legacy_vi_clock(State &state, const std::uint32_t target) {
 
 // Presentation consumes already completed work. It does not complete a
 // graphics task, advance Count, or deliver a guest interrupt.
+#if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
+// ---------------------------------------------------------------------------
+// Community change (AI-assisted, Claude, 2026-10): no stale re-presents,
+// optional shrink-beam bolt pacing, and an effect recorder.
+//
+// Stale presents. The VI keeps showing the buffer it already shows until the
+// game swaps buffers. In the intro's ship teleport the game's frame takes
+// four VIs and three graphics tasks (scene, then two off-screen passes), and
+// each completed task presented the VI buffer again. RT64 showed the frame
+// still being prepared on the first of those presents and the older frame on
+// the second, so every game frame went new, old, new and the lightning
+// flickered back and forth (seen in captured frames, effect log runs of
+// 2026-10-06). A present is now skipped when the VI still selects the buffer
+// presented last and the task that just completed did not draw into it; the
+// next present waits for the buffer swap. JFG_SKIP_STALE_PRESENTS=0 restores
+// the old behaviour.
+//
+// Shrink-beam bolt pacing (off by default). shrinkbeamControl (overlay 28)
+// rolls mathRnd(0, 2) once per update, and on a 0 shows a lightning sprite
+// (objPrintCustomObject draws it while the u8 timer at +2687 is non-zero) for
+// 4-6 ticks at a random angle (+2678) and size (+2644). Setting
+// JFG_BEAM_FLASH_TICKS (ticks, default 0 = the game's own per-update roll)
+// allows the roll only once per that many ticks, keeping the game's 1-in-3
+// chance and random angle and size. JFG_BEAM_BOLT_STYLE picks what is shown
+// between rolls: 1 (default) steady, a bolt stays up, slowly turning, until
+// the next successful roll replaces it; 0 N64 flash, a bolt stays up for
+// JFG_BEAM_FLASH_TICKS ticks, then none until the next roll.
+// JFG_BEAM_STRAND_SPEED (percent, default 100) scales the strands' twist.
+//
+// teleportEffect (overlay 126) can be paced the same way with
+// JFG_TELEPORT_PACING (ticks; default 0 = off); JFG_TELEPORT_N64_RATE and
+// JFG_TELEPORT_SPEED are experimental ring-speed knobs (off by default).
+//
+// The recorder writes %LOCALAPPDATA%\JFGRecomp\diag\effect-activity.tsv
+// (JFG_EFFECT_ACTIVITY_LOG=0 disables it):
+//   F  one line per game update: overlay entry points called, as
+//      address*count (overlay N is linked at N MiB: overlay = address >> 20)
+//   TI teleportEffectInit: object, setup bytes, recent dispatch chain
+//   TC state after teleportEffectControl (per ring: bob phase, bob speed,
+//      spin, spin speed, pulse, y, radius, fall speed, alpha, delay, rgb)
+//   TD teleportEffectDraw
+//   SI shrinkbeamInit: object, setup bytes, recent dispatch chain
+//   SC shrinkbeamControl: rate, gate mode, flash timer before/after, gate
+//      state (ticks since roll, hold, steady bolt), charge/max, flags,
+//      bolt angle/size, glow, strand phase/speed/step
+//   P  presented framebuffer: frame, ms, VI count, VI buffer, last color image
+//   PS skipped stale present (same fields)
+//   C  captured frame: game update, ms, presented frame, size, file
+//   W  watched texture changed: game update, ms, hash, alpha texels, alpha sum
+//   FB RT64 framebuffers overlapping the watched texture (when that changes)
+//   BS blood/coffee spurt before bloodSpurtsDraw: game update, ms, slot,
+//      state, splat flag, life, texture, colour, position, surface normal,
+//      corner offsets, hidden (1 when the splat quad was hidden)
+//
+// Splats (coffee-throw investigation, 2026-10-07). Overlay 8 (blood spurts,
+// also Juno's coffee in the intro) flies drops as tracers; when a drop's
+// track intersection test hits a surface it becomes a flat splat quad laid
+// on that surface (flag +82). In the intro the coffee splat shows up as a
+// flat sheet hanging in the air, which the N64 does not show.
+// JFG_HIDE_SPLATS=1 (default) hides the splat quads (drops still show) by
+// clearing the flag around the draw call only; 0 shows them.
+//
+// Reflections (elevator investigation, 2026-10-07). Overlay 137
+// realReflectPrint (+0x25C) redraws the player character mirrored in
+// reflective track surfaces (flag 0x20000000, collected by
+// realReflectSurfaces). In the intro elevator a second Juno head shows on
+// the glass tube. Hiding it did not remove the second head (Luke, v12 run),
+// so JFG_HIDE_REFLECTIONS now defaults to 0 (draw reflections); 1 skips the
+// call. RR lines: game update, ms, reflective surface count,
+// hidden.
+//
+// Frame capture (JFG_EFFECT_CAPTURE = maximum frames, default 0 = off):
+// while a shrink beam is charged, and for 24 presented frames after, every
+// presented frame is saved, shrunk to about 640 pixels wide, as a PPM in
+// %LOCALAPPDATA%\JFGRecomp\diag\frames\run-<time>\. While beams exist but
+// are not charged, every 16th presented frame is saved for context.
+// ---------------------------------------------------------------------------
+// Overlays are matched by link address (overlay N is linked at N MiB). The
+// dispatcher's section number is an index into the generated section table,
+// which skips overlays with no code, so it is not the overlay number.
+constexpr std::uint32_t kTeleportEffectOverlay = 126U;
+constexpr std::uint32_t kTeleportEffectTextSize = 0x1250U;
+constexpr std::uint32_t kTeleportEffectInitOffset = 0x000U;
+constexpr std::uint32_t kTeleportEffectControlOffset = 0x3D0U;
+constexpr std::uint32_t kTeleportEffectDrawOffset = 0xE74U;
+constexpr std::uint32_t kBeamOverlay = 28U;
+constexpr std::uint32_t kBeamTextSize = 0x1BB0U;
+constexpr std::uint32_t kShrinkbeamInitOffset = 0x000U;
+constexpr std::uint32_t kShrinkbeamControlOffset = 0x31CU;
+constexpr std::uint32_t kBeamFlashTimer = 2687U;
+constexpr std::uint32_t kBeamCharge = 2680U;
+constexpr std::uint32_t kBeamChargeMax = 2682U;
+constexpr std::uint32_t kGameUpdateEntry = 0x80044FACU;
+constexpr std::uint32_t kDelayDatAddress = 0x800A3374U;
+
+struct CommunityEffectCall {
+  bool control = false;
+  bool blood = false;
+  std::uint64_t splat_mask = 0U;
+  std::uint32_t blood_base = 0U;
+  std::array<std::uint8_t, 64U> splat_flags{};
+  bool skip = false;
+  bool restore = false;
+  bool beam = false;
+  bool strand_restore = false;
+  std::uint8_t flash_mode = 0U;  // 1 hold bolt, 2 skip roll, 3 allow roll
+  std::uint8_t flash_before = 0U;
+  std::array<std::int16_t, 3U> strand_speed{};
+  std::uint32_t object = 0U;
+  std::uint32_t block = 0U;
+  std::uint32_t rate = 0U;
+  std::array<std::int16_t, 4U> bob_speed{};
+  std::array<std::int16_t, 4U> spin_speed{};
+  std::array<std::int16_t, 4U> applied_bob{};
+  std::array<std::int16_t, 4U> applied_spin{};
+};
+
+class CommunityGuest final {
+public:
+  explicit CommunityGuest(std::uint8_t *rdram) noexcept
+      : memory_({rdram, kRdramSize},
+                hle::GuestMemory::Layout::native_word_big_endian) {}
+
+  std::uint32_t u32(const std::uint32_t address) const noexcept {
+    std::uint32_t value = 0U;
+    if (!memory_.read_u32(address & ~3U, value))
+      return 0U;
+    return value;
+  }
+  std::int16_t s16(const std::uint32_t address) const noexcept {
+    const std::uint32_t word = u32(address);
+    return static_cast<std::int16_t>(
+        (address & 2U) != 0U ? (word & 0xFFFFU) : (word >> 16U));
+  }
+  std::uint8_t u8(const std::uint32_t address) const noexcept {
+    const std::uint32_t word = u32(address);
+    return static_cast<std::uint8_t>(word >> ((3U - (address & 3U)) * 8U));
+  }
+  float f32(const std::uint32_t address) const noexcept {
+    return std::bit_cast<float>(u32(address));
+  }
+  bool write_u8(const std::uint32_t address,
+                const std::uint8_t value) noexcept {
+    std::uint32_t word = 0U;
+    if (!memory_.read_u32(address & ~3U, word))
+      return false;
+    const std::uint32_t shift = (3U - (address & 3U)) * 8U;
+    word = (word & ~(0xFFU << shift)) |
+           (static_cast<std::uint32_t>(value) << shift);
+    return memory_.write_u32(address & ~3U, word);
+  }
+  bool write_s16(const std::uint32_t address,
+                 const std::int16_t value) noexcept {
+    std::uint32_t word = 0U;
+    if (!memory_.read_u32(address & ~3U, word))
+      return false;
+    const auto half = static_cast<std::uint32_t>(
+        static_cast<std::uint16_t>(value));
+    if ((address & 2U) != 0U)
+      word = (word & 0xFFFF0000U) | half;
+    else
+      word = (word & 0x0000FFFFU) | (half << 16U);
+    return memory_.write_u32(address & ~3U, word);
+  }
+
+private:
+  hle::GuestMemory memory_;
+};
+
+std::uint32_t community_env_number(const char *name,
+                                   const std::uint32_t fallback) {
+  std::array<char, 16U> text{};
+  const DWORD length = GetEnvironmentVariableA(
+      name, text.data(), static_cast<DWORD>(text.size()));
+  if (length == 0U || length >= text.size())
+    return fallback;
+  std::uint32_t value = 0U;
+  const auto parsed =
+      std::from_chars(text.data(), text.data() + length, value);
+  return parsed.ec == std::errc{} ? value : fallback;
+}
+
+std::int64_t community_elapsed_ms(const State &state) {
+  return static_cast<std::int64_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - state.community_effect_start)
+          .count());
+}
+
+std::ofstream *community_effect_log(State &state) {
+  if (!state.community_effect_log_tried) {
+    state.community_effect_log_tried = true;
+    state.community_effect_start = std::chrono::steady_clock::now();
+    state.community_teleport_pacing =
+        (std::min)(community_env_number("JFG_TELEPORT_PACING", 0U), 6U);
+    state.community_beam_flash_ticks =
+        (std::min)(community_env_number("JFG_BEAM_FLASH_TICKS", 0U), 60U);
+    state.community_beam_bolt_style =
+        (std::min)(community_env_number("JFG_BEAM_BOLT_STYLE", 1U), 1U);
+    state.community_beam_strand_percent =
+        (std::min)(community_env_number("JFG_BEAM_STRAND_SPEED", 100U), 400U);
+    state.community_capture_limit =
+        (std::min)(community_env_number("JFG_EFFECT_CAPTURE", 450U), 2000U);
+    state.community_skip_stale_presents =
+        community_env_number("JFG_SKIP_STALE_PRESENTS", 1U) != 0U;
+    state.community_hide_splats =
+        community_env_number("JFG_HIDE_SPLATS", 1U) != 0U;
+    state.community_hide_reflections =
+        community_env_number("JFG_HIDE_REFLECTIONS", 0U) != 0U;
+    // Timed capture (elevator investigation): every Nth presented frame
+    // between JFG_CAPTURE_FROM_S and JFG_CAPTURE_TO_S seconds of the run.
+    state.community_capture_every =
+        (std::min)(community_env_number("JFG_CAPTURE_EVERY", 3U), 600U);
+    state.community_capture_from_ms =
+        static_cast<std::int64_t>(community_env_number("JFG_CAPTURE_FROM_S", 105U)) * 1000;
+    state.community_capture_to_ms =
+        static_cast<std::int64_t>(community_env_number("JFG_CAPTURE_TO_S", 168U)) * 1000;
+    state.community_teleport_n64_rate =
+        (std::min)(community_env_number("JFG_TELEPORT_N64_RATE", 0U), 6U);
+    state.community_teleport_speed_percent =
+        (std::min)(community_env_number("JFG_TELEPORT_SPEED", 100U), 400U);
+    std::array<char, MAX_PATH> base{};
+    const DWORD length = GetEnvironmentVariableA(
+        "LOCALAPPDATA", base.data(), static_cast<DWORD>(base.size()));
+    if (community_env_number("JFG_EFFECT_ACTIVITY_LOG", 1U) != 0U &&
+        length != 0U && length < base.size()) {
+      std::error_code error;
+      const auto directory =
+          std::filesystem::path(base.data()) / "JFGRecomp" / "diag";
+      std::filesystem::create_directories(directory, error);
+      state.community_effect_stream.open(directory / "effect-activity.tsv",
+                                      std::ios::out | std::ios::trunc);
+      if (state.community_effect_stream.is_open())
+        state.community_effect_stream
+            << "# effect-activity v10\tskip_stale_presents="
+            << (state.community_skip_stale_presents ? 1 : 0)
+            << "\thide_splats=" << (state.community_hide_splats ? 1 : 0)
+            << "\thide_reflections="
+            << (state.community_hide_reflections ? 1 : 0)
+            << "\tbeam_flash_ticks="
+            << state.community_beam_flash_ticks << "\tbeam_bolt_style="
+            << state.community_beam_bolt_style << "\tbeam_strand_speed="
+            << state.community_beam_strand_percent << "\tteleport_pacing="
+            << state.community_teleport_pacing << "\tn64_rate="
+            << state.community_teleport_n64_rate << "\tspeed_percent="
+            << state.community_teleport_speed_percent << '\n';
+    }
+  }
+  return state.community_effect_stream.is_open() ? &state.community_effect_stream
+                                              : nullptr;
+}
+
+std::int64_t community_wrap16(const std::int64_t value) noexcept {
+  std::int64_t wrapped = value % 65536;
+  if (wrapped >= 32768)
+    wrapped -= 65536;
+  else if (wrapped < -32768)
+    wrapped += 65536;
+  return wrapped;
+}
+
+std::int16_t community_clamp_s16(const double value) noexcept {
+  if (value >= 32767.0)
+    return static_cast<std::int16_t>(32767);
+  if (value <= -32768.0)
+    return static_cast<std::int16_t>(-32768);
+  if (!(value > -32768.0 && value < 32767.0))
+    return static_cast<std::int16_t>(0); // NaN
+  return static_cast<std::int16_t>(value >= 0.0 ? value + 0.5 : value - 0.5);
+}
+
+// Speed that reproduces, per game tick, the motion the N64 showed for a
+// per-tick speed whose per-frame step wrapped around a full turn.
+std::int16_t community_n64_speed(const std::int16_t speed, const double scale,
+                                 const std::uint32_t n64_rate) noexcept {
+  if (n64_rate == 0U || !(scale > 0.0001))
+    return speed;
+  const auto n64_step = static_cast<std::int64_t>(
+      static_cast<double>(speed) * static_cast<double>(n64_rate) * scale);
+  if (n64_step > -32768 && n64_step < 32768)
+    return speed;
+  const double apparent = static_cast<double>(community_wrap16(n64_step));
+  return community_clamp_s16(apparent /
+                             (static_cast<double>(n64_rate) * scale));
+}
+
+// Texture watch (coffee-splash investigation, 2026-10-07): RT64 showed the
+// splash's liquid sheet using a 32x32 IA8 texture at 0x80358460 (1 KiB),
+// grey and speckled where the N64 shows nothing. Each game update this
+// hashes those bytes; on a change it writes a W line (hash, texels with
+// non-zero alpha, alpha sum) and, for the first 60 changes, the raw bytes
+// to diag\watch\f<frame>.bin.
+constexpr std::uint32_t kWatchAddress = 0x80358460U;
+constexpr std::uint32_t kWatchBytes = 1024U;
+
+void community_watch_texture(State &state, const CommunityGuest &guest,
+                             std::ofstream &effect_log) {
+  std::array<char, kWatchBytes> bytes{};
+  std::uint64_t hash = 1469598103934665603ULL;
+  std::uint32_t alpha_texels = 0U, alpha_sum = 0U;
+  for (std::uint32_t offset = 0U; offset < kWatchBytes; offset += 4U) {
+    const std::uint32_t word = guest.u32(kWatchAddress + offset);
+    for (std::uint32_t lane = 0U; lane < 4U; ++lane) {
+      const auto value =
+          static_cast<std::uint8_t>(word >> ((3U - lane) * 8U));
+      bytes[offset + lane] = static_cast<char>(value);
+      hash = (hash ^ value) * 1099511628211ULL;
+      const std::uint32_t alpha = value & 0x0FU;
+      alpha_sum += alpha;
+      if (alpha != 0U)
+        ++alpha_texels;
+    }
+  }
+  if (hash == state.community_watch_hash)
+    return;
+  state.community_watch_hash = hash;
+  effect_log << "W\t" << state.community_effect_frame << '\t'
+             << community_elapsed_ms(state) << '\t' << std::hex << hash
+             << std::dec << '\t' << alpha_texels << '\t' << alpha_sum
+             << '\n';
+  if (state.community_watch_dumps >= 60U)
+    return;
+  std::array<char, MAX_PATH> base{};
+  const DWORD length = GetEnvironmentVariableA(
+      "LOCALAPPDATA", base.data(), static_cast<DWORD>(base.size()));
+  if (length == 0U || length >= base.size())
+    return;
+  const auto directory =
+      std::filesystem::path(base.data()) / "JFGRecomp" / "diag" / "watch";
+  std::error_code error;
+  std::filesystem::create_directories(directory, error);
+  std::ofstream dump(directory / ("f" + std::to_string(
+                                            state.community_effect_frame) +
+                                  ".bin"),
+                     std::ios::binary);
+  dump.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+  ++state.community_watch_dumps;
+}
+
+void community_effect_frame(State &state, std::uint8_t *rdram) {
+  std::ofstream *effect_log = community_effect_log(state);
+  if (effect_log == nullptr) {
+    state.community_effect_counts.clear();
+    return;
+  }
+  community_watch_texture(state, CommunityGuest(rdram), *effect_log);
+  if (state.rt64_shell != nullptr) {
+    // RT64 framebuffers that claim the watched texture's memory.
+    std::string overlap = state.rt64_shell->debug_framebuffers_overlapping(
+        kWatchAddress & 0x00FFFFFFU, (kWatchAddress & 0x00FFFFFFU) + kWatchBytes);
+    if (overlap != state.community_fb_summary) {
+      *effect_log << "FB\t" << state.community_effect_frame << '\t'
+                  << community_elapsed_ms(state) << '\t' << overlap << '\n';
+      state.community_fb_summary = std::move(overlap);
+    }
+  }
+  const CommunityGuest guest(rdram);
+  {
+    // G line: blurOn / blurTaskActive changed.
+    const std::uint64_t blur =
+        (static_cast<std::uint64_t>(guest.u32(0x800A3338U)) << 32U) |
+        guest.u32(0x800A3630U);
+    if (blur != state.community_blur_state) {
+      state.community_blur_state = blur;
+      *effect_log << "G\t" << state.community_effect_frame << '\t'
+                  << community_elapsed_ms(state) << '\t' << std::hex
+                  << (blur >> 32U) << '\t' << (blur & 0xFFFFFFFFULL)
+                  << std::dec << '\n';
+    }
+  }
+  std::vector<std::pair<std::uint32_t, std::uint32_t>> entries(
+      state.community_effect_counts.begin(),
+      state.community_effect_counts.end());
+  std::sort(entries.begin(), entries.end());
+  *effect_log << "F\t" << state.community_effect_frame << '\t'
+       << community_elapsed_ms(state) << '\t' << state.vi_retraces << '\t'
+       << guest.u32(kDelayDatAddress) << '\t' << std::hex;
+  for (const auto &[address, count] : entries)
+    *effect_log << address << '*' << count << ' ';
+  *effect_log << std::dec << '\n';
+  if ((state.community_effect_frame % 30U) == 0U)
+    effect_log->flush();
+  ++state.community_effect_frame;
+  state.community_effect_counts.clear();
+}
+
+constexpr std::uint32_t kBloodOverlay = 8U;
+constexpr std::uint32_t kBloodTextSize = 0x1660U;
+constexpr std::uint32_t kBloodDrawOffset = 0xAB4U;
+constexpr std::uint32_t kBloodSpurtTable = 0x17C0U;
+constexpr std::uint32_t kBloodSpurtCount = 64U;
+constexpr std::uint32_t kBloodSpurtBytes = 84U;
+
+// Overlay data lives at its link address (overlay 8 at 0x00800000), which
+// the host maps outside the 8 MiB RDRAM span, so it is read the same way the
+// generated code reads it (MEM_W/MEM_BU in recomp.h) rather than through
+// CommunityGuest.
+std::uint8_t *community_guest_host(std::uint8_t *rdram,
+                                   const std::uint32_t address) noexcept {
+  const auto extended = static_cast<std::uint64_t>(static_cast<std::int64_t>(
+      static_cast<std::int32_t>(address)));
+  return rdram + (extended - 0xFFFFFFFF80000000ULL);
+}
+std::uint8_t community_raw_u8(std::uint8_t *rdram, const std::uint32_t address) noexcept {
+  return *community_guest_host(rdram, address ^ 3U);
+}
+void community_raw_write_u8(std::uint8_t *rdram, const std::uint32_t address,
+                            const std::uint8_t value) noexcept {
+  *community_guest_host(rdram, address ^ 3U) = value;
+}
+std::int16_t community_raw_s16(std::uint8_t *rdram, const std::uint32_t address) noexcept {
+  std::int16_t value = 0;
+  std::memcpy(&value, community_guest_host(rdram, address ^ 2U), sizeof(value));
+  return value;
+}
+float community_raw_f32(std::uint8_t *rdram, const std::uint32_t address) noexcept {
+  float value = 0.0F;
+  std::memcpy(&value, community_guest_host(rdram, address), sizeof(value));
+  return value;
+}
+
+void community_blood_before(State &state, std::uint8_t *rdram,
+                            const std::uint32_t section,
+                            const JfgGeneratedSectionMetadata &metadata,
+                            CommunityEffectCall &call) {
+  const std::uint32_t section_base =
+      section_addresses != nullptr
+          ? static_cast<std::uint32_t>(section_addresses[section])
+          : metadata.linked_vram;
+  const std::uint32_t base = section_base + kBloodSpurtTable;
+  std::ofstream *effect_log = community_effect_log(state);
+  if (effect_log != nullptr && !state.community_blood_base_logged) {
+    state.community_blood_base_logged = true;
+    *effect_log << "BB\t" << state.community_effect_frame << '\t' << std::hex
+                << section_base << '\t' << metadata.linked_vram << std::dec
+                << '\n';
+  }
+  for (std::uint32_t slot = 0U; slot < kBloodSpurtCount; ++slot) {
+    const std::uint32_t spurt = base + slot * kBloodSpurtBytes;
+    const std::uint8_t spurt_state = community_raw_u8(rdram, spurt + 74U);
+    if (spurt_state == 0U)
+      continue;
+    const std::uint8_t splat = community_raw_u8(rdram, spurt + 82U);
+    const bool hide = splat != 0U && state.community_hide_splats &&
+                      (spurt_state == 2U || spurt_state == 3U);
+    if (hide) {
+      community_raw_write_u8(rdram, spurt + 82U, 0U);
+      call.splat_mask |= 1ULL << slot;
+      call.splat_flags[slot] = splat;
+    }
+    if (effect_log == nullptr || state.community_blood_lines >= 4000U)
+      continue;
+    ++state.community_blood_lines;
+    *effect_log << "BS\t" << state.community_effect_frame << '\t'
+                << community_elapsed_ms(state) << '\t' << slot << '\t'
+                << static_cast<unsigned>(spurt_state) << '\t'
+                << static_cast<unsigned>(splat) << '\t'
+                << community_raw_s16(rdram, spurt + 60U) << '\t'
+                << static_cast<unsigned>(community_raw_u8(rdram, spurt + 81U)) << '\t'
+                << static_cast<unsigned>(community_raw_u8(rdram, spurt + 80U)) << '\t'
+                << community_raw_f32(rdram, spurt + 0U) << ','
+                << community_raw_f32(rdram, spurt + 4U) << ','
+                << community_raw_f32(rdram, spurt + 8U) << '\t'
+                << community_raw_f32(rdram, spurt + 44U) << ','
+                << community_raw_f32(rdram, spurt + 48U) << ','
+                << community_raw_f32(rdram, spurt + 52U) << '\t';
+    for (std::uint32_t corner = 0U; corner < 6U; ++corner)
+      *effect_log << community_raw_s16(rdram, spurt + 62U + corner * 2U)
+                  << (corner == 5U ? '\t' : ',');
+    *effect_log << (hide ? 1 : 0) << '\n';
+  }
+  call.blood = call.splat_mask != 0U;
+  call.blood_base = base;
+}
+
+void community_blood_after(std::uint8_t *rdram,
+                           const CommunityEffectCall &call) {
+  for (std::uint32_t slot = 0U; slot < kBloodSpurtCount; ++slot)
+    if ((call.splat_mask & (1ULL << slot)) != 0U)
+      community_raw_write_u8(rdram,
+                             call.blood_base + slot * kBloodSpurtBytes + 82U,
+                             call.splat_flags[slot]);
+}
+
+void community_log_chain(const State &state, std::ofstream &effect_log) {
+  effect_log << "\tchain" << std::hex;
+  const std::size_t ring = state.recent_dispatches.size();
+  const std::size_t depth =
+      (std::min)(state.recent_dispatch_position, std::size_t{16U});
+  for (std::size_t back = depth; back >= 1U; --back)
+    effect_log << ' '
+               << state.recent_dispatches[(state.recent_dispatch_position -
+                                           back) %
+                                          ring];
+  effect_log << std::dec;
+}
+
+// Shrink-beam lightning: gate the per-update bolt roll to the N64 cadence.
+// Gate state per object: first = ticks since the last allowed roll,
+// second = ticks the current bolt stays up (N64 flash style only).
+// community_beam_has_bolt holds the beams that show a steady bolt.
+void community_beam_before(State &state, std::uint8_t *rdram,
+                           const recomp_context &context,
+                           const std::uint32_t offset,
+                           CommunityEffectCall &call) {
+  CommunityGuest guest(rdram);
+  if (offset == kShrinkbeamInitOffset) {
+    const auto object = static_cast<std::uint32_t>(context.r4);
+    const auto setup = static_cast<std::uint32_t>(context.r5);
+    state.community_flash_gates.erase(object);
+    state.community_beam_has_bolt.erase(object);
+    std::ofstream *effect_log = community_effect_log(state);
+    if (effect_log == nullptr)
+      return;
+    *effect_log << "SI\t" << state.community_effect_frame << '\t'
+                << community_elapsed_ms(state) << '\t' << std::hex << object
+                << '\t' << setup << '\t' << std::setfill('0');
+    for (std::uint32_t setup_offset = 0U; setup_offset < 48U;
+         setup_offset += 4U)
+      *effect_log << std::setw(8) << guest.u32(setup + setup_offset);
+    *effect_log << std::setfill(' ') << std::dec;
+    community_log_chain(state, *effect_log);
+    *effect_log << '\n';
+    return;
+  }
+  if (offset != kShrinkbeamControlOffset)
+    return;
+  call.beam = true;
+  call.object = static_cast<std::uint32_t>(context.r4);
+  call.rate = static_cast<std::uint32_t>(context.r5);
+  call.block = guest.u32(call.object + 104U);
+  if (call.block < 0x80000000U)
+    return;
+  call.flash_before = guest.u8(call.block + kBeamFlashTimer);
+  if (state.community_beam_strand_percent != 100U) {
+    const double scale = state.community_beam_strand_percent / 100.0;
+    for (std::uint32_t strand = 0U; strand < 3U; ++strand) {
+      const std::uint32_t field = call.block + 2666U + strand * 2U;
+      call.strand_speed[strand] = guest.s16(field);
+      (void)guest.write_s16(
+          field, community_clamp_s16(call.strand_speed[strand] * scale));
+    }
+    call.strand_restore = true;
+  }
+  const std::uint32_t ticks = state.community_beam_flash_ticks;
+  if (ticks == 0U || call.rate == 0U || call.rate >= 64U)
+    return;
+  auto &gate = state.community_flash_gates[call.object];
+  if (state.community_beam_bolt_style == 1U) {
+    // Steady style: no hold phase; after() keeps the timer at 1 while a
+    // bolt is up, so only a value from an ungated roll is 2 or more.
+    if (call.flash_before >= 2U)
+      state.community_beam_has_bolt.insert(call.object);
+    gate.second = 0U;
+  } else if (gate.second == 0U && call.flash_before != 0U) {
+    gate.second = ticks; // a bolt the gate did not start (spawn update)
+  }
+  if (gate.second != 0U) {
+    // Keep the game on its no-roll path while the bolt stays up.
+    (void)guest.write_u8(call.block + kBeamFlashTimer, 0xFFU);
+    call.flash_mode = 1U;
+    return;
+  }
+  gate.first += call.rate;
+  if (gate.first < ticks) {
+    (void)guest.write_u8(call.block + kBeamFlashTimer, 1U); // no roll yet
+    call.flash_mode = 2U;
+    return;
+  }
+  gate.first = 0U;
+  (void)guest.write_u8(call.block + kBeamFlashTimer, 0U); // allow the roll
+  call.flash_mode = 3U;
+}
+
+void community_beam_after(State &state, std::uint8_t *rdram,
+                          const CommunityEffectCall &call) {
+  if (call.block < 0x80000000U)
+    return;
+  CommunityGuest guest(rdram);
+  const std::uint32_t block = call.block;
+  if (call.strand_restore)
+    for (std::uint32_t strand = 0U; strand < 3U; ++strand)
+      (void)guest.write_s16(block + 2666U + strand * 2U,
+                            call.strand_speed[strand]);
+  std::uint8_t flash_after = guest.u8(block + kBeamFlashTimer);
+  std::uint32_t since_roll = 0U;
+  std::uint32_t hold = 0U;
+  if (call.flash_mode != 0U && state.community_beam_bolt_style == 1U) {
+    const auto &gate = state.community_flash_gates[call.object];
+    const int charge = guest.s16(block + kBeamCharge);
+    const int charge_max = guest.s16(block + kBeamChargeMax);
+    if (call.flash_mode == 3U && flash_after != 0U)
+      state.community_beam_has_bolt.insert(call.object); // new bolt rolled
+    if (charge <= 0)
+      state.community_beam_has_bolt.erase(call.object);
+    // Same charge test the game uses before it rolls a bolt.
+    const bool steady =
+        charge > charge_max - 10 &&
+        state.community_beam_has_bolt.count(call.object) != 0U;
+    flash_after = steady ? 1U : 0U;
+    (void)guest.write_u8(block + kBeamFlashTimer, flash_after);
+    since_roll = gate.first;
+  } else if (call.flash_mode != 0U) {
+    auto &gate = state.community_flash_gates[call.object];
+    const bool charged = guest.s16(block + kBeamCharge) > 0;
+    if (call.flash_mode == 1U) {
+      gate.second = gate.second > call.rate ? gate.second - call.rate : 0U;
+      if (!charged)
+        gate.second = 0U;
+      flash_after = gate.second != 0U ? 1U : 0U;
+    } else if (call.flash_mode == 2U) {
+      flash_after = 0U;
+    } else if (flash_after != 0U) {
+      gate.second = state.community_beam_flash_ticks; // new bolt
+      flash_after = 1U;
+    }
+    (void)guest.write_u8(block + kBeamFlashTimer, flash_after);
+    since_roll = gate.first;
+    hold = gate.second;
+  }
+  state.community_beam_seen_frame = state.community_effect_frame + 1U;
+  if (guest.s16(block + kBeamCharge) > 0)
+    state.community_capture_left = 24U;
+  std::ofstream *effect_log = community_effect_log(state);
+  if (effect_log == nullptr)
+    return;
+  *effect_log << "SC\t" << state.community_effect_frame << '\t'
+              << community_elapsed_ms(state) << '\t' << std::hex
+              << call.object << std::dec << '\t' << call.rate << '\t'
+              << static_cast<unsigned>(call.flash_mode) << '\t'
+              << static_cast<unsigned>(call.flash_before) << '\t'
+              << static_cast<unsigned>(flash_after) << '\t' << since_roll
+              << ',' << hold << ','
+              << state.community_beam_has_bolt.count(call.object) << '\t'
+              << guest.s16(block + kBeamCharge) << '/'
+              << guest.s16(block + kBeamChargeMax) << '\t'
+              << static_cast<unsigned>(guest.u8(block + 2685U)) << ','
+              << static_cast<unsigned>(guest.u8(block + 2686U)) << ','
+              << static_cast<unsigned>(guest.u8(block + 2689U)) << '\t'
+              << guest.s16(block + 2678U) << ',' << guest.f32(block + 2644U)
+              << '\t' << guest.f32(block + 2648U) << ','
+              << guest.f32(block + 2652U);
+  for (std::uint32_t strand = 0U; strand < 3U; ++strand)
+    *effect_log << "\ts" << strand << ':'
+                << guest.s16(block + 2660U + strand * 2U) << ','
+                << guest.s16(block + 2666U + strand * 2U) << ','
+                << guest.s16(block + 2672U + strand * 2U);
+  *effect_log << '\n';
+}
+
+CommunityEffectCall community_effect_before(
+    State &state, std::uint8_t *rdram, recomp_context &context,
+    const std::uint32_t target, const std::uint32_t section,
+    const JfgGeneratedSectionMetadata &metadata) {
+  CommunityEffectCall call{};
+  if (target == kGameUpdateEntry) {
+    community_effect_frame(state, rdram);
+    return call;
+  }
+  if (metadata.is_overlay != 1U)
+    return call;
+  if (state.community_effect_stream.is_open())
+    ++state.community_effect_counts[target];
+  static_cast<void>(section);
+  const std::uint32_t overlay = metadata.linked_vram >> 20U;
+  if (overlay == 137U && metadata.text_size == 0x1750U) {
+    if (target - metadata.linked_vram == 0x25CU) {
+      std::ofstream *effect_log = community_effect_log(state);
+      call.skip = state.community_hide_reflections;
+      if (effect_log != nullptr && state.community_reflect_lines < 3000U) {
+        ++state.community_reflect_lines;
+        const std::uint32_t section_base =
+            section_addresses != nullptr
+                ? static_cast<std::uint32_t>(section_addresses[section])
+                : metadata.linked_vram;
+        std::int32_t surfaces = 0;
+        std::memcpy(&surfaces,
+                    community_guest_host(rdram, section_base + 0x1770U + 132U),
+                    sizeof(surfaces));
+        *effect_log << "RR\t" << state.community_effect_frame << '\t'
+                    << community_elapsed_ms(state) << '\t' << surfaces
+                    << '\t' << (call.skip ? 1 : 0) << '\n';
+      }
+    }
+    return call;
+  }
+  if (overlay == kBloodOverlay && metadata.text_size == kBloodTextSize) {
+    if (target - metadata.linked_vram == kBloodDrawOffset)
+      community_blood_before(state, rdram, section, metadata, call);
+    return call;
+  }
+  if (overlay == kBeamOverlay && metadata.text_size == kBeamTextSize) {
+    community_beam_before(state, rdram, context,
+                          target - metadata.linked_vram, call);
+    return call;
+  }
+  if (overlay != kTeleportEffectOverlay ||
+      metadata.text_size != kTeleportEffectTextSize)
+    return call;
+  std::ofstream *effect_log = community_effect_log(state);
+  const std::uint32_t offset = target - metadata.linked_vram;
+  CommunityGuest guest(rdram);
+  if (offset == kTeleportEffectInitOffset) {
+    const auto object = static_cast<std::uint32_t>(context.r4);
+    const auto setup = static_cast<std::uint32_t>(context.r5);
+    state.community_teleport_pending.erase(object);
+    state.community_teleport_seen.erase(object);
+    if (effect_log == nullptr)
+      return call;
+    *effect_log << "TI\t" << state.community_effect_frame << '\t'
+         << community_elapsed_ms(state) << '\t' << std::hex << object << '\t'
+         << setup << '\t' << std::setfill('0');
+    for (std::uint32_t setup_offset = 0U; setup_offset < 48U;
+         setup_offset += 4U)
+      *effect_log << std::setw(8) << guest.u32(setup + setup_offset);
+    *effect_log << std::setfill(' ') << std::dec;
+    community_log_chain(state, *effect_log);
+    *effect_log << '\n';
+    effect_log->flush();
+    return call;
+  }
+  if (offset == kTeleportEffectDrawOffset) {
+    if (effect_log == nullptr)
+      return call;
+    const auto object = static_cast<std::uint32_t>(context.r7);
+    const std::uint32_t block = guest.u32(object + 104U);
+    *effect_log << "TD\t" << state.community_effect_frame << '\t'
+         << community_elapsed_ms(state) << '\t' << std::hex << object
+         << std::dec << '\t'
+         << static_cast<unsigned>(guest.u8(block + 4040U)) << '\t'
+         << guest.s16(block + 4042U) << '\t' << guest.f32(block + 4028U)
+         << '\n';
+    return call;
+  }
+  if (offset != kTeleportEffectControlOffset)
+    return call;
+  call.control = true;
+  call.object = static_cast<std::uint32_t>(context.r4);
+  call.rate = static_cast<std::uint32_t>(context.r5);
+  call.block = guest.u32(call.object + 104U);
+  if (call.block < 0x80000000U)
+    return call;
+  const std::uint32_t pacing = state.community_teleport_pacing;
+  if (pacing != 0U && call.rate != 0U && call.rate < 64U) {
+    std::uint32_t &pending = state.community_teleport_pending[call.object];
+    pending += call.rate;
+    // Wait for the next frame only when that lands closer to the N64 step.
+    const std::int64_t short_by = static_cast<std::int64_t>(pacing) -
+                                  static_cast<std::int64_t>(pending);
+    const std::int64_t over_by = static_cast<std::int64_t>(pending) +
+                                 static_cast<std::int64_t>(call.rate) -
+                                 static_cast<std::int64_t>(pacing);
+    if (short_by > 0 && short_by > over_by) {
+      call.skip = true;
+      return call;
+    }
+    call.rate = pending;
+    context.r5 = pending;
+    pending = 0U;
+  }
+  const std::uint32_t n64_rate =
+      pacing != 0U ? 0U : state.community_teleport_n64_rate;
+  const double speed = state.community_teleport_speed_percent / 100.0;
+  const double ramp = static_cast<double>(guest.f32(call.block + 4028U));
+  for (std::uint32_t ring = 0U; ring < 4U; ++ring) {
+    call.bob_speed[ring] = guest.s16(call.block + 3848U + ring * 2U);
+    call.spin_speed[ring] = guest.s16(call.block + 3864U + ring * 2U);
+    call.applied_bob[ring] = community_clamp_s16(
+        community_n64_speed(call.bob_speed[ring], ramp, n64_rate) * speed);
+    call.applied_spin[ring] = community_clamp_s16(
+        community_n64_speed(call.spin_speed[ring], 1.0, n64_rate) * speed);
+    if (call.applied_bob[ring] != call.bob_speed[ring] ||
+        call.applied_spin[ring] != call.spin_speed[ring])
+      call.restore = true;
+  }
+  if (call.restore) {
+    for (std::uint32_t ring = 0U; ring < 4U; ++ring) {
+      (void)guest.write_s16(call.block + 3848U + ring * 2U,
+                            call.applied_bob[ring]);
+      (void)guest.write_s16(call.block + 3864U + ring * 2U,
+                            call.applied_spin[ring]);
+    }
+  }
+  return call;
+}
+
+void community_effect_after(State &state, std::uint8_t *rdram,
+                            const CommunityEffectCall &call) {
+  if (call.blood) {
+    community_blood_after(rdram, call);
+    return;
+  }
+  if (call.beam) {
+    community_beam_after(state, rdram, call);
+    return;
+  }
+  if (!call.control || call.skip || call.block < 0x80000000U)
+    return;
+  CommunityGuest guest(rdram);
+  if (call.restore) {
+    for (std::uint32_t ring = 0U; ring < 4U; ++ring) {
+      (void)guest.write_s16(call.block + 3848U + ring * 2U,
+                            call.bob_speed[ring]);
+      (void)guest.write_s16(call.block + 3864U + ring * 2U,
+                            call.spin_speed[ring]);
+    }
+  }
+  std::ofstream *effect_log = community_effect_log(state);
+  if (effect_log == nullptr)
+    return;
+  const std::uint32_t block = call.block;
+  if (state.community_teleport_seen.insert(call.object).second) {
+    // Colour-cycle tables: frame count, total ticks, then rgba:ticks.
+    *effect_log << "TT\t" << state.community_effect_frame << '\t' << std::hex
+                << call.object;
+    for (std::uint32_t ring = 0U; ring < 4U; ++ring) {
+      const std::uint32_t table = guest.u32(block + 3924U + ring * 16U);
+      const std::uint32_t frames = guest.u32(table);
+      *effect_log << "\tr" << ring << ':' << table << ',' << std::dec
+                  << frames << ',' << guest.u32(table + 4U) << std::hex;
+      for (std::uint32_t frame = 0U; frame < (std::min)(frames, 16U);
+           ++frame)
+        *effect_log << ' ' << guest.u32(table + 8U + frame * 8U) << ':'
+                    << std::dec << guest.u32(table + 12U + frame * 8U)
+                    << std::hex;
+    }
+    *effect_log << std::dec << '\n';
+  }
+  *effect_log << "TC\t" << state.community_effect_frame << '\t'
+       << community_elapsed_ms(state) << '\t' << std::hex << call.object
+       << '\t' << block << std::dec << '\t' << call.rate << '\t'
+       << guest.s16(block + 4042U) << '\t' << guest.f32(block + 4028U)
+       << '\t' << static_cast<unsigned>(guest.u8(block + 4040U)) << '\t'
+       << guest.f32(call.object + 12U) << ',' << guest.f32(call.object + 16U)
+       << ',' << guest.f32(call.object + 20U) << '\t'
+       << guest.s16(block + 3984U) << ',' << guest.f32(block + 3988U) << ','
+       << guest.f32(block + 3992U);
+  for (std::uint32_t ring = 0U; ring < 4U; ++ring) {
+    *effect_log << "\tr" << ring << ':' << guest.s16(block + 3840U + ring * 2U)
+         << ',' << call.bob_speed[ring] << ',' << call.applied_bob[ring]
+         << ',' << guest.s16(block + 3856U + ring * 2U) << ','
+         << call.spin_speed[ring] << ',' << call.applied_spin[ring] << ','
+         << guest.s16(block + 3976U + ring * 2U) << ','
+         << guest.f32(block + 3872U + ring * 4U) << ','
+         << guest.f32(block + 3996U + ring * 4U) << ','
+         << guest.f32(block + 4012U + ring * 4U) << ','
+         << static_cast<unsigned>(guest.u8(block + 3904U + ring)) << ','
+         << static_cast<unsigned>(guest.u8(block + 3908U + ring)) << ','
+         << static_cast<unsigned>(guest.u8(block + 3920U + ring * 16U))
+         << '/'
+         << static_cast<unsigned>(guest.u8(block + 3921U + ring * 16U))
+         << '/'
+         << static_cast<unsigned>(guest.u8(block + 3922U + ring * 16U));
+  }
+  *effect_log << '\n';
+}
+
+// True when presenting now would only re-show the buffer presented last
+// (see "Stale presents" in the header comment). Called before each present.
+bool community_skip_stale_present(State &state,
+                                  const std::uint32_t framebuffer) {
+  if (!state.community_skip_stale_presents ||
+      framebuffer != state.community_last_presented_vi ||
+      state.graphics_color_image == framebuffer)
+    return false;
+  if (state.community_effect_stream.is_open())
+    state.community_effect_stream
+        << "PS\t" << state.community_effect_frame << '\t'
+        << community_elapsed_ms(state) << '\t' << state.vi_retraces << '\t'
+        << std::hex << framebuffer << '\t' << state.graphics_color_image
+        << std::dec << '\n';
+  return true;
+}
+
+void community_effect_present(State &state,
+                              const std::uint32_t framebuffer) {
+  state.community_last_presented_vi = framebuffer;
+  if (!state.community_effect_stream.is_open())
+    return;
+  state.community_effect_stream
+      << "P\t" << state.community_effect_frame << '\t'
+      << community_elapsed_ms(state) << '\t' << state.vi_retraces << '\t'
+      << std::hex << framebuffer << '\t' << state.graphics_color_image
+      << std::dec << '\n';
+}
+
+// Frame capture around the shrink beam (see the header comment).
+bool community_capture_wanted(const State &state) {
+  if (state.community_capture_limit == 0U ||
+      state.community_capture_count >= state.community_capture_limit)
+    return false;
+  if (state.community_capture_left != 0U)
+    return true;
+  if (state.community_capture_every != 0U) {
+    const std::int64_t ms = community_elapsed_ms(state);
+    if (ms >= state.community_capture_from_ms &&
+        ms <= state.community_capture_to_ms)
+      return (state.presented_frames % state.community_capture_every) == 0U;
+  }
+  const bool beams_exist =
+      state.community_beam_seen_frame != 0U &&
+      state.community_effect_frame <= state.community_beam_seen_frame + 1U;
+  return beams_exist && (state.presented_frames % 16U) == 0U;
+}
+
+// `captured` is the flag present() was called with; community_capture_wanted
+// decided it before presented_frames was advanced.
+void community_capture_after_present(State &state, const bool captured) {
+  if (state.community_capture_left != 0U)
+    --state.community_capture_left;
+  if (!captured || state.rt64_shell == nullptr ||
+      state.community_capture_limit == 0U ||
+      state.community_capture_count >= state.community_capture_limit)
+    return;
+  const jfg::Rt64FrameView frame = state.rt64_shell->last_presented_frame();
+  if (!frame.valid())
+    return;
+  if (state.community_capture_dir.empty()) {
+    std::array<char, MAX_PATH> base{};
+    const DWORD length = GetEnvironmentVariableA(
+        "LOCALAPPDATA", base.data(), static_cast<DWORD>(base.size()));
+    if (length == 0U || length >= base.size()) {
+      state.community_capture_limit = 0U;
+      return;
+    }
+    const auto stamp = std::chrono::duration_cast<std::chrono::seconds>(
+                           std::chrono::system_clock::now().time_since_epoch())
+                           .count();
+    state.community_capture_dir = std::filesystem::path(base.data()) /
+                                  "JFGRecomp" / "diag" / "frames" /
+                                  ("run-" + std::to_string(stamp));
+    std::error_code error;
+    std::filesystem::create_directories(state.community_capture_dir, error);
+    if (error) {
+      state.community_capture_limit = 0U;
+      return;
+    }
+  }
+  const std::size_t factor = (std::max)(std::size_t{1U},
+                                        (frame.width + 639U) / 640U);
+  const std::size_t out_width = frame.width / factor;
+  const std::size_t out_height = frame.height / factor;
+  if (out_width == 0U || out_height == 0U)
+    return;
+  std::vector<char> pixels(out_width * out_height * 3U);
+  const std::size_t area = factor * factor;
+  for (std::size_t y = 0U; y < out_height; ++y) {
+    for (std::size_t x = 0U; x < out_width; ++x) {
+      std::size_t blue = 0U, green = 0U, red = 0U;
+      for (std::size_t dy = 0U; dy < factor; ++dy) {
+        const std::size_t row = (y * factor + dy) * frame.row_pitch_bytes;
+        for (std::size_t dx = 0U; dx < factor; ++dx) {
+          const std::size_t pixel = row + (x * factor + dx) * 4U;
+          blue += std::to_integer<std::size_t>(frame.bgra8[pixel]);
+          green += std::to_integer<std::size_t>(frame.bgra8[pixel + 1U]);
+          red += std::to_integer<std::size_t>(frame.bgra8[pixel + 2U]);
+        }
+      }
+      char *out = pixels.data() + (y * out_width + x) * 3U;
+      out[0] = static_cast<char>(static_cast<unsigned char>(red / area));
+      out[1] = static_cast<char>(static_cast<unsigned char>(green / area));
+      out[2] = static_cast<char>(static_cast<unsigned char>(blue / area));
+    }
+  }
+  const std::string name = "f" + std::to_string(state.community_effect_frame) +
+                           "_p" + std::to_string(state.presented_frames) +
+                           ".ppm";
+  std::ofstream file(state.community_capture_dir / name, std::ios::binary);
+  if (!file)
+    return;
+  file << "P6\n" << out_width << ' ' << out_height << "\n255\n";
+  file.write(pixels.data(), static_cast<std::streamsize>(pixels.size()));
+  if (!file)
+    return;
+  ++state.community_capture_count;
+  if (state.community_effect_stream.is_open())
+    state.community_effect_stream
+        << "C\t" << state.community_effect_frame << '\t'
+        << community_elapsed_ms(state) << '\t' << state.presented_frames
+        << '\t' << out_width << 'x' << out_height << '\t' << name << '\n';
+}
+#endif
+
 void present_completed_video(State &state, const std::uint32_t target) {
 #if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
   if (state.play_mode || state.realtime_replay) {
@@ -4915,13 +5978,16 @@ void present_completed_video(State &state, const std::uint32_t target) {
     // Effects can submit more than eight off-screen targets between VI
     // presentations. Ask RT64 whether the selected color target exists instead
     // of letting an unrelated snapshot-cache eviction suppress the frame.
-    const bool presentation_ready =
+    bool presentation_ready =
         state.rt64_shell->has_color_framebuffer(selected_vi_framebuffer);
     if (!presentation_ready) {
       state.gameplay_trace.event("present-skip", {state.vi_retraces,
           state.controller_samples, state.gameplay_trace_updates,
           selected_vi_framebuffer, state.graphics_color_image});
     }
+    if (presentation_ready &&
+        community_skip_stale_present(state, selected_vi_framebuffer))
+      presentation_ready = false;
     if (presentation_ready) {
       state.rt64_vi.current_line =
           state.rt64_vi.current_line == 0U ? 2U : 0U;
@@ -4929,10 +5995,11 @@ void present_completed_video(State &state, const std::uint32_t target) {
         fail_closed_dispatch(state, "renderer", "vi-field", target);
       write_private_progress(state, "graphics-present-begin");
       const auto present_start = std::chrono::steady_clock::now();
-      const bool capture_frame = !state.frame_capture_path.empty() &&
+      const bool capture_frame = (!state.frame_capture_path.empty() &&
           (state.play_mode
                ? (state.presented_frames + 1U) % 60U == 0U
-               : state.vi_retraces + 2U >= state.retrace_target);
+               : state.vi_retraces + 2U >= state.retrace_target)) ||
+          community_capture_wanted(state);
       state.last_rt64_error =
           state.rt64_shell->present(capture_frame);
       const auto present_end = std::chrono::steady_clock::now();
@@ -4977,6 +6044,8 @@ void present_completed_video(State &state, const std::uint32_t target) {
                              target);
       }
       ++state.presented_frames;
+      community_effect_present(state, selected_vi_framebuffer);
+      community_capture_after_present(state, capture_frame);
       state.graphics_frame_ready = false;
     }
   }
@@ -5484,8 +6553,15 @@ int dispatch(void *opaque, std::int32_t address, std::uint8_t *rdram,
         if (boosted != original && state.navigation_mod.juno_run_boosts == 1U)
           jfg::support_event("mod=juno-run-speed-2x-applied");
       }
+      const CommunityEffectCall community_effect = community_effect_before(
+          state, rdram, *context, target, target_section, target_metadata);
 #endif
+#if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
+      if (!community_effect.skip)
+        generated(rdram, context);
+#else
       generated(rdram, context);
+#endif
       if (target == jfg::boot::kSoundNextEvent) {
         hle::GuestMemory memory({rdram, kRdramSize},
                                hle::GuestMemory::Layout::native_word_big_endian);
@@ -8053,6 +9129,21 @@ int run_child(const char *path, const unsigned retrace_target,
     std::fputs("native boot setup failed: IPL state\n", stderr);
     return 3;
   }
+  {
+    // Community build: widescreen is the default for fresh saves. The game
+    // copies its default global flags from 0x800A34AC when the flash copy is
+    // missing or invalid; byte 108 bit 0x40 is the Options widescreen setting
+    // (stock default 0x90). Existing saves keep the player's own choice.
+    // JFG_DEFAULT_WIDESCREEN=0 restores the stock 4:3 default.
+    char wide_flag[2]{};
+    const bool stock_default =
+        GetEnvironmentVariableA("JFG_DEFAULT_WIDESCREEN", wide_flag, 2U) == 1U &&
+        wide_flag[0] == '0';
+    constexpr std::uint32_t kDefaultScreenFlags = 0x800A34ACU + 108U;
+    const std::size_t at = kDefaultScreenFlags - kKseg0;
+    if (!stock_default && at < bytes.size() && bytes[at] == 0x90U)
+      bytes[at] = static_cast<std::uint8_t>(bytes[at] | 0x40U);
+  }
   for (std::size_t index = 0U; index < rdram.size(); index += 4U) {
     rdram[index] = bytes[index + 3U];
     rdram[index + 1U] = bytes[index + 2U];
@@ -8106,10 +9197,13 @@ int run_child(const char *path, const unsigned retrace_target,
       return 2;
     }
   }
+  // Community build: the writeback path (lens flares + actor shadows) is on by
+  // default so it also works when started from the launcher, which clears JFG_*
+  // variables. JFG_PHASE9_RENDERER_WRITEBACK_PROBE=0 turns it off.
   char writeback_flag[2]{};
   state.renderer_writeback_probe =
-      GetEnvironmentVariableA("JFG_PHASE9_RENDERER_WRITEBACK_PROBE", writeback_flag, 2U) == 1U &&
-      writeback_flag[0] == '1';
+      !(GetEnvironmentVariableA("JFG_PHASE9_RENDERER_WRITEBACK_PROBE", writeback_flag, 2U) == 1U &&
+        writeback_flag[0] == '0');
   char leaf_flag[2]{};
   state.guest_leaf_probe =
       GetEnvironmentVariableA("JFG_PHASE9_GUEST_LEAF_PROBE", leaf_flag, 2U) == 1U &&

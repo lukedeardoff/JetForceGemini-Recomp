@@ -1,0 +1,21 @@
+{
+  "configuration": {
+    "configurationVersion": 3,
+    "hashVersion": 5,
+    "autoPath": "rt64",
+    "defaultOperation": "stream",
+    "defaultShift": "half"
+  },
+  "textures": [
+    {
+      "path": "vignette_mask_hd.png",
+      "hashes": {
+        "rt64": "f35c64d7a44bc219",
+        "rice": ""
+      }
+    }
+  ],
+  "operationFilters": [],
+  "shiftFilters": [],
+  "extraFiles": []
+}
