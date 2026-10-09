@@ -1,0 +1,284 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 79dfc38..ee81978 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -512,6 +512,7 @@ build_pixel_shader(  rt64 "src/shaders/FbChangesDrawColorPS.hlsl")
+ build_pixel_shader(  rt64 "src/shaders/FbChangesDrawDepthPS.hlsl")
+ build_compute_shader(rt64 "src/shaders/FbReadAnyChangesCS.hlsl" "src/shaders/FbReadAnyChangesCS.hlsl" "-O0")
+ build_compute_shader(rt64 "src/shaders/FbReinterpretCS.hlsl" "src/shaders/FbReinterpretCS.hlsl" "-O0")
++build_compute_shader(rt64 "src/shaders/FbShadowSoftenCS.hlsl") # JFG: actor shadow softening
+ build_compute_shader(rt64 "src/shaders/FbReadAnyFullCS.hlsl" "src/shaders/FbReadAnyFullCS.hlsl" "-O0")
+ build_compute_shader(rt64 "src/shaders/FbWriteColorCS.hlsl" "src/shaders/FbWriteColorCS.hlsl" "-O0")
+ build_compute_shader(rt64 "src/shaders/FbWriteDepthCS.hlsl")
+diff --git a/src/hle/rt64_framebuffer_manager.cpp b/src/hle/rt64_framebuffer_manager.cpp
+index d7caa12..9fd3267 100644
+--- a/src/hle/rt64_framebuffer_manager.cpp
++++ b/src/hle/rt64_framebuffer_manager.cpp
+@@ -16,6 +16,10 @@
+ #include "render/rt64_render_worker.h"
+ 
+ namespace RT64 {
++    // JFG: blur radius (native texels) for small 8b->IA8 shadow tiles; set by the JFG shell. 0 disables.
++    float ShadowBlurTexels = 0.0f;
++    extern RenderPipeline *JfgShadowSoftenPipeline; // rt64_shader_library.cpp
++
+     static void fixSizeToMultiple(uint32_t &width, uint32_t &height) {
+         const uint32_t SizeMultiple = 32;
+         width = ((width + SizeMultiple - 1) / SizeMultiple) * SizeMultiple;
+@@ -332,7 +336,20 @@ namespace RT64 {
+         c.ditherOffset = dstTile.ditherOffset;
+         c.ditherPattern = dstTile.ditherPattern;
+         c.ditherRandomSeed = uint32_t(writeTimestamp) + op.reinterpretTile.dstId;
+-        c.usesHDR = usesHDR;
++        c.usesHDR = usesHDR ? 1u : 0u;
++        {
++            // JFG: soften small 8-bit IA tiles (64x64 actor shadow buffers). Parameters packed into
++            // usesHDR bits 8+ so FbReinterpretCB keeps its upstream layout.
++            const float scaleX = float(resolutionScale.x);
++            const float nativeWidth = (scaleX > 0.0f) ? (float(dstTile.usedWidth) / scaleX) : float(dstTile.usedWidth);
++            const bool shadowLike = (c.srcSiz == G_IM_SIZ_8b) && (c.dstFmt == G_IM_FMT_IA) && (c.dstSiz == G_IM_SIZ_8b) && (nativeWidth <= 64.5f);
++            if (shadowLike && (ShadowBlurTexels > 0.0f) && (scaleX > 0.0f) && (JfgShadowSoftenPipeline != nullptr)) {
++                // bits 8-19: softness in native texels (1/64), bits 20-31: resolution scale (1/64).
++                const uint32_t softnessQ = uint32_t(std::clamp<long>(std::lround(ShadowBlurTexels * 64.0f), 1L, 0xFFFL));
++                const uint32_t scaleQ = uint32_t(std::clamp<long>(std::lround(scaleX * 64.0f), 1L, 0xFFFL));
++                c.usesHDR |= (softnessQ << 8) | (scaleQ << 20);
++            }
++        }
+         dispatch.srcTexture = srcTile.texture.get();
+         dispatch.dstTexture = dstTile.texture.get();
+ 
+@@ -1050,9 +1067,19 @@ namespace RT64 {
+             renderWorker->commandList->barriers(RenderBarrierStage::COMPUTE, tileCopyBeforeBarriers);
+ 
+             const ShaderRecord &shaderRecord = shaderLibrary->fbReinterpret;
+-            renderWorker->commandList->setPipeline(shaderRecord.pipeline.get());
++            RenderPipeline *activeReinterpretPipeline = shaderRecord.pipeline.get();
++            renderWorker->commandList->setPipeline(activeReinterpretPipeline);
+             renderWorker->commandList->setComputePipelineLayout(shaderRecord.pipelineLayout.get());
+             for (const CommandListReinterpretDispatch &dispatch : cmdListReinterpretations.cmdListDispatches) {
++                // JFG: softened shadow tiles carry their parameters in usesHDR bits 8+.
++                RenderPipeline *wantedPipeline = shaderRecord.pipeline.get();
++                if (((dispatch.reinterpretCB.usesHDR >> 8) != 0) && (JfgShadowSoftenPipeline != nullptr)) {
++                    wantedPipeline = JfgShadowSoftenPipeline;
++                }
++                if (wantedPipeline != activeReinterpretPipeline) {
++                    renderWorker->commandList->setPipeline(wantedPipeline);
++                    activeReinterpretPipeline = wantedPipeline;
++                }
+                 const interop::uint2 &res = dispatch.reinterpretCB.resolution;
+                 const uint32_t dispatchX = (res.x + FB_COMMON_WORKGROUP_SIZE - 1) / FB_COMMON_WORKGROUP_SIZE;
+                 const uint32_t dispatchY = (res.y + FB_COMMON_WORKGROUP_SIZE - 1) / FB_COMMON_WORKGROUP_SIZE;
+diff --git a/src/render/rt64_shader_library.cpp b/src/render/rt64_shader_library.cpp
+index d1c5273..4a54cb0 100644
+--- a/src/render/rt64_shader_library.cpp
++++ b/src/render/rt64_shader_library.cpp
+@@ -5,6 +5,11 @@
+ #include "rt64_shader_library.h"
+ 
+ #include "common/rt64_common.h"
++#include "plume_vulkan.h"
++#ifdef _WIN32
++#   include "plume_d3d12.h"
++#endif
++#include <cstdio>
+ #include "shared/rt64_render_target_copy.h"
+ #include "shared/rt64_rsp_vertex_test_z.h"
+ 
+@@ -14,6 +19,7 @@
+ #include "shaders/FbReadAnyChangesCS.hlsl.spirv.h"
+ #include "shaders/FbReadAnyFullCS.hlsl.spirv.h"
+ #include "shaders/FbReinterpretCS.hlsl.spirv.h"
++#include "shaders/FbShadowSoftenCS.hlsl.spirv.h"
+ #include "shaders/FbWriteColorCS.hlsl.spirv.h"
+ #include "shaders/FbWriteDepthCS.hlsl.spirv.h"
+ #include "shaders/FbWriteDepthCSMS.hlsl.spirv.h"
+@@ -60,6 +66,7 @@
+ #   include "shaders/FbReadAnyChangesCS.hlsl.dxil.h"
+ #   include "shaders/FbReadAnyFullCS.hlsl.dxil.h"
+ #   include "shaders/FbReinterpretCS.hlsl.dxil.h"
++#   include "shaders/FbShadowSoftenCS.hlsl.dxil.h"
+ #   include "shaders/FbWriteColorCS.hlsl.dxil.h"
+ #   include "shaders/FbWriteDepthCS.hlsl.dxil.h"
+ #   include "shaders/FbWriteDepthCSMS.hlsl.dxil.h"
+@@ -174,6 +181,25 @@
+ #endif
+ 
+ namespace RT64 {
++    // JFG: optional actor-shadow softening pipeline (same layout as fbReinterpret).
++    // Left null if it fails to build, in which case the upstream path is used.
++    RenderPipeline *JfgShadowSoftenPipeline = nullptr;
++
++    static bool jfgComputePipelineValid(RenderPipeline *pipeline) {
++        if (pipeline == nullptr) {
++            return false;
++        }
++#   ifdef _WIN32
++        if (auto *d3d12 = dynamic_cast<plume::D3D12ComputePipeline *>(pipeline)) {
++            return d3d12->d3d != nullptr;
++        }
++#   endif
++        if (auto *vulkan = dynamic_cast<plume::VulkanComputePipeline *>(pipeline)) {
++            return vulkan->vk != VK_NULL_HANDLE;
++        }
++        return true;
++    }
++
+     // ShaderLibrary
+ 
+     ShaderLibrary::ShaderLibrary(bool usesHDR, bool usesHardwareResolve) {
+@@ -399,6 +425,21 @@ namespace RT64 {
+             std::unique_ptr<RenderShader> computeShader = device->createShader(CREATE_SHADER_INPUTS(FbReinterpretCSBlobDXIL, FbReinterpretCSBlobSPIRV, FbReinterpretCSBlobMSL, "CSMain", shaderFormat));
+             RenderComputePipelineDesc pipelineDesc(fbReinterpret.pipelineLayout.get(), computeShader.get(), 8, 8, 1);
+             fbReinterpret.pipeline = device->createComputePipeline(pipelineDesc);
++
++            // JFG: shadow softening variant. Never replaces the upstream pipeline; if the
++            // driver rejects it we log and keep softening disabled instead of crashing.
++            if (JfgShadowSoftenPipeline == nullptr) {
++                std::unique_ptr<RenderShader> softenShader = device->createShader(CREATE_SHADER_INPUTS(FbShadowSoftenCSBlobDXIL, FbShadowSoftenCSBlobSPIRV, FbReinterpretCSBlobMSL, "CSMain", shaderFormat));
++                RenderComputePipelineDesc softenDesc(fbReinterpret.pipelineLayout.get(), softenShader.get(), 8, 8, 1);
++                std::unique_ptr<RenderPipeline> softenPipeline = device->createComputePipeline(softenDesc);
++                if (jfgComputePipelineValid(softenPipeline.get())) {
++                    JfgShadowSoftenPipeline = softenPipeline.release();
++                    fprintf(stderr, "[JFG] shadow softening pipeline ready.\n");
++                }
++                else {
++                    fprintf(stderr, "[JFG] shadow softening pipeline failed to build on this GPU/driver; using standard shadows.\n");
++                }
++            }
+         }
+ 
+         // Framebuffer write color or depth.
+diff --git a/src/shaders/FbShadowSoftenCS.hlsl b/src/shaders/FbShadowSoftenCS.hlsl
+new file mode 100644
+--- /dev/null
++++ b/src/shaders/FbShadowSoftenCS.hlsl
+@@ -0,0 +1,129 @@
++//
++// RT64
++//
++
++#include "shared/rt64_f3d_defines.h"
++#include "shared/rt64_fb_common.h"
++#include "shared/rt64_fb_reinterpret.h"
++
++#include "Depth.hlsli"
++#include "Random.hlsli"
++#include "TextureDecoder.hlsli"
++
++[[vk::push_constant]] ConstantBuffer<FbReinterpretCB> gConstants : register(b0);
++Texture2D<float4> gInputColor : register(t1);
++Texture1D<uint> gInputTLUT : register(t2);
++RWTexture2D<float4> gOutput : register(u3);
++
++float4 RGBA16toCI8(float4 inputColor, uint2 inputCoord, uint2 outputCoord) {
++    // Drop down the input color to its RGBA16 version.
++    uint2 ditherCoord = inputCoord + gConstants.ditherOffset;
++    uint randomSeed = initRand(gConstants.ditherRandomSeed, ditherCoord.y * gConstants.resolution.x + ditherCoord.x, 16);
++    uint ditherValue = DitherPatternValue(gConstants.ditherPattern, ditherCoord, randomSeed);
++    uint nativeColor = Float4ToRGBA16(inputColor, ditherValue, gConstants.usesHDR);
++
++    // Extract the lower or upper half of the value depending on the pixel misalignment.
++    uint pixelMisalignment = 1 - (outputCoord.x % 2);
++    uint pixelValue = (nativeColor >> (8 * pixelMisalignment)) & 0xFF;
++    uint paletteAddress = RDP_TMEM_PALETTE + (pixelValue << 3);
++    Texture1D<uint> TMEM = gInputTLUT;
++    uint paletteValue = loadTLUT(paletteAddress + 1) | (loadTLUT(paletteAddress) << 8);
++    uint decodedFormat = gConstants.tlutFormat - 1;
++    switch (decodedFormat) {
++    case G_TT_RGBA16:
++        return RGBA16ToFloat4(paletteValue);
++    case G_TT_IA16:
++        return IA16ToFloat4(paletteValue);
++    default:
++        return float4(0.0f, 0.0f, 0.0f, 1.0f);
++    }
++}
++
++uint ANY8toUINT8(float4 inputColor, uint2 inputCoord) {
++    // Grab the R or G channel based on whether the input column is odd or not.
++    bool oddColumn = inputCoord.x & 1;
++    float inputChannel = oddColumn ? inputColor.g : inputColor.r;
++
++    // Drop down the input to its I8 version.
++    return FloatToUINT8(inputChannel);
++}
++
++float4 ANY8toI8(float4 inputColor, uint2 inputCoord, uint2 outputCoord) {
++    uint nativeColor = ANY8toUINT8(inputColor, inputCoord);
++    return I8ToFloat4(nativeColor);
++}
++
++float4 ANY8toIA8(float4 inputColor, uint2 inputCoord, uint2 outputCoord) {
++    uint nativeColor = ANY8toUINT8(inputColor, inputCoord);
++    return IA8ToFloat4(nativeColor);
++}
++
++float4 RGBA16toIA16(float4 inputColor, uint2 inputCoord, uint2 outputCoord) {
++    // We actually skip encoding and decoding with native format and do a 
++    // similar algorithm that preserves the intention of the effect along
++    // with the  precision. The input is encoded into a fake "R10G10B10A2" 
++    // format and decoded as another fake "I16A16" format.
++    const float InputScale = 1023.0f;
++    const float OutputScale = 65535.0f;
++    uint4 rgba = round(clamp(inputColor * InputScale, 0.0f, InputScale));
++    uint nativeInput = (rgba.r << 22) | (rgba.g << 12) | (rgba.b << 2) | ((rgba.a > 0) ? 3 : 0);
++    float iFloat = ((nativeInput >> 16) & 0xFFFF) / OutputScale;
++    float aFloat = (nativeInput & 0xFFFF) / OutputScale;
++    return float4(iFloat, iFloat, iFloat, aFloat);
++}
++
++// JFG (Jet Force Gemini recomp): shadow softening for small 8b->IA8 tiles
++// (64x64 actor shadow buffers). Separate shader + pipeline so the upstream
++// FbReinterpretCS stays untouched; only dispatched when softening is active.
++//   usesHDR bits 8-19  = softness in native texels (1/64 units)
++//   usesHDR bits 20-31 = resolution scale (1/64 units)
++
++float4 LoadIA8(int2 hiresCoord, int2 maxCoord) {
++    uint2 sampleCoord = uint2(clamp(hiresCoord, int2(0, 0), maxCoord));
++    uint2 inputCoord = uint2(floor(sampleCoord.x * gConstants.sampleScale), sampleCoord.y);
++    return ANY8toIA8(gInputColor.Load(uint3(inputCoord, 0)), inputCoord, sampleCoord);
++}
++
++[numthreads(FB_COMMON_WORKGROUP_SIZE, FB_COMMON_WORKGROUP_SIZE, 1)]
++void CSMain(uint2 coord : SV_DispatchThreadID) {
++    if ((coord.x >= gConstants.resolution.x) || (coord.y >= gConstants.resolution.y)) {
++        return;
++    }
++
++    const int2 maxCoord = int2(gConstants.resolution) - 1;
++    const float softness = float((gConstants.usesHDR >> 8) & 0xFFFu) / 64.0f;
++    const float scale = max(float(gConstants.usesHDR >> 20) / 64.0f, 1.0f);
++    const float sigma = max(softness * 0.5f, 0.35f);
++
++    // Box-average each native texel cell (thin HD spikes become partial
++    // coverage, like the N64's 64x64 buffer), then reconstruct with a
++    // Gaussian in native-texel space so the result is smooth at HD.
++    const float2 nativePos = (float2(coord) + 0.5f) / scale - 0.5f;
++    const int2 baseCell = int2(floor(nativePos));
++    const float cellStep = scale / 3.0f;
++    float4 sum = 0.0f;
++    float weightSum = 0.0f;
++    [unroll]
++    for (int cy = -1; cy <= 2; cy++) {
++        [unroll]
++        for (int cx = -1; cx <= 2; cx++) {
++            const int2 cell = baseCell + int2(cx, cy);
++            const float2 delta = nativePos - float2(cell);
++            const float weight = exp(-dot(delta, delta) / (2.0f * sigma * sigma));
++            const float2 cellOrigin = float2(cell) * scale;
++            float4 cellSum = 0.0f;
++            [unroll]
++            for (int sy = 0; sy < 3; sy++) {
++                [unroll]
++                for (int sx = 0; sx < 3; sx++) {
++                    cellSum += LoadIA8(int2(cellOrigin + (float2(sx, sy) + 0.5f) * cellStep), maxCoord);
++                }
++            }
++
++            sum += (cellSum / 9.0f) * weight;
++            weightSum += weight;
++        }
++    }
++
++    gOutput[coord] = sum / max(weightSum, 0.0001f);
++}

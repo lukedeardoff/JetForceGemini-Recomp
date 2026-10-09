@@ -1,0 +1,13 @@
+Restore community shadows and fix fresh builds from the cache
+
+- Shadows: keep the 64x64 actor shadow buffers on the GPU (no writeback for
+  framebuffers narrower than 128 px) and soften them with the RT64 pass in
+  patches/rt64/jfg-shadow-soften.patch (JFG_SHADOW_BLUR, default 1.5).
+  JFG_SHADOW_MODE=upstream switches back to main's CPU-mask writeback.
+- phase9_recover_task_helper: accept private output in the Windows build
+  cache outside the checkout. Fresh builds into %LOCALAPPDATA%\JFG\b failed
+  with "use a new private output directory".
+- community scripts: build, rebuild (applies the RT64 patch), play, save.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01EHYghbHbethy8xLZevbQN1

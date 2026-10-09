@@ -19,11 +19,13 @@ Base: TK22-26/JetForceGemini-Recomp `main` at `f55da7d` (after launcher 0.4.0-pr
 | Title/menu vignette | HD replacement texture pack, auto-loaded from `%LOCALAPPDATA%\JFGRecomp\texture-packs` |
 | RT64 inspector | `JFG_RT64_DEVELOPER=1` enables F1; pausing (F4) no longer trips the auxiliary-target trap |
 | Crash reports | `jfg-crash-site` line with module+offset per stack frame |
+| Actor shadows | Shadow buffers stay on the GPU at HD and are softened by an RT64 pass (`patches/rt64/jfg-shadow-soften.patch`, `JFG_SHADOW_BLUR`, default 1.5). `JFG_SHADOW_MODE=upstream` restores main's CPU-mask writeback for comparison |
 | Diagnostics | Effect-activity log, frame capture, texture-image log, lens-flare depth trace (`JFG_ZB_TRACE`) |
 
-Dropped compared with the old `community/cosmetic-vignette-shadows` branch: the shadow writeback filter and
-optional soften pass (upstream now writes the shadow mask back so the game's own CPU blur runs), and the
-backported widescreen presentation and overlay fixes (now in main).
+Dropped compared with the old `community/cosmetic-vignette-shadows` branch: the backported widescreen
+presentation and overlay fixes (now in main).
+
+`community\rebuild-community.ps1` applies the RT64 shadow patch to the build's RT64 checkout before rebuilding.
 
 ## Build and play (Windows)
 
