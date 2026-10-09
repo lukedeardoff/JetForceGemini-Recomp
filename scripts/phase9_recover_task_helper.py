@@ -221,7 +221,10 @@ def run(output, elf, elf_sha256, rom, helper='task'):
     else:
         raise ValueError('unknown helper')
     output, elf, rom = output.resolve(), elf.resolve(strict=True), rom.resolve(strict=True)
-    if not output.is_relative_to(ROOT / "tools/private") or output.exists():
+    # Private output may live in the Windows build cache (outside the checkout)
+    # or under tools/private; never elsewhere inside the repository.
+    inside_checkout = output.is_relative_to(ROOT)
+    if output.exists() or (inside_checkout and not output.is_relative_to(ROOT / "tools/private")):
         raise ValueError("use a new private output directory")
     original, image = elf.read_bytes(), rom.read_bytes()
     if digest(original) != elf_sha256 or digest(image) != ROM_SHA256:

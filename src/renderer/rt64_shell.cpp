@@ -25,8 +25,53 @@
 #include <mutex>
 #include <vector>
 
+namespace RT64 {
+// Defined in RT64 hle/rt64_framebuffer_manager.cpp (community shadow patch).
+extern float ShadowBlurTexels;
+}
+
 namespace jfg {
 namespace {
+
+// Community shadows (Luke Deardoff, AI-assisted): JFG_SHADOW_MODE=upstream
+// restores main's CPU-mask writeback; anything else keeps the actor shadow
+// buffers on the GPU at HD and softens them in RT64 (JFG_SHADOW_BLUR).
+constexpr std::uint32_t kMinimumWritebackWidth = 128U;
+
+bool community_shadows_enabled() noexcept {
+    static const bool enabled = [] {
+        bool result = true;
+#ifdef _WIN32
+        char* value = nullptr;
+        std::size_t length = 0U;
+        if (_dupenv_s(&value, &length, "JFG_SHADOW_MODE") == 0 && value != nullptr)
+            result = std::string(value) != "upstream";
+        std::free(value);
+#endif
+        return result;
+    }();
+    return enabled;
+}
+
+// JFG_SHADOW_BLUR=<native texels> sets the soft edge on actor shadows
+// (0 = off). Defaults to 1.5 so the launcher, which clears JFG_* variables,
+// still gets soft shadows. Upstream shadow mode forces 0.
+void apply_shadow_blur_setting() noexcept {
+    RT64::ShadowBlurTexels = community_shadows_enabled() ? 1.5f : 0.0f;
+#ifdef _WIN32
+    if (!community_shadows_enabled()) return;
+    char* value = nullptr;
+    std::size_t value_length = 0U;
+    if (_dupenv_s(&value, &value_length, "JFG_SHADOW_BLUR") == 0 && value != nullptr) {
+        char* end = nullptr;
+        const float parsed = std::strtof(value, &end);
+        if (end != value && parsed >= 0.0f && parsed <= 16.0f) {
+            RT64::ShadowBlurTexels = parsed;
+        }
+    }
+    std::free(value);
+#endif
+}
 
 constexpr std::size_t kRspMemoryBytes = 4096U;
 constexpr std::size_t kMaximumUcodeBytes = 4096U;
@@ -915,6 +960,7 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
         }
         impl->initialized = true;
         load_user_texture_packs(*impl->application);
+        apply_shadow_blur_setting();
         impl->f3ddkr = std::make_unique<Rt64F3ddkr>(*impl->application);
         error = Rt64ShellError::none;
         return std::unique_ptr<Rt64Shell>(
@@ -991,6 +1037,14 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
                     framebuffer.lastWriteType == RT64::Framebuffer::Type::Color &&
                     framebuffer.lastWriteFmt == G_IM_FMT_I &&
                     framebuffer.siz == G_IM_SIZ_8b;
+                // Community shadows: keep small offscreen targets (the 64x64
+                // actor shadow buffers) on the GPU so RT64 samples them at HD
+                // and the soften pass runs; the flare depth check only needs
+                // full-size buffers.
+                if (community_shadows_enabled() &&
+                    framebuffer.width < kMinimumWritebackWidth) {
+                    continue;
+                }
                 if (framebuffer.lastWriteTimestamp > previous_write &&
                     (impl_->cpu_writeback || cpu_mask)) {
                     impl_->writeback_ranges.push_back(
