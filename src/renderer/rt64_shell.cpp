@@ -1032,7 +1032,9 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
         app_configuration.useConfigurationFile = false;
         impl->application =
             std::make_unique<RT64::Application>(core, app_configuration);
-        if (configuration.cpu_mask_writeback) {
+        // Community shadows keep the masks on the GPU (soften pass), which
+        // needs RT64's GPU framebuffer copies.
+        if (configuration.cpu_mask_writeback && !community_shadows_enabled()) {
             // JFG softens rendered shadow masks on the CPU before sampling them.
             // A cached GPU framebuffer copy bypasses those edits. Load textures
             // from the updated RAM when the game owns mask postprocessing.
