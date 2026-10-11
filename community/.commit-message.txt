@@ -1,13 +1,21 @@
-Restore community shadows and fix fresh builds from the cache
+Water splashes animate; shadow, garbage-texture and inspector fixes
 
-- Shadows: keep the 64x64 actor shadow buffers on the GPU (no writeback for
-  framebuffers narrower than 128 px) and soften them with the RT64 pass in
-  patches/rt64/jfg-shadow-soften.patch (JFG_SHADOW_BLUR, default 1.5).
-  JFG_SHADOW_MODE=upstream switches back to main's CPU-mask writeback.
-- phase9_recover_task_helper: accept private output in the Windows build
-  cache outside the checkout. Fresh builds into %LOCALAPPDATA%\JFG\b failed
-  with "use a new private output directory".
-- community scripts: build, rebuild (applies the RT64 patch), play, save.
+- Animated model textures: the F3DDKR texture-offset table (opcode 0x02)
+  now works like JFG's own RSP microcode. Every G_SETTIMG in the list adds
+  the next table entry, whatever the image format; BF disables the table;
+  words in a 0x07 DMA list skip it. The GLideN64 rule (RGBA only, index per
+  LOADBLOCK) froze greyscale animations on frame 1, so Juno's water splash
+  popped in and out instead of widening and fading.
+  JFG_TEXSHIFT_MODE=2 restores the old rule for comparison.
+- Actor shadows on v1.1.0: HD masks stay on the GPU with the game's grey
+  opacity (8/14, JFG_SHADOW_OPACITY), blur capped at 2 texels. RT64's shadow
+  bytes are kept only where the guest did not change memory, which fixes
+  garbage textures when shadow memory is reused.
+- RT64 inspector: pausing (F4) lands on the 3D scene workload, so
+  right-click picking and the purple highlight work.
+- Diagnostics: JFG_RIPPLE_LOG=1 writes diag\ripple.tsv (translucent effect
+  draws, texture sources and dumps).
+- community/README.md updated.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01EHYghbHbethy8xLZevbQN1

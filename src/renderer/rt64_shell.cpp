@@ -29,11 +29,13 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 namespace RT64 {
 // Defined in RT64 hle/rt64_framebuffer_manager.cpp (community shadow patch).
 extern float ShadowBlurTexels;
+extern float ShadowOpacity;
 // Defined in the generated RT64 VI renderer (cmake/rt64_vi_presentation.cmake).
 extern float JfgViGamma;
 extern float JfgViContrast;
@@ -86,18 +88,35 @@ void apply_color_grade_setting() noexcept {
 }
 
 // JFG_SHADOW_BLUR=<native texels> sets the soft edge on actor shadows
-// (0 = off). Defaults to 1.5 so the launcher, which clears JFG_* variables,
+// (0 = off, max 2: the soften kernel spans 4 native texels, so larger values
+// turn into visible blocks). Defaults to 1.5 so the launcher, which clears JFG_* variables,
 // still gets soft shadows. Upstream shadow mode forces 0.
 void apply_shadow_blur_setting() noexcept {
     RT64::ShadowBlurTexels = community_shadows_enabled() ? 1.5f : 0.0f;
+    // JFG_SHADOW_OPACITY: shadow darkness relative to the raw silhouette. The
+    // game's own CPU pass gives 8/14 = 0.57 (grey, not black).
+    // Default 8/14 = the game's own CPU opacity (grey, as on hardware). The
+    // shadow draw is black with alpha = mask alpha, so this matches the
+    // console. 1 or 0 = raw silhouette (darker).
+    RT64::ShadowOpacity = 8.0f / 14.0f;
 #ifdef _WIN32
     if (!community_shadows_enabled()) return;
+    {
+        char* opacity = nullptr;
+        std::size_t opacity_length = 0U;
+        if (_dupenv_s(&opacity, &opacity_length, "JFG_SHADOW_OPACITY") == 0 && opacity != nullptr) {
+            char* end = nullptr;
+            const float parsed = std::strtof(opacity, &end);
+            if (end != opacity && parsed >= 0.0f && parsed <= 1.0f) RT64::ShadowOpacity = parsed;
+        }
+        std::free(opacity);
+    }
     char* value = nullptr;
     std::size_t value_length = 0U;
     if (_dupenv_s(&value, &value_length, "JFG_SHADOW_BLUR") == 0 && value != nullptr) {
         char* end = nullptr;
         const float parsed = std::strtof(value, &end);
-        if (end != value && parsed >= 0.0f && parsed <= 16.0f) {
+        if (end != value && parsed >= 0.0f && parsed <= 2.0f) {
             RT64::ShadowBlurTexels = parsed;
         }
     }
@@ -587,6 +606,20 @@ struct Rt64Shell::Impl {
     bool cpu_mask_writeback = false;
     bool writeback_pending = false;
     bool last_submit_paused = false;
+    // Developer inspector pause (community). A JFG frame is several RT64
+    // workloads (shadow masks, the 3D scene, effects, overlays) and RT64's
+    // inspector only shows and re-renders the last one, so pausing on an
+    // arbitrary task made right-click picking and the purple highlight miss
+    // the scene. A pause request runs until the frame's last scene task (as
+    // counted on the previous frame), skips the rest and pauses at the
+    // following present, so the paused workload is the 3D scene.
+    // 0 running, 1 armed, 2 running to scene, 3 skipping, 4 paused.
+    int pause_stage = 0;
+    unsigned frame_scene_tasks = 0U;
+    unsigned last_frame_scene_tasks = 0U;
+    unsigned pause_scene_target = 1U;
+    std::uint32_t pause_scene_address = 0U;
+    unsigned pause_wait_presents = 0U;
     std::vector<Rt64RdramRange> writeback_ranges;
     std::uint64_t last_rdram_check_microseconds = 0U;
 
@@ -900,9 +933,53 @@ Rt64ShellError Rt64Shell::replace_rdram_snapshot(
     // Import it directly; byte-delta merging and GPU-range ownership scans
     // are needed only when private GPU results have not been written back.
     if (impl_->cpu_writeback) {
+        // Community shadows: the 64x64 actor shadow buffers stay on the GPU and
+        // are never written back, so guest RAM there holds the game's CPU pass
+        // over stale data. Importing it would make RT64 see a CPU edit and
+        // replace the HD shadow with that RAM. Keep RT64's bytes for those
+        // small framebuffers across the import, but only where the guest did
+        // not change the byte since the last import (the pre-v1.1 merge rule).
+        // The game frees and reuses shadow buffer memory for textures; keeping
+        // RT64's stale bytes there showed old framebuffer pixels as garbage
+        // textures (character clothes, monitors, ship panels).
+        std::vector<std::pair<std::uint32_t, std::vector<std::uint8_t>>> kept;
+        if (community_shadows_enabled()) {
+            try {
+                for (const auto& [address, framebuffer] :
+                     impl_->application->state->framebufferManager.framebuffers) {
+                    (void)address;
+                    if (framebuffer.width >= kMinimumWritebackWidth ||
+                        framebuffer.lastWriteType == RT64::Framebuffer::Type::None)
+                        continue;
+                    const std::uint32_t begin = framebuffer.addressStart & ~3U;
+                    const std::uint32_t end = std::min<std::uint32_t>(
+                        (framebuffer.addressEnd + 3U) & ~3U,
+                        static_cast<std::uint32_t>(impl_->rdram.size()));
+                    if (begin >= end) continue;
+                    kept.emplace_back(begin, std::vector<std::uint8_t>(
+                        impl_->rdram.begin() + begin, impl_->rdram.begin() + end));
+                }
+            }
+            catch (...) { return Rt64ShellError::renderer_exception; }
+        }
         const auto copied = copy_rt64_rdram_snapshot(rdram,
             std::as_writable_bytes(std::span(impl_->rdram)), layout);
         if (copied != Rt64ShellError::none) return copied;
+        const bool same_layout = layout == Rt64MemoryLayout::host_word_swapped &&
+            impl_->simulation_rdram.size() == impl_->rdram.size();
+        for (const auto& [begin, bytes] : kept) {
+            for (std::size_t index = 0U; index < bytes.size(); ++index) {
+                const std::size_t address = begin + index;
+                if (!same_layout) {
+                    impl_->rdram[address] = bytes[index];
+                    continue;
+                }
+                const std::uint8_t incoming = impl_->rdram[address];
+                if (incoming == impl_->simulation_rdram[address])
+                    impl_->rdram[address] = bytes[index];
+                impl_->simulation_rdram[address] = incoming;
+            }
+        }
         // Full writeback imports every source byte at the next task boundary.
         // The delta-import history is used only when full writeback is off.
     } else {
@@ -1096,16 +1173,19 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
         RT64::Application& application = *impl_->application;
         if (impl_->writeback_pending)
             return Rt64ShellError::conflicting_cpu_write;
-        if (application.state->debuggerInspector.paused) {
+        auto& inspector = application.state->debuggerInspector;
+        if (impl_->pause_stage == 4 && !inspector.paused)
+            impl_->pause_stage = 0;
+        if (impl_->pause_stage == 0 && inspector.paused) {
+            inspector.paused = false;
+            impl_->pause_stage = 1;
+        }
+        if (inspector.paused || impl_->pause_stage == 3) {
             // Developer inspector paused (F4): RT64 skips the display list and
             // only raises the DP interrupt. Keep the game running without
             // treating the uninterpreted task as a renderer failure.
             impl_->last_submit_paused = true;
-            application.processDisplayLists(
-                const_cast<std::uint8_t*>(impl_->task_rdram.data()),
-                task.command_address & 0x00FF'FFFFU,
-                0U,
-                true);
+            application.state->dpInterrupt();
             if (impl_->cpu_writeback) {
                 impl_->writeback_ranges.clear();
                 impl_->writeback_pending = true;
@@ -1113,6 +1193,7 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
             return Rt64ShellError::none;
         }
         impl_->last_submit_paused = false;
+        const auto workload_before = application.state->workloadId;
         const auto previous_write = application.state->framebufferManager.writeTimestamp;
         impl_->writeback_ranges.clear();
         application.state->rsp->reset();
@@ -1121,7 +1202,9 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
         }
         // CPU post-processing of offscreen results must be visible to texture
         // loads. GPU framebuffer reuse can otherwise bypass those RAM writes.
-        if (impl_->cpu_writeback)
+        // Community shadows need RT64's GPU framebuffer copies (soften pass),
+        // which also keeps the RAM-mask paths below inactive, as before v1.1.
+        if (impl_->cpu_writeback && !community_shadows_enabled())
             impl_->application->emulatorConfig.framebuffer.copyWithGPU = false;
         impl_->f3ddkr->begin(impl_->task_rdram);
         impl_->f3ddkr->install();
@@ -1188,6 +1271,24 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
             true);
         if (!impl_->f3ddkr->complete()) {
             return Rt64ShellError::unsupported_commands;
+        }
+        if (application.state->workloadId != workload_before) {
+            // Count scene tasks: a full-width target with depth and draws.
+            const auto& queue = *application.workloadQueue;
+            const auto& workload = queue.workloads[queue.previousWriteCursor()];
+            for (std::uint32_t pair = 0U; pair < workload.fbPairCount; ++pair) {
+                const auto& fb_pair = workload.fbPairs[pair];
+                if (fb_pair.colorImage.width >= 256U && fb_pair.gameCallCount > 0U &&
+                    (fb_pair.depthRead || fb_pair.depthWrite)) {
+                    ++impl_->frame_scene_tasks;
+                    if (impl_->pause_stage == 2 &&
+                        impl_->frame_scene_tasks >= impl_->pause_scene_target) {
+                        impl_->pause_scene_address = fb_pair.colorImage.address;
+                        impl_->pause_stage = 3;
+                    }
+                    break;
+                }
+            }
         }
         if (impl_->cpu_writeback || impl_->cpu_mask_writeback) {
             // RT64's render-to-RAM full sync has finished its readback here.
@@ -1313,6 +1414,30 @@ Rt64ShellError Rt64Shell::present(const bool capture_frame) noexcept {
         if (capture_frame)
             impl_->capture->arm();
         impl_->application->updateScreen();
+        // Frame boundary for the developer inspector pause (see Impl).
+        auto& inspector = impl_->application->state->debuggerInspector;
+        impl_->last_frame_scene_tasks = impl_->frame_scene_tasks;
+        impl_->frame_scene_tasks = 0U;
+        if (impl_->pause_stage == 2 || impl_->pause_stage == 3) {
+            // Pause once the VI shows the scene's buffer, so the repeated
+            // present and the re-rendered workload are the same image.
+            const std::uint32_t origin =
+                *impl_->application->core.VI_ORIGIN_REG & 0x00FF'FFFFU;
+            const bool showing_scene = impl_->pause_scene_address != 0U &&
+                origin >= impl_->pause_scene_address &&
+                origin < impl_->pause_scene_address + 640U * 480U * 2U;
+            if (showing_scene || impl_->pause_stage == 2 ||
+                ++impl_->pause_wait_presents > 2U) {
+                inspector.paused = true;
+                impl_->pause_stage = 4;
+            }
+        }
+        else if (impl_->pause_stage == 1) {
+            impl_->pause_stage = 2;
+            impl_->pause_scene_target = std::max(1U, impl_->last_frame_scene_tasks);
+            impl_->pause_scene_address = 0U;
+            impl_->pause_wait_presents = 0U;
+        }
         if (capture_frame) {
             impl_->application->presentQueue->waitForPresentId(
                 impl_->application->state->presentId);

@@ -14,17 +14,37 @@
 #include <cstdint>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 #include <cstdio>
+#include <share.h>
 #include <cstdlib>
 #include <string>
 
 namespace jfg {
 namespace {
 
+// F3DDKR texture-offset table (opcode 0x02), as JFG's own RSP microcode does
+// it (disassembled 2026-10-11, IMEM 0x1328-0x135C and 0x14D4-0x1500):
+// - 0x02 DMAs the table and copies its first 32 u16 entries (64 bytes) to DMEM
+//   0x320, sets the index to 0 and enables the table (DMEM 0x1E6/0x1E7).
+// - Every G_SETTIMG in the display list then adds the next entry (unsigned) to
+//   its address and advances the index, whatever the image format.
+// - BF (DMA offsets) disables the table. Commands inside a 0x07 DMA list are
+//   sent to the RDP untouched and do not use the table.
+// The game's model renderer (objPrintModelObject) gives every model a 40-entry
+// table that it rewrites each frame for animated textures (frame offsets);
+// unanimated models get the all-zero table at 0x800A0838. GLideN64's heuristic
+// (RGBA images only, undo on some LOADBLOCKs, index per LOADBLOCK), which this
+// file used until 2026-10-11, froze animated IA/I textures on frame 0: Juno's
+// water splash never played its widen-and-fade animation.
+constexpr std::size_t kTextureTableEntries = 32U;
+
 // Asteroid investigation (2026-10-07): texture-image log + texture-shift switch.
 //   JFG_TEXLOG=1          write diag\texlog.tsv (between JFG_TEXLOG_FROM_S and
 //                         JFG_TEXLOG_TO_S seconds after the first graphics task)
+//   JFG_TEXSHIFT_MODE=0   microcode behaviour above (default)
 //   JFG_TEXSHIFT_MODE=1   ignore DKR/JFG texture-offset shifts (test only)
+//   JFG_TEXSHIFT_MODE=2   the old GLideN64 heuristic (for comparison)
 // Lines: T task ms | O offset_addr | I fmt siz width base final offset count shift
 //        | B lrs block_bytes shift action(0=count++,1=undo)
 // JFG's texture-offset tables are 40 u16 entries (0x50 bytes), double
@@ -92,6 +112,100 @@ bool texlog_on() {
            texlog.lines < 3000000U;
 }
 
+// JFG_RIPPLE_LOG=1: diag\ripple.tsv (water splash/wake investigation).
+// Translucent textured triangles (ZMODE_XLU with FORCE_BL, the wake family)
+// are aggregated per DMA-triangle command and render state:
+//   G ms task wid omL omH ccL ccH geom tri_src vtx_src
+//     texsrc fmt/siz/width bytes load(1 block, 2 tile)/rt64_diff (bytes where
+//     RT64's RDRAM copy of the texture differs from the guest's)/overlapping
+//     RT64 framebuffer address/width/last write type
+//     tile(uls ult lrs lrt cms cmt masks maskt shifts shiftt fmt siz line tmem)
+//     prim env | n screen-bbox object-bbox u0,u1,v0,v1 a0,a1 r0,r1
+//     then up to 6 corners: x,y,rgba,u,v (u/v 10.5)
+//   TASK task ms        one per graphics task (frame marker)
+//   TEX addr fmt/siz/width bytes hex   first use of each texture source
+// texsrc is the RDRAM address the tile-0 TMEM area was last loaded from,
+// so CPU-chosen flipbook frames show up as changing addresses.
+struct RippleLog {
+    bool ready = false;
+    std::FILE* file = nullptr;
+    std::uint64_t lines = 0U;
+    std::chrono::steady_clock::time_point start{};
+};
+RippleLog ripple_log;
+
+std::FILE* ripple_log_file() {
+    if (!ripple_log.ready) {
+        ripple_log.ready = true;
+        ripple_log.start = std::chrono::steady_clock::now();
+        if (texlog_env("JFG_RIPPLE_LOG", 0) != 0) {
+            wchar_t* base = nullptr;
+            std::size_t length = 0U;
+            if (_wdupenv_s(&base, &length, L"LOCALAPPDATA") == 0 && base != nullptr) {
+                std::wstring path = std::wstring(base) + L"\\JFGRecomp\\diag\\ripple.tsv";
+                // Shared read so the log can be inspected while the game runs.
+                ripple_log.file = _wfsopen(path.c_str(), L"w", _SH_DENYNO);
+            }
+            std::free(base);
+        }
+    }
+    if (ripple_log.file == nullptr || ripple_log.lines >= 400000U) return nullptr;
+    return ripple_log.file;
+}
+
+struct RippleCorner {
+    float x = 0.0F, y = 0.0F;
+    unsigned rgba = 0U;
+    int u = 0, v = 0;
+};
+
+struct RippleGroup {
+    bool active = false;
+    std::string key;
+    std::string head;
+    unsigned triangles = 0U;
+    float sx0 = 0, sy0 = 0, sx1 = 0, sy1 = 0;
+    float ox0 = 0, oy0 = 0, oz0 = 0, ox1 = 0, oy1 = 0, oz1 = 0;
+    int u0 = 0, u1 = 0, v0 = 0, v1 = 0;
+    unsigned a0 = 0, a1 = 0, c0 = 0, c1 = 0;
+    std::array<RippleCorner, 6U> corners{};
+    std::size_t corner_count = 0U;
+};
+RippleGroup ripple_group;
+
+// RDRAM source of the most recent load into each TMEM word (ripple log).
+struct TmemSource {
+    std::uint32_t address = 0U;
+    std::uint32_t bytes = 0U;
+    unsigned fmt = 0U, siz = 0U, width = 0U, load = 0U;
+};
+std::array<TmemSource, 512U> tmem_sources{};
+std::unordered_set<std::uint32_t> ripple_dumped;
+std::uint32_t ripple_vertex_source = 0U;
+
+void ripple_group_flush() {
+    if (!ripple_group.active) return;
+    std::FILE* log = ripple_log_file();
+    if (log != nullptr) {
+        const RippleGroup& g = ripple_group;
+        std::fprintf(log, "%s\t%u\t%.1f,%.1f,%.1f,%.1f\t%.0f,%.0f,%.0f,%.0f,%.0f,%.0f\t%d,%d,%d,%d\t%u,%u\t%u,%u",
+            g.head.c_str(), g.triangles,
+            static_cast<double>(g.sx0), static_cast<double>(g.sy0), static_cast<double>(g.sx1), static_cast<double>(g.sy1),
+            static_cast<double>(g.ox0), static_cast<double>(g.oy0), static_cast<double>(g.oz0),
+            static_cast<double>(g.ox1), static_cast<double>(g.oy1), static_cast<double>(g.oz1),
+            g.u0, g.u1, g.v0, g.v1, g.a0, g.a1, g.c0, g.c1);
+        for (std::size_t index = 0U; index < g.corner_count; ++index) {
+            const RippleCorner& corner = g.corners[index];
+            std::fprintf(log, "\t%.1f,%.1f,%08x,%d,%d",
+                static_cast<double>(corner.x), static_cast<double>(corner.y),
+                corner.rgba, corner.u, corner.v);
+        }
+        std::fputc('\n', log);
+        if ((++ripple_log.lines % 32U) == 0U) std::fflush(log);
+    }
+    ripple_group.active = false;
+}
+
 constexpr std::uint8_t kOpDmaMatrix = 0x01U;
 constexpr std::uint8_t kOpDmaTextureOffset = 0x02U;
 constexpr std::uint8_t kOpDmaVertex = 0x04U;
@@ -134,6 +248,10 @@ struct Context {
     std::uint32_t texture_offset = 0U;
     std::uint32_t texture_shift = 0U;
     std::size_t texture_count = 0U;
+    std::array<std::uint16_t, kTextureTableEntries> texture_table{};
+    std::size_t texture_index = 0U;
+    bool texture_table_enabled = false;
+    bool in_dma_list = false;
     std::size_t vertex_cursor = 0U;
     std::size_t selected_matrix = 0U;
     std::size_t commands = 0U;
@@ -324,11 +442,22 @@ void dma_texture_offset(RT64::State* state, RT64::DisplayList** dl) {
         0x00FF'FFF8U;
     context->texture_shift = 0U;
     context->texture_count = 0U;
+    context->texture_table.fill(0U);
+    if (physical_range(context->texture_offset, kTextureTableEntries * 2U)) {
+        for (std::size_t entry = 0U; entry < kTextureTableEntries; ++entry) {
+            context->texture_table[entry] = static_cast<std::uint16_t>(guest_s16(
+                *context, *state,
+                context->texture_offset + static_cast<std::uint32_t>(entry * 2U)));
+        }
+    }
+    context->texture_index = 0U;
+    context->texture_table_enabled = texlog.shift_mode == 0;
     if (texlog_on()) {
         ++texlog.lines;
         std::fprintf(texlog.file, "O\t%x\t%x\t%x\n", context->texture_offset, (*dl)->w0, (*dl)->w1);
     }
-    if (texlog.shift_mode == 1) {
+    if (texlog.shift_mode != 2) {
+        // The legacy path below reads texture_offset; only mode 2 uses it.
         context->texture_offset = 0U;
     }
 }
@@ -383,7 +512,15 @@ void set_texture_image(RT64::State* state, RT64::DisplayList** dl) {
         context->texture_shift = 0U;
         context->texture_count = 0U;
     }
-    if (context->texture_offset != 0U) {
+    if (context->texture_table_enabled && !context->in_dma_list) {
+        const std::uint16_t entry = context->texture_index < kTextureTableEntries
+            ? context->texture_table[context->texture_index]
+            : std::uint16_t{0U};
+        ++context->texture_index;
+        context->texture_shift = entry;
+        address = detail::resolve_f3ddkr_byte_source(address + entry);
+    }
+    else if (context->texture_offset != 0U) {
         if (format == G_IM_FMT_RGBA) {
             const std::uint32_t shift_address = context->texture_offset +
                 static_cast<std::uint32_t>(context->texture_count * 2U);
@@ -406,7 +543,8 @@ void set_texture_image(RT64::State* state, RT64::DisplayList** dl) {
         ++texlog.lines;
         std::fprintf(texlog.file, "I\t%u\t%u\t%u\t%x\t%x\t%x\t%zu\t%u\t%x\n",
             format, size, width, texlog_base, address, texlog_offset,
-            texlog_count, static_cast<unsigned>(context->texture_shift), (*dl)->w0);
+            context->texture_table_enabled ? context->texture_index : texlog_count,
+            static_cast<unsigned>(context->texture_shift), (*dl)->w0);
     }
     state->rdp->setTextureImage(format, size, width, address);
 }
@@ -496,7 +634,43 @@ void load_block(RT64::State* state, RT64::DisplayList** dl) {
             ++context->texture_count;
         }
     }
+    if (ripple_log_file() != nullptr) {
+        const RT64::RDP& rdp = *state->rdp;
+        const unsigned tile_index = ((*dl)->w1 >> 24U) & 7U;
+        const std::uint32_t texels = static_cast<std::uint32_t>(lrs) + 1U;
+        TmemSource& source = tmem_sources[rdp.tiles[tile_index].tmem & 511U];
+        source.address = rdp.texture.address;
+        source.bytes = (texels << rdp.texture.siz) >> 1U;
+        source.fmt = rdp.texture.fmt;
+        source.siz = rdp.texture.siz;
+        source.width = rdp.texture.width;
+        source.load = 1U;
+    }
     RT64::GBI_RDP::loadBlock(state, dl);
+}
+
+void load_tile(RT64::State* state, RT64::DisplayList** dl) {
+    if (ripple_log_file() != nullptr) {
+        const RT64::RDP& rdp = *state->rdp;
+        const std::uint32_t w0 = (*dl)->w0;
+        const std::uint32_t w1 = (*dl)->w1;
+        const unsigned tile_index = (w1 >> 24U) & 7U;
+        const std::uint32_t uls = ((w0 >> 12U) & 0xFFFU) >> 2U;
+        const std::uint32_t ult = (w0 & 0xFFFU) >> 2U;
+        const std::uint32_t lrt = (w1 & 0xFFFU) >> 2U;
+        const std::uint32_t row_bytes =
+            (static_cast<std::uint32_t>(rdp.texture.width) << rdp.texture.siz) >> 1U;
+        const std::uint32_t rows = lrt >= ult ? lrt - ult + 1U : 0U;
+        TmemSource& source = tmem_sources[rdp.tiles[tile_index].tmem & 511U];
+        source.address = rdp.texture.address + ult * row_bytes +
+            ((uls << rdp.texture.siz) >> 1U);
+        source.bytes = rows * row_bytes;
+        source.fmt = rdp.texture.fmt;
+        source.siz = rdp.texture.siz;
+        source.width = rdp.texture.width;
+        source.load = 2U;
+    }
+    RT64::GBI_RDP::loadTile(state, dl);
 }
 
 void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
@@ -536,6 +710,7 @@ void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
         reject(state, dl);
         return;
     }
+    ripple_vertex_source = address;
 
     hlslpp::float4x4 unanchored_matrix{};
     bool anchored_billboard = false;
@@ -824,6 +999,130 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
                 return;
             }
         }
+        if (((state->rdp->otherMode.L & 0x0C00U) == 0x0800U) &&
+            ((state->rdp->otherMode.L & 0x4000U) != 0U) && ripple_log_file() != nullptr) {
+            const RT64::Workload& logged =
+                state->ext.workloadQueue->workloads[workload_cursor];
+            const RT64::RDP& rdp = *state->rdp;
+            const auto& cc = rdp.colorCombinerStack[rdp.colorCombinerStackSize - 1];
+            const auto& pc = rdp.primColorStack[rdp.primColorStackSize - 1];
+            const auto& ec = rdp.envColorStack[rdp.envColorStackSize - 1];
+            const auto& tile = rdp.tiles[0];
+            const TmemSource& texsrc = tmem_sources[tile.tmem & 511U];
+            const std::uint32_t geometry = state->rsp->geometryModeStack[state->rsp->geometryModeStackSize - 1];
+            if (texsrc.bytes != 0U && texsrc.bytes <= 4096U &&
+                physical_range(texsrc.address, texsrc.bytes) &&
+                ripple_dumped.size() < 600U &&
+                ripple_dumped.insert(texsrc.address).second) {
+                if (std::FILE* log = ripple_log_file(); log != nullptr) {
+                    std::fprintf(log, "TEX\t%06x\t%u/%u/%u\t%u\t", texsrc.address,
+                        texsrc.fmt, texsrc.siz, texsrc.width, texsrc.bytes);
+                    for (std::uint32_t index = 0U; index < texsrc.bytes; ++index)
+                        std::fprintf(log, "%02x", static_cast<unsigned>(
+                            guest_byte(*context, *state, texsrc.address + index)));
+                    std::fputc('\n', log);
+                    ++ripple_log.lines;
+                }
+            }
+            // Bytes of the texture source where RT64's RDRAM copy differs
+            // from the guest's (stale framebuffer data, for example).
+            unsigned rt64_diff = 0U;
+            if (texsrc.bytes != 0U && texsrc.bytes <= 4096U &&
+                physical_range(texsrc.address, texsrc.bytes) &&
+                context->simulation_rdram.size() == kRdramBytes) {
+                for (std::uint32_t index = 0U; index < texsrc.bytes; ++index) {
+                    const std::uint32_t byte_address = (texsrc.address + index) ^ 3U;
+                    if (state->RDRAM[byte_address] != context->simulation_rdram[byte_address])
+                        ++rt64_diff;
+                }
+            }
+            // An RT64 framebuffer overlapping the texture source makes RT64
+            // sample its render target instead of RDRAM.
+            std::uint32_t overlap_address = 0U;
+            unsigned overlap_width = 0U, overlap_type = 0U;
+            if (texsrc.bytes != 0U) {
+                for (const auto& [fb_key, framebuffer] : state->framebufferManager.framebuffers) {
+                    (void)fb_key;
+                    if (framebuffer.overlaps(texsrc.address, texsrc.address + texsrc.bytes)) {
+                        overlap_address = framebuffer.addressStart;
+                        overlap_width = framebuffer.width;
+                        overlap_type = static_cast<unsigned>(framebuffer.lastWriteType);
+                        break;
+                    }
+                }
+            }
+            char key[640];
+            std::snprintf(key, sizeof(key),
+                "%llu\t%llu\t%08x\t%08x\t%08x\t%08x\t%08x\t%06x\t%06x\t%06x\t%u/%u/%u\t%u\t%u/%u/%06x/%u/%u\t%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u\t%.3f,%.3f,%.3f,%.3f\t%.3f,%.3f,%.3f,%.3f",
+                static_cast<unsigned long long>(texlog.task),
+                static_cast<unsigned long long>(state->workloadId), rdp.otherMode.L, rdp.otherMode.H,
+                cc.L, cc.H, geometry, address & 0x00FF'FFFFU, ripple_vertex_source & 0x00FF'FFFFU,
+                texsrc.address & 0x00FF'FFFFU, texsrc.fmt, texsrc.siz, texsrc.width, texsrc.bytes, texsrc.load, rt64_diff,
+                overlap_address & 0x00FF'FFFFU, overlap_width, overlap_type,
+                unsigned(tile.uls), unsigned(tile.ult), unsigned(tile.lrs), unsigned(tile.lrt),
+                unsigned(tile.cms), unsigned(tile.cmt), unsigned(tile.masks), unsigned(tile.maskt),
+                unsigned(tile.shifts), unsigned(tile.shiftt), unsigned(tile.fmt), unsigned(tile.siz),
+                unsigned(tile.line), unsigned(tile.tmem),
+                static_cast<double>(float(pc.x)), static_cast<double>(float(pc.y)),
+                static_cast<double>(float(pc.z)), static_cast<double>(float(pc.w)),
+                static_cast<double>(float(ec.x)), static_cast<double>(float(ec.y)),
+                static_cast<double>(float(ec.z)), static_cast<double>(float(ec.w)));
+            if (!ripple_group.active || ripple_group.key != key) {
+                ripple_group_flush();
+                const double ms = std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - ripple_log.start).count();
+                char head[720];
+                std::snprintf(head, sizeof(head), "G\t%.0f\t%s", ms, key);
+                ripple_group = RippleGroup{};
+                ripple_group.active = true;
+                ripple_group.key = key;
+                ripple_group.head = head;
+                ripple_group.sx0 = ripple_group.sy0 = ripple_group.ox0 = ripple_group.oy0 = ripple_group.oz0 = 1e9F;
+                ripple_group.sx1 = ripple_group.sy1 = ripple_group.ox1 = ripple_group.oy1 = ripple_group.oz1 = -1e9F;
+                ripple_group.u0 = ripple_group.v0 = 1 << 30;
+                ripple_group.u1 = ripple_group.v1 = -(1 << 30);
+                ripple_group.a0 = ripple_group.c0 = 255U;
+            }
+            RippleGroup& g = ripple_group;
+            ++g.triangles;
+            for (std::size_t corner = 0U; corner < vertices.size(); ++corner) {
+                const std::uint32_t global = state->rsp->indices[vertices[corner]];
+                RippleCorner sample{};
+                if (global < logged.drawData.posScreen.size()) {
+                    const float x = float(logged.drawData.posScreen[global].x);
+                    const float y = float(logged.drawData.posScreen[global].y);
+                    g.sx0 = std::min(g.sx0, x); g.sx1 = std::max(g.sx1, x);
+                    g.sy0 = std::min(g.sy0, y); g.sy1 = std::max(g.sy1, y);
+                    sample.x = x;
+                    sample.y = y;
+                }
+                if ((static_cast<std::size_t>(global) * 3U + 2U) < logged.drawData.posFloats.size()) {
+                    const float ox = logged.drawData.posFloats[global * 3U];
+                    const float oy = logged.drawData.posFloats[global * 3U + 1U];
+                    const float oz = logged.drawData.posFloats[global * 3U + 2U];
+                    g.ox0 = std::min(g.ox0, ox); g.ox1 = std::max(g.ox1, ox);
+                    g.oy0 = std::min(g.oy0, oy); g.oy1 = std::max(g.oy1, oy);
+                    g.oz0 = std::min(g.oz0, oz); g.oz1 = std::max(g.oz1, oz);
+                }
+                if ((static_cast<std::size_t>(global) * 4U + 3U) < logged.drawData.normColBytes.size()) {
+                    const unsigned r = logged.drawData.normColBytes[global * 4U];
+                    const unsigned gr = logged.drawData.normColBytes[global * 4U + 1U];
+                    const unsigned b = logged.drawData.normColBytes[global * 4U + 2U];
+                    const unsigned a = logged.drawData.normColBytes[global * 4U + 3U];
+                    g.a0 = std::min(g.a0, a); g.a1 = std::max(g.a1, a);
+                    g.c0 = std::min(g.c0, r); g.c1 = std::max(g.c1, r);
+                    sample.rgba = (r << 24U) | (gr << 16U) | (b << 8U) | a;
+                }
+                const int u = guest_s16(*context, *state, source + 4U + static_cast<std::uint32_t>(corner * 4U));
+                const int v = guest_s16(*context, *state, source + 6U + static_cast<std::uint32_t>(corner * 4U));
+                g.u0 = std::min(g.u0, u); g.u1 = std::max(g.u1, u);
+                g.v0 = std::min(g.v0, v); g.v1 = std::max(g.v1, v);
+                sample.u = u;
+                sample.v = v;
+                if (g.corner_count < g.corners.size())
+                    g.corners[g.corner_count++] = sample;
+            }
+        }
         state->rsp->drawIndexedTri(vertices[0U], vertices[1U], vertices[2U]);
         ++context->stats.triangles_drawn;
     }
@@ -957,6 +1256,7 @@ void dma_offsets(RT64::State* state, RT64::DisplayList** dl) {
     context->texture_offset = 0U;
     context->texture_shift = 0U;
     context->texture_count = 0U;
+    context->texture_table_enabled = false;
     if (texlog_on()) {
         ++texlog.lines;
         std::fprintf(texlog.file, "D\t%x\t%x\n", context->matrix_offset,
@@ -1072,6 +1372,9 @@ void dma_display_list(RT64::State* state, RT64::DisplayList** dl) {
                 address
             : state->fromRDRAM(address));
     RT64::DisplayList* const end = nested + count;
+    // The microcode sends these words straight to the RDP: no texture-offset
+    // table (see set_texture_image).
+    context->in_dma_list = true;
     while (nested != nullptr && nested < end && !context->failed) {
         RT64::DisplayList* current = nested;
         dispatch_nested(state, nested);
@@ -1089,10 +1392,11 @@ void dma_display_list(RT64::State* state, RT64::DisplayList** dl) {
             // words themselves. Count those words, and reject control flow
             // that escapes the explicitly bounded block.
             reject(state, dl);
-            return;
+            break;
         }
         nested = next;
     }
+    context->in_dma_list = false;
 }
 
 void reset(RT64::State* state) {
@@ -1103,6 +1407,10 @@ void reset(RT64::State* state) {
         context->texture_offset = 0U;
         context->texture_shift = 0U;
         context->texture_count = 0U;
+        context->texture_table.fill(0U);
+        context->texture_index = 0U;
+        context->texture_table_enabled = false;
+        context->in_dma_list = false;
         context->vertex_cursor = 0U;
         context->loaded_vertices.reset();
         context->selected_matrix = 0U;
@@ -1147,6 +1455,15 @@ void Rt64F3ddkr::begin(
     texlog.now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - texlog.start).count();
     ++texlog.task;
+    if (std::FILE* ripple = ripple_log_file(); ripple != nullptr) {
+        ripple_group_flush();
+        const double ms = std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - ripple_log.start).count();
+        std::fprintf(ripple, "TASK\t%llu\t%.0f\n",
+            static_cast<unsigned long long>(texlog.task), ms);
+        ++ripple_log.lines;
+        std::fflush(ripple);
+    }
     if (texlog_on()) {
         ++texlog.lines;
         std::fprintf(texlog.file, "T\t%llu\t%lld\n",
@@ -1183,6 +1500,7 @@ void Rt64F3ddkr::install() noexcept {
     context.gbi.map[kOpSetDepthImage] = &set_depth_image;
     context.gbi.map[kOpSetColorImage] = &set_color_image;
     context.gbi.map[G_LOADBLOCK] = &load_block;
+    context.gbi.map[G_LOADTILE] = &load_tile;
     context.gbi.map[G_TEXRECT] = &texture_rectangle;
     context.gbi.map[G_TEXRECTFLIP] = &texture_rectangle_flip;
     context.gbi.map[F3D_G_MOVEMEM] = &move_mem;
