@@ -5,21 +5,22 @@ This branch is upstream `main` plus Luke's local fixes, diagnostics and enhancem
 contribution; focused fixes are sent upstream separately (for example PR #9).
 No ROM data, game assets or generated game code are included. Build it yourself from your own ROM.
 
-Base: TK22-26/JetForceGemini-Recomp `main` at `f55da7d` (after launcher 0.4.0-preview.4).
+Base: TK22-26/JetForceGemini-Recomp `v1.1.0`.
 
 ## What it adds on top of main
 
 | Area | Change |
 | --- | --- |
-| Intro asteroids | F3DDKR texture-offset table stops after its 40 entries (also PR #9). `JFG_TEXTABLE_ENTRIES` overrides; `JFG_TEXLOG=1` logs texture images |
+| Texture log | `JFG_TEXLOG=1` logs F3DDKR texture images and offset tables (the asteroid fix itself is upstream's BF reset, 500b2a2) |
 | Cutscene strobing | Skips stale re-presents when a heavy frame has several graphics tasks (`JFG_SKIP_STALE_PRESENTS=0` turns it off) |
 | Coffee-throw splat | Hides the floating "sheet" in the intro (`hide_splats`) |
 | Widescreen default | Fresh saves default to the game's own widescreen option (`JFG_DEFAULT_WIDESCREEN=0` restores 4:3). Display aspect is upstream's |
-| Lens flares | Renderer writeback is on by default so the flare depth check works from the launcher |
 | Title/menu vignette | HD replacement texture pack, auto-loaded from `%LOCALAPPDATA%\JFGRecomp\texture-packs` |
 | RT64 inspector | `JFG_RT64_DEVELOPER=1` enables F1; pausing (F4) no longer trips the auxiliary-target trap |
 | Crash reports | `jfg-crash-site` line with module+offset per stack frame |
 | Actor shadows | Shadow buffers stay on the GPU at HD and are softened by an RT64 pass (`patches/rt64/jfg-shadow-soften.patch`, `JFG_SHADOW_BLUR`, default 1.5). `JFG_SHADOW_MODE=upstream` restores main's CPU-mask writeback for comparison |
+| Menu icons in widescreen | Scaled 1-cycle icon texrects get alpha-compare threshold, so the alpha-0 ring is dropped as in 4:3 copy mode (`JFG_MENU_ICON_ALPHA=0` off) |
+| Colour grade | Slightly darker and more contrast to match the console: `JFG_GAMMA` (1.08), `JFG_CONTRAST` (1.04), `patches/rt64/jfg-color-grade.patch` |
 | Diagnostics | Effect-activity log, frame capture, texture-image log, lens-flare depth trace (`JFG_ZB_TRACE`) |
 
 Dropped compared with the old `community/cosmetic-vignette-shadows` branch: the backported widescreen
