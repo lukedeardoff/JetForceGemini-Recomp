@@ -1,0 +1,20 @@
+diff --git a/src/shaders/VideoInterfacePS.hlsl b/src/shaders/VideoInterfacePS.hlsl
+index 3f33475..612e8a5 100644
+--- a/src/shaders/VideoInterfacePS.hlsl
++++ b/src/shaders/VideoInterfacePS.hlsl
+@@ -15,7 +15,14 @@ float4 SampleInput(float2 uv) {
+     const float2 HalfPixel = float2(0.5f, 0.5f) / gConstants.textureResolution;
+     float2 outsideBorder = step(LowerRight, uv);
+     float4 sampledColor = gInput.SampleLevel(gSampler, clamp(uv, HalfPixel, LowerRight - HalfPixel), 0);
+-    float4 gammaCorrectedColor = pow(sampledColor, gConstants.gamma);
++    // JFG community colour grade: the gamma constant also carries the contrast
++    // as gamma + 16 * round(contrast * 100), keeping the push-constant layout
++    // unchanged. A plain gamma (< 16) means contrast 1.0.
++    const float jfgContrastSteps = floor(gConstants.gamma / 16.0f);
++    const float jfgGamma = gConstants.gamma - jfgContrastSteps * 16.0f;
++    const float jfgContrast = (jfgContrastSteps > 0.0f) ? (jfgContrastSteps / 100.0f) : 1.0f;
++    float4 gammaCorrectedColor = pow(sampledColor, jfgGamma);
++    gammaCorrectedColor.rgb = saturate((gammaCorrectedColor.rgb - 0.5f) * jfgContrast + 0.5f);
+     gammaCorrectedColor.rgb *= max(1.0f - outsideBorder.x - outsideBorder.y, 0.0f);
+     gammaCorrectedColor.a = 1.0f;
+     return gammaCorrectedColor;

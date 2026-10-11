@@ -34,6 +34,9 @@
 namespace RT64 {
 // Defined in RT64 hle/rt64_framebuffer_manager.cpp (community shadow patch).
 extern float ShadowBlurTexels;
+// Defined in the generated RT64 VI renderer (cmake/rt64_vi_presentation.cmake).
+extern float JfgViGamma;
+extern float JfgViContrast;
 }
 
 namespace jfg {
@@ -57,6 +60,29 @@ bool community_shadows_enabled() noexcept {
         return result;
     }();
     return enabled;
+}
+
+// Community colour grade: the port looked slightly brighter and flatter than
+// the console. JFG_GAMMA multiplies the VI gamma (>1 = darker mid-tones) and
+// JFG_CONTRAST stretches around mid-grey. 1.0 / 1.0 = unchanged.
+float color_grade_env(const char* name, const float fallback) noexcept {
+    float result = fallback;
+#ifdef _WIN32
+    char* value = nullptr;
+    std::size_t length = 0U;
+    if (_dupenv_s(&value, &length, name) == 0 && value != nullptr) {
+        char* end = nullptr;
+        const float parsed = std::strtof(value, &end);
+        if (end != value && parsed >= 0.25f && parsed <= 4.0f) result = parsed;
+    }
+    std::free(value);
+#endif
+    return result;
+}
+
+void apply_color_grade_setting() noexcept {
+    RT64::JfgViGamma = color_grade_env("JFG_GAMMA", 1.08f);
+    RT64::JfgViContrast = color_grade_env("JFG_CONTRAST", 1.04f);
 }
 
 // JFG_SHADOW_BLUR=<native texels> sets the soft edge on actor shadows
@@ -1041,6 +1067,7 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
         impl->initialized = true;
         load_user_texture_packs(*impl->application);
         apply_shadow_blur_setting();
+        apply_color_grade_setting();
         impl->f3ddkr = std::make_unique<Rt64F3ddkr>(*impl->application);
         error = Rt64ShellError::none;
         return std::unique_ptr<Rt64Shell>(

@@ -411,6 +411,51 @@ void set_texture_image(RT64::State* state, RT64::DisplayList** dl) {
     state->rdp->setTextureImage(format, size, width, address);
 }
 
+// Menu icons in widescreen (community fix, 2026-10-08). In 4:3 the game
+// draws the START/PLAY/MULTI/OPTIONS icons as unscaled copy-mode texrects,
+// which skip alpha-0 texels. Widescreen scales them by 4/3, so it uses a
+// 1-cycle texrect (OtherMode L 0x00552048: AA, IM_RD, ALPHA_CVG_SEL, no alpha
+// compare). Each 44x44 icon has a 1-px ring of alpha-0 grey texels that then
+// draws as an opaque grey box. Give exactly this texrect mode the alpha
+// threshold (blend alpha 100/255) so the ring is discarded as in copy mode.
+// JFG_MENU_ICON_ALPHA=0 restores the plain behaviour.
+constexpr std::uint32_t kMenuIconOtherModeL = 0x00552048U;
+
+bool menu_icon_alpha_enabled() noexcept {
+    static const bool enabled = texlog_env("JFG_MENU_ICON_ALPHA", 1) != 0;
+    return enabled;
+}
+
+void texture_rectangle_with_icon_alpha(
+    RT64::State* state, RT64::DisplayList** dl, const bool flip) {
+    RT64::RDP& rdp = *state->rdp;
+    const std::uint32_t high = rdp.otherMode.H;
+    const std::uint32_t low = rdp.otherMode.L;
+    const bool one_cycle = ((high >> 20U) & 0x3U) == 0U;
+    const bool patch = menu_icon_alpha_enabled() && one_cycle &&
+        low == kMenuIconOtherModeL;
+    if (patch) {
+        rdp.setOtherMode(high, low | 0x1U);  // G_AC_THRESHOLD
+    }
+    if (flip) {
+        RT64::GBI_RDP::texrectFlip(state, dl);
+    }
+    else {
+        RT64::GBI_RDP::texrect(state, dl);
+    }
+    if (patch) {
+        rdp.setOtherMode(high, low);
+    }
+}
+
+void texture_rectangle(RT64::State* state, RT64::DisplayList** dl) {
+    texture_rectangle_with_icon_alpha(state, dl, false);
+}
+
+void texture_rectangle_flip(RT64::State* state, RT64::DisplayList** dl) {
+    texture_rectangle_with_icon_alpha(state, dl, true);
+}
+
 void load_block(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     if (context == nullptr) {
@@ -1138,6 +1183,8 @@ void Rt64F3ddkr::install() noexcept {
     context.gbi.map[kOpSetDepthImage] = &set_depth_image;
     context.gbi.map[kOpSetColorImage] = &set_color_image;
     context.gbi.map[G_LOADBLOCK] = &load_block;
+    context.gbi.map[G_TEXRECT] = &texture_rectangle;
+    context.gbi.map[G_TEXRECTFLIP] = &texture_rectangle_flip;
     context.gbi.map[F3D_G_MOVEMEM] = &move_mem;
     context.gbi.map[G_RDPSETOTHERMODE] = &set_other_mode_full;
     // F3DDKR has no sprite microcode; stock F3D would interpret 0x09 as a
