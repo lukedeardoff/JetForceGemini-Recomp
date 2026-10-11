@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #if defined(_M_X64) || defined(__SSE2__)
 #include <emmintrin.h>
@@ -24,10 +25,84 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <string>
+#include <utility>
 #include <vector>
+
+namespace RT64 {
+// Defined by cmake/rt64_shadow_soften.cmake in the generated
+// rt64_framebuffer_manager.cpp.
+extern float ShadowBlurTexels;
+extern float ShadowOpacity;
+}
 
 namespace jfg {
 namespace {
+
+// Actor shadows (issue #4). The game renders each shadow into a 64x64 I8 mask
+// and blurs/fades it on the CPU before sampling it. GPU mode (default) keeps
+// those masks on the GPU at the internal resolution, softens them in RT64's
+// reinterpret pass and applies the game's opacity there, which matches
+// hardware captures more closely than the native-resolution CPU result.
+// JFG_SHADOW_MODE=cpu restores the CPU-mask writeback path.
+constexpr std::uint32_t kGpuShadowMaximumWidth = 128U;
+
+std::string shadow_environment(const char* name) {
+    std::string result;
+#ifdef _WIN32
+    char* value = nullptr;
+    std::size_t length = 0U;
+    if (_dupenv_s(&value, &length, name) == 0 && value != nullptr)
+        result = value;
+    std::free(value);
+#else
+    if (const char* value = std::getenv(name); value != nullptr)
+        result = value;
+#endif
+    return result;
+}
+
+bool gpu_shadows_enabled() noexcept {
+    static const bool enabled = [] {
+        try {
+            const std::string mode = shadow_environment("JFG_SHADOW_MODE");
+            return mode != "cpu" && mode != "upstream";
+        }
+        catch (...) { return true; }
+    }();
+    return enabled;
+}
+
+float shadow_setting(const char* name, const float fallback,
+                     const float minimum, const float maximum) noexcept {
+    try {
+        const std::string value = shadow_environment(name);
+        if (value.empty()) return fallback;
+        char* end = nullptr;
+        const float parsed = std::strtof(value.c_str(), &end);
+        if (end != value.c_str() && parsed >= minimum && parsed <= maximum)
+            return parsed;
+    }
+    catch (...) {}
+    return fallback;
+}
+
+// JFG_SHADOW_BLUR: soft edge in native texels (default 1.5, 0 = off). The
+// kernel spans four native texels, so values above 2 turn blocky.
+// JFG_SHADOW_OPACITY: shadow alpha relative to the raw mask (default 8/14,
+// the game's own CPU conversion of raw IA 0x8E to 0x08).
+void apply_shadow_settings() noexcept {
+    if (!gpu_shadows_enabled()) {
+        RT64::ShadowBlurTexels = 0.0f;
+        return;
+    }
+    RT64::ShadowBlurTexels = shadow_setting("JFG_SHADOW_BLUR", 1.5f, 0.0f, 2.0f);
+    RT64::ShadowOpacity = shadow_setting("JFG_SHADOW_OPACITY", 8.0f / 14.0f, 0.0f, 1.0f);
+}
+
+bool gpu_shadow_framebuffer(const RT64::Framebuffer& framebuffer) noexcept {
+    return gpu_shadows_enabled() && framebuffer.width < kGpuShadowMaximumWidth;
+}
 
 constexpr std::size_t kRspMemoryBytes = 4096U;
 constexpr std::size_t kMaximumUcodeBytes = 4096U;
@@ -641,9 +716,52 @@ Rt64ShellError Rt64Shell::replace_rdram_snapshot(
     // Import it directly; byte-delta merging and GPU-range ownership scans
     // are needed only when private GPU results have not been written back.
     if (impl_->cpu_writeback) {
+        // GPU shadows: small offscreen targets (the 64x64 shadow masks) are
+        // never written back, so guest RAM there holds the game's CPU pass
+        // over stale bytes. Importing it would make RT64 see a CPU edit and
+        // replace the high-resolution mask with that RAM. Keep RT64's byte
+        // only where the guest did not change it since the previous import:
+        // the game frees mask memory and reuses it for textures, and those
+        // writes must still reach RT64 (otherwise stale mask pixels show up
+        // as corrupted character, monitor and ship textures).
+        std::vector<std::pair<std::uint32_t, std::vector<std::uint8_t>>> kept;
+        if (gpu_shadows_enabled()) {
+            try {
+                for (const auto& [address, framebuffer] :
+                     impl_->application->state->framebufferManager.framebuffers) {
+                    (void)address;
+                    if (!gpu_shadow_framebuffer(framebuffer) ||
+                        framebuffer.lastWriteType == RT64::Framebuffer::Type::None)
+                        continue;
+                    const std::uint32_t begin = framebuffer.addressStart & ~3U;
+                    const std::uint32_t end = std::min<std::uint32_t>(
+                        (framebuffer.addressEnd + 3U) & ~3U,
+                        static_cast<std::uint32_t>(impl_->rdram.size()));
+                    if (begin >= end) continue;
+                    kept.emplace_back(begin, std::vector<std::uint8_t>(
+                        impl_->rdram.begin() + begin, impl_->rdram.begin() + end));
+                }
+            }
+            catch (...) { return Rt64ShellError::renderer_exception; }
+        }
         const auto copied = copy_rt64_rdram_snapshot(rdram,
             std::as_writable_bytes(std::span(impl_->rdram)), layout);
         if (copied != Rt64ShellError::none) return copied;
+        const bool compare_bytes = layout == Rt64MemoryLayout::host_word_swapped &&
+            impl_->simulation_rdram.size() == impl_->rdram.size();
+        for (const auto& [begin, bytes] : kept) {
+            for (std::size_t index = 0U; index < bytes.size(); ++index) {
+                const std::size_t address = begin + index;
+                if (!compare_bytes) {
+                    impl_->rdram[address] = bytes[index];
+                    continue;
+                }
+                const std::uint8_t incoming = impl_->rdram[address];
+                if (incoming == impl_->simulation_rdram[address])
+                    impl_->rdram[address] = bytes[index];
+                impl_->simulation_rdram[address] = incoming;
+            }
+        }
         // Full writeback imports every source byte at the next task boundary.
         // The delta-import history is used only when full writeback is off.
     } else {
@@ -773,7 +891,8 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
         app_configuration.useConfigurationFile = false;
         impl->application =
             std::make_unique<RT64::Application>(core, app_configuration);
-        if (configuration.cpu_mask_writeback) {
+        // GPU shadows soften the masks in RT64's framebuffer copies.
+        if (configuration.cpu_mask_writeback && !gpu_shadows_enabled()) {
             // JFG softens rendered shadow masks on the CPU before sampling them.
             // A cached GPU framebuffer copy bypasses those edits. Load textures
             // from the updated RAM when the game owns mask postprocessing.
@@ -806,6 +925,7 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
             return nullptr;
         }
         impl->initialized = true;
+        apply_shadow_settings();
         impl->f3ddkr = std::make_unique<Rt64F3ddkr>(*impl->application);
         error = Rt64ShellError::none;
         return std::unique_ptr<Rt64Shell>(
@@ -840,7 +960,8 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
         }
         // CPU post-processing of offscreen results must be visible to texture
         // loads. GPU framebuffer reuse can otherwise bypass those RAM writes.
-        if (impl_->cpu_writeback)
+        // GPU shadows need RT64's framebuffer copies for the soften pass.
+        if (impl_->cpu_writeback && !gpu_shadows_enabled())
             impl_->application->emulatorConfig.framebuffer.copyWithGPU = false;
         impl_->f3ddkr->begin(impl_->task_rdram);
         impl_->f3ddkr->install();
@@ -918,6 +1039,9 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
                     framebuffer.lastWriteType == RT64::Framebuffer::Type::Color &&
                     framebuffer.lastWriteFmt == G_IM_FMT_I &&
                     framebuffer.siz == G_IM_SIZ_8b;
+                // GPU shadows: the masks stay on the GPU (see above).
+                if (gpu_shadow_framebuffer(framebuffer))
+                    continue;
                 if (framebuffer.lastWriteTimestamp > previous_write &&
                     (impl_->cpu_writeback || cpu_mask)) {
                     impl_->writeback_ranges.push_back(

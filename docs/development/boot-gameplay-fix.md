@@ -271,6 +271,40 @@ This check covers the reported Juno shadow in the supported US build.
 Other characters and full-campaign rendering parity remain unverified.
 ROM-derived images, memory captures and executables remain private.
 
+## GPU shadow softening
+
+Issue #4 compared both shadow paths against real N64 captures. The CPU path
+above processes the 64x64 mask at native resolution, so the result is blocky
+when RT64 renders at a higher internal resolution. GPU mode, now the default,
+keeps those masks on the GPU at the internal resolution:
+
+- Framebuffers narrower than 128 pixels are not written back, so RT64 keeps
+  sampling its own high-resolution copy. Guest bytes in that range are still
+  imported whenever the game changes them (the game frees mask memory and
+  reuses it for textures); only unchanged bytes keep RT64's copy.
+- `cmake/rt64_shadow_soften.cmake` generates hash-checked copies of
+  `rt64_framebuffer_manager.cpp` and `rt64_shader_library.cpp`, and
+  `cmake/rt64_shadow_soften_shader.cmake` compiles
+  `src/renderer/shaders/FbShadowSoftenCS.hlsl` with RT64's own DXC rules. The
+  pinned checkout stays pristine. When an 8-bit tile of at most 64 native
+  texels is reinterpreted as IA8, that shader box-averages each native texel,
+  reconstructs it with a Gaussian (`JFG_SHADOW_BLUR`, default 1.5 native
+  texels, maximum 2) and applies the game's opacity (`JFG_SHADOW_OPACITY`,
+  default 8/14).
+- The opacity matches the game's own conversion. The shadow draw (2-cycle,
+  normal alpha blend, no alpha-compare dither; combiner `fc121603 fffffff8`)
+  outputs black with alpha = mask alpha x primitive alpha. The CPU pass turns
+  raw IA `0x8E` (alpha 14/15) into `0x08` (alpha 8/15).
+
+`JFG_SHADOW_MODE=cpu` restores the CPU-mask path. If the softening pipeline
+fails to build on a driver, shadows fall back to the standard reinterpret pass.
+
+Validation scope: Luke Deardoff's Windows build of v1.1.0 with the equivalent
+RT64 changes, compared against his own N64 hardware captures (the ship and
+Goldwood), including the texture-reuse case above. The CMake
+integration produces translation units identical in code to that build. Other
+levels and full-campaign coverage remain unverified.
+
 ## CPU texture refresh after framebuffer reuse
 
 The renderer's private RDRAM can retain GPU-written bytes after a framebuffer

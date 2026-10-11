@@ -194,7 +194,9 @@ if(JFG_ENABLE_RT64)
         "Do not register dependency-owned Zstd tests" FORCE)
     # Extend shader dependencies in RT64's directory without modifying its checkout.
     set(jfg_saved_rt64_project_include "${CMAKE_PROJECT_rt64_INCLUDE}")
+    # The shadow-softening shader registers first so the dependency pass sees it.
     list(APPEND CMAKE_PROJECT_rt64_INCLUDE
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/rt64_shadow_soften_shader.cmake"
         "${CMAKE_CURRENT_SOURCE_DIR}/cmake/rt64_shader_dependencies.cmake")
     add_subdirectory("${jfg_rt64_root}"
         "${CMAKE_CURRENT_BINARY_DIR}/_deps/rt64-build" EXCLUDE_FROM_ALL)
@@ -270,6 +272,7 @@ if(JFG_ENABLE_RT64)
 
     include(cmake/rt64_vi_presentation.cmake)
     include(cmake/rt64_depth_bounds.cmake)
+    include(cmake/rt64_shadow_soften.cmake)
 
     # The pinned Plume D3D12 backend assumes every CopyTextureRegion
     # destination is a texture when configuring programmable sample

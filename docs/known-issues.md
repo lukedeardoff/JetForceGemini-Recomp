@@ -67,6 +67,9 @@ A copied-save Juno test in the tutorial confirmed the processed opacity range
 against Angrylion and exited cleanly. See [the renderer fix and validation
 scope](development/boot-gameplay-fix.md#player-shadow-cpu-postprocessing).
 Older builds need rebuilding; full-campaign shadow accuracy remains unverified.
+GPU mode (the default) now keeps these masks at the internal resolution and
+applies the same blur and opacity there; `JFG_SHADOW_MODE=cpu` restores the CPU
+path. See [GPU shadow softening](development/boot-gameplay-fix.md#gpu-shadow-softening).
 
 ## Particle textures
 
