@@ -1,23 +1,11 @@
-Faces in floor reflections; hide the stretched column; crash report file
+Remove JFG_HIDE_TEXTURES
 
-- Floor reflections: DMA triangles are now culled like JFG's own RSP
-  microcode. While the game draws mirrored objects it sets G_CULL_FRONT,
-  which turns the microcode's per-triangle back-face cull into a front-face
-  cull; double-sided triangles (flag 0x40) are never culled. The old
-  GLideN64 rule ignored that bit, so faces (Tribals, Vela) were missing
-  from the floor reflections on the ship level.
-- JFG_HIDE_TEXTURES: DMA-triangle draws whose first texture tile has a
-  listed RT64 hash (as the inspector shows it) are skipped. The default
-  hides the stretched blue column on the ship level (004af4b8010a38d8),
-  which the N64 also draws but much less visibly; "none" turns it off.
-- Crash report: a crash also writes
-  %LOCALAPPDATA%\JFGRecomp\diag\crash-report.txt (last guest instruction,
-  the guest address behind an access violation, registers of the running
-  guest thread, last guest calls, host stack) and crash-rdram.bin (guest
-  RAM). Local diagnostics only.
-- play-community.ps1 lists JFG_* test settings still set in the same
-  PowerShell window from an earlier run.
-- community/README.md updated.
+The texture-hash hide did not remove the stretched object on the ship
+level (Luke tested it), so the feature is taken out again and
+rt64_f3ddkr.cpp is back to the reflection-culling version. The object is
+also drawn by the original game; it stays for now.
+
+- community/README.md: "Hidden objects" row removed.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01EHYghbHbethy8xLZevbQN1
