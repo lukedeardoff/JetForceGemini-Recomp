@@ -5,6 +5,17 @@
 #include "gbi/rt64_gbi_rdp.h"
 #include "hle/rt64_application.h"
 
+#include <cassert>
+#include "xxHash/xxh3.h"
+// RT64's own texture hash (what the inspector shows), for JFG_HIDE_TEXTURES.
+#if defined(_MSC_VER)
+#pragma warning(push, 0)
+#endif
+#include "common/rt64_tmem_hasher.h"
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+
 #include <algorithm>
 #include <array>
 #include <bitset>
@@ -19,6 +30,7 @@
 #include <share.h>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace jfg {
 namespace {
@@ -206,6 +218,106 @@ void ripple_group_flush() {
     ripple_group.active = false;
 }
 
+// Community: hide textured objects by the RT64 texture hash that the RT64
+// inspector shows under "Texture tile #0" ("Hash: 0x..."). The game draws
+// them on the N64 too, but some look out of place at HD.
+//   JFG_HIDE_TEXTURES=<hex>[,<hex>...]  replaces the default list
+//   JFG_HIDE_TEXTURES=none              hides nothing
+// Default: 0x004af4b8010a38d8, a 16x16 RGBA16 texture stretched over a tall
+// column in the ship level with the jail cells (Luke, 2026-10-11).
+constexpr const char* kDefaultHiddenTextures = "004af4b8010a38d8";
+
+struct HiddenTextures {
+    bool ready = false;
+    std::vector<std::uint64_t> hashes;
+};
+HiddenTextures hidden_textures;
+
+const std::vector<std::uint64_t>& hidden_texture_hashes() {
+    if (hidden_textures.ready) return hidden_textures.hashes;
+    hidden_textures.ready = true;
+    std::string list = kDefaultHiddenTextures;
+    char* value = nullptr;
+    std::size_t length = 0U;
+    if (_dupenv_s(&value, &length, "JFG_HIDE_TEXTURES") == 0 && value != nullptr)
+        list = value;
+    std::free(value);
+    std::size_t position = 0U;
+    while (position < list.size()) {
+        const std::size_t stop = list.find_first_of(", ;", position);
+        std::string token = list.substr(position,
+            stop == std::string::npos ? std::string::npos : stop - position);
+        position = stop == std::string::npos ? list.size() : stop + 1U;
+        if (token.size() > 2U && token[0] == '0' && (token[1] == 'x' || token[1] == 'X'))
+            token = token.substr(2U);
+        if (token.empty()) continue;
+        char* parse_end = nullptr;
+        const unsigned long long parsed = std::strtoull(token.c_str(), &parse_end, 16);
+        if (parse_end != token.c_str() && *parse_end == '\0' && parsed != 0ULL)
+            hidden_textures.hashes.push_back(static_cast<std::uint64_t>(parsed));
+    }
+    return hidden_textures.hashes;
+}
+
+// RT64's hash for the call's first texture tile, computed like
+// State::flush (sample size from tile size and masks, TMEMHasher), cached
+// until TMEM is loaded again or the tile changes.
+struct TileHashCache {
+    bool valid = false;
+    std::uint64_t epoch = 0U;
+    RT64::LoadTile tile{};
+    std::uint32_t tlut = 0U;
+    std::uint64_t hash = 0U;
+};
+TileHashCache tile_hash_cache;
+std::uint64_t tmem_epoch = 1U;
+
+[[nodiscard]] bool same_tile(const RT64::LoadTile& a, const RT64::LoadTile& b) noexcept {
+    return a.fmt == b.fmt && a.siz == b.siz && a.line == b.line && a.tmem == b.tmem &&
+        a.palette == b.palette && a.cms == b.cms && a.cmt == b.cmt &&
+        a.masks == b.masks && a.maskt == b.maskt && a.shifts == b.shifts &&
+        a.shiftt == b.shiftt && a.uls == b.uls && a.ult == b.ult &&
+        a.lrs == b.lrs && a.lrt == b.lrt;
+}
+
+[[nodiscard]] std::uint64_t call_tile_hash(const RT64::State& state) {
+    const RT64::RDP& rdp = *state.rdp;
+    const RT64::LoadTile& tile = rdp.tiles[state.rsp->textureState.tile & 7U];
+    if (tile.line == 0U) return 0U;
+    const std::uint32_t tlut = rdp.otherMode.textLUT();
+    if (tile_hash_cache.valid && tile_hash_cache.epoch == tmem_epoch &&
+        tile_hash_cache.tlut == tlut && same_tile(tile_hash_cache.tile, tile))
+        return tile_hash_cache.hash;
+    const bool clamp_s = (tile.masks == 0U) || ((tile.cms & G_TX_CLAMP) != 0U);
+    const bool clamp_t = (tile.maskt == 0U) || ((tile.cmt & G_TX_CLAMP) != 0U);
+    const int tile_width = clamp_s
+        ? std::max((static_cast<int>(tile.lrs) - static_cast<int>(tile.uls) + 4) / 4, 1) : 0xFFFF;
+    const int tile_height = clamp_t
+        ? std::max((static_cast<int>(tile.lrt) - static_cast<int>(tile.ult) + 4) / 4, 1) : 0xFFFF;
+    const int mask_width = tile.masks > 0U ? (1 << tile.masks) : 0xFFFF;
+    const int mask_height = tile.maskt > 0U ? (1 << tile.maskt) : 0xFFFF;
+    const auto width = static_cast<std::uint16_t>(std::min(tile_width, mask_width));
+    const auto height = static_cast<std::uint16_t>(std::min(tile_height, mask_height));
+    std::uint64_t hash = 0U;
+    if (!RT64::TMEMHasher::requiresRawTMEM(tile, width, height, tlut)) {
+        hash = RT64::TMEMHasher::hash(reinterpret_cast<const std::uint8_t*>(rdp.TMEM),
+            tile, width, height, tlut, RT64::TMEMHasher::CurrentHashVersion);
+    }
+    tile_hash_cache.valid = true;
+    tile_hash_cache.epoch = tmem_epoch;
+    tile_hash_cache.tile = tile;
+    tile_hash_cache.tlut = tlut;
+    tile_hash_cache.hash = hash;
+    return hash;
+}
+
+[[nodiscard]] bool hidden_texture_draw(const RT64::State& state) {
+    const std::vector<std::uint64_t>& hashes = hidden_texture_hashes();
+    if (hashes.empty() || state.rsp->textureState.on == 0U) return false;
+    const std::uint64_t hash = call_tile_hash(state);
+    return hash != 0U && std::find(hashes.begin(), hashes.end(), hash) != hashes.end();
+}
+
 constexpr std::uint8_t kOpDmaMatrix = 0x01U;
 constexpr std::uint8_t kOpDmaTextureOffset = 0x02U;
 constexpr std::uint8_t kOpDmaVertex = 0x04U;
@@ -252,6 +364,9 @@ struct Context {
     std::size_t texture_index = 0U;
     bool texture_table_enabled = false;
     bool in_dma_list = false;
+    // The game's G_CULL_FRONT bit (see dma_triangles): set by
+    // G_SETGEOMETRYMODE, cleared by G_CLEARGEOMETRYMODE.
+    bool cull_front_switch = false;
     std::size_t vertex_cursor = 0U;
     std::size_t selected_matrix = 0U;
     std::size_t commands = 0U;
@@ -647,6 +762,7 @@ void load_block(RT64::State* state, RT64::DisplayList** dl) {
         source.load = 1U;
     }
     RT64::GBI_RDP::loadBlock(state, dl);
+    ++tmem_epoch;
 }
 
 void load_tile(RT64::State* state, RT64::DisplayList** dl) {
@@ -671,6 +787,12 @@ void load_tile(RT64::State* state, RT64::DisplayList** dl) {
         source.load = 2U;
     }
     RT64::GBI_RDP::loadTile(state, dl);
+    ++tmem_epoch;
+}
+
+void load_tlut(RT64::State* state, RT64::DisplayList** dl) {
+    RT64::GBI_RDP::loadTLUT(state, dl);
+    ++tmem_epoch;
 }
 
 void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
@@ -936,6 +1058,7 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
     // setTexture() would incorrectly increment an unrelated field on every
     // DMA triangle batch.
     state->rsp->textureState.on = texture;
+    const bool hidden_texture = hidden_texture_draw(*state);
     for (std::size_t triangle = 0U; triangle < count; ++triangle) {
         const std::uint32_t source =
             address + static_cast<std::uint32_t>(triangle * 16U);
@@ -975,12 +1098,20 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
         }
         if (common_clip != 0U)
             continue;
+        // JFG's microcode (DMA-triangle handler IMEM 0x1754-0x1770, triangle
+        // setup 0x1B18-0x1BF8): a triangle without flag 0x40 gets G_CULL_BACK.
+        // If the game has set G_CULL_FRONT, that bit turns the test round, so
+        // single-sided triangles lose their front faces instead. The game sets
+        // it around mirrored reflection draws (overlay 137,
+        // realReflectPrint). GLideN64's rule (front only when the viewport X
+        // scale is negative) ignored the game's bit, so single-sided parts
+        // such as faces vanished from floor reflections. A negative viewport
+        // scale needs no rule here: RT64 culls by screen winding like the RDP.
         const std::uint32_t cull_mode = (flags & 0x40U) != 0U
             ? 0U
-            : (state->rsp->viewportStack[
-                    state->rsp->viewportStackSize - 1U].scale.x > 0.0F
-                ? state->rsp->cullBothMask ^ state->rsp->cullFrontMask
-                : state->rsp->cullFrontMask);
+            : (context->cull_front_switch
+                ? state->rsp->cullFrontMask
+                : state->rsp->cullBothMask ^ state->rsp->cullFrontMask);
         state->rsp->modifyGeometryMode(
             ~state->rsp->cullBothMask, cull_mode);
         for (std::size_t corner = 0U; corner < vertices.size(); ++corner) {
@@ -1123,6 +1254,8 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
                     g.corners[g.corner_count++] = sample;
             }
         }
+        if (hidden_texture)
+            continue;
         state->rsp->drawIndexedTri(vertices[0U], vertices[1U], vertices[2U]);
         ++context->stats.triangles_drawn;
     }
@@ -1194,6 +1327,22 @@ void cull_display_list(RT64::State* state, RT64::DisplayList** dl) {
 // stale RSP copy no draw counted as Z_UPD, so the native render-to-RAM pass
 // never copied depth back and the game's lens-flare z-buffer test always saw
 // open sky. Keep both copies in sync.
+void set_geometry_mode(RT64::State* state, RT64::DisplayList** dl) {
+    if (Context* context = find_context(state); context != nullptr &&
+        ((*dl)->w1 & state->rsp->cullFrontMask) != 0U) {
+        context->cull_front_switch = true;
+    }
+    RT64::GBI_F3D::setGeometryMode(state, dl);
+}
+
+void clear_geometry_mode(RT64::State* state, RT64::DisplayList** dl) {
+    if (Context* context = find_context(state); context != nullptr &&
+        ((*dl)->w1 & state->rsp->cullFrontMask) != 0U) {
+        context->cull_front_switch = false;
+    }
+    RT64::GBI_F3D::clearGeometryMode(state, dl);
+}
+
 void set_other_mode_full(RT64::State* state, RT64::DisplayList** dl) {
     const std::uint32_t high = (*dl)->p0(0U, 24U);
     const std::uint32_t low = (*dl)->w1;
@@ -1411,6 +1560,7 @@ void reset(RT64::State* state) {
         context->texture_index = 0U;
         context->texture_table_enabled = false;
         context->in_dma_list = false;
+        context->cull_front_switch = false;
         context->vertex_cursor = 0U;
         context->loaded_vertices.reset();
         context->selected_matrix = 0U;
@@ -1501,10 +1651,13 @@ void Rt64F3ddkr::install() noexcept {
     context.gbi.map[kOpSetColorImage] = &set_color_image;
     context.gbi.map[G_LOADBLOCK] = &load_block;
     context.gbi.map[G_LOADTILE] = &load_tile;
+    context.gbi.map[G_LOADTLUT] = &load_tlut;
     context.gbi.map[G_TEXRECT] = &texture_rectangle;
     context.gbi.map[G_TEXRECTFLIP] = &texture_rectangle_flip;
     context.gbi.map[F3D_G_MOVEMEM] = &move_mem;
     context.gbi.map[G_RDPSETOTHERMODE] = &set_other_mode_full;
+    context.gbi.map[F3D_G_SETGEOMETRYMODE] = &set_geometry_mode;
+    context.gbi.map[F3D_G_CLEARGEOMETRYMODE] = &clear_geometry_mode;
     // F3DDKR has no sprite microcode; stock F3D would interpret 0x09 as a
     // Sprite2D base pointer and dereference it unchecked.
     context.gbi.map[F3D_G_SPRITE2D_BASE] = &unsupported;

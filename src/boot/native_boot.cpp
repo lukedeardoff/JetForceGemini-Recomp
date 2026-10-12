@@ -1780,6 +1780,11 @@ struct State : JfgOriginalTimingFast {
 
 #if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
 State *g_active_child_state = nullptr;
+// Community crash report: the guest thread that made the latest guest call,
+// so a crash can name its registers (set in dispatch()), and the guest
+// instruction about to run (set by the per-instruction probe).
+recomp_context *g_community_crash_context = nullptr;
+volatile unsigned g_community_crash_pc = 0U;
 
 class LiveRt64Window final {
 public:
@@ -4186,10 +4191,193 @@ void ledger(State &state, std::string_view category, std::string_view operation,
 }
 
 #if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
+// Community crash report (2026-10-11). The jfg-crash-site console line names
+// only the host code location. This also writes
+// %LOCALAPPDATA%\JFGRecomp\diag\crash-report.txt with what the game was doing:
+// the last guest instruction, the guest address behind an access violation,
+// the registers of the running guest thread and the last guest calls. Guest
+// RAM is saved next to it as crash-rdram.bin (4 MiB, 32-bit words in host
+// byte order). Local diagnostics only; both files are overwritten per crash.
+void community_crash_where(const std::uintptr_t address, char *out,
+                           const std::size_t size) noexcept {
+  HMODULE owner = nullptr;
+  char path[MAX_PATH]{};
+  if (address != 0U &&
+      GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                             GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                         reinterpret_cast<LPCSTR>(address), &owner) &&
+      owner != nullptr && GetModuleFileNameA(owner, path, MAX_PATH) != 0U) {
+    const char *base = path;
+    for (const char *c = path; *c != '\0'; ++c)
+      if (*c == '\\' || *c == '/')
+        base = c + 1;
+    (void)std::snprintf(out, size, "%s+%llx", base,
+                        static_cast<unsigned long long>(
+                            address - reinterpret_cast<std::uintptr_t>(owner)));
+  } else {
+    (void)std::snprintf(out, size, "?%llx",
+                        static_cast<unsigned long long>(address));
+  }
+}
+
+HANDLE community_crash_open(const wchar_t *name) noexcept {
+  wchar_t base[MAX_PATH]{};
+  const DWORD length = GetEnvironmentVariableW(L"LOCALAPPDATA", base, MAX_PATH);
+  if (length == 0U || length >= MAX_PATH)
+    return INVALID_HANDLE_VALUE;
+  wchar_t path[MAX_PATH + 64]{};
+  (void)std::swprintf(path, MAX_PATH + 64, L"%ls\\JFGRecomp", base);
+  (void)CreateDirectoryW(path, nullptr);
+  (void)std::swprintf(path, MAX_PATH + 64, L"%ls\\JFGRecomp\\diag", base);
+  (void)CreateDirectoryW(path, nullptr);
+  (void)std::swprintf(path, MAX_PATH + 64, L"%ls\\JFGRecomp\\diag\\%ls", base,
+                      name);
+  return CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+                     CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+}
+
+void community_crash_text(const HANDLE file, const char *text) noexcept {
+  DWORD written = 0U;
+  (void)WriteFile(file, text, static_cast<DWORD>(std::strlen(text)), &written,
+                  nullptr);
+}
+
+void community_crash_report(const State &state,
+                            const EXCEPTION_POINTERS *exception) noexcept {
+  static LONG entered = 0;
+  if (InterlockedCompareExchange(&entered, 1, 0) != 0)
+    return;
+  const EXCEPTION_RECORD *const record =
+      exception != nullptr ? exception->ExceptionRecord : nullptr;
+  const auto guest_base = reinterpret_cast<std::uintptr_t>(state.rdram);
+  const char *access = "none";
+  std::uintptr_t data = 0U;
+  bool guest_data = false;
+  std::uint32_t guest_address = 0U;
+  if (record != nullptr &&
+      record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION &&
+      record->NumberParameters >= 2U) {
+    access = record->ExceptionInformation[0] == 1U   ? "write"
+             : record->ExceptionInformation[0] == 8U ? "execute"
+                                                     : "read";
+    data = static_cast<std::uintptr_t>(record->ExceptionInformation[1]);
+    if (guest_base != 0U && data >= guest_base &&
+        data - guest_base < kGuestAddressSpan) {
+      // Inverse of MEM_W: host = rdram + (guest - 0xFFFFFFFF80000000).
+      guest_data = true;
+      guest_address = static_cast<std::uint32_t>(
+          static_cast<std::uint64_t>(data - guest_base) + 0x80000000ULL);
+    }
+  }
+  char line[512]{};
+  char guest_text[24]{};
+  if (guest_data)
+    (void)std::snprintf(guest_text, sizeof(guest_text), "0x%08x",
+                        guest_address);
+  else
+    (void)std::snprintf(guest_text, sizeof(guest_text), "outside");
+  (void)std::snprintf(
+      line, sizeof(line),
+      "{\"kind\":\"jfg-crash-detail\",\"guest_pc\":\"0x%08x\","
+      "\"access\":\"%s\",\"guest_address\":\"%s\","
+      "\"report\":\"%%LOCALAPPDATA%%\\\\JFGRecomp\\\\diag\\\\crash-report.txt\"}\n",
+      static_cast<unsigned>(g_community_crash_pc), access, guest_text);
+  std::fputs(line, stderr);
+  std::fflush(stderr);
+
+  const HANDLE file = community_crash_open(L"crash-report.txt");
+  if (file != INVALID_HANDLE_VALUE) {
+    SYSTEMTIME utc{};
+    GetSystemTime(&utc);
+    (void)std::snprintf(line, sizeof(line),
+                        "JFG community crash report\n"
+                        "utc=%04u-%02u-%02uT%02u:%02u:%02uZ\n",
+                        utc.wYear, utc.wMonth, utc.wDay, utc.wHour,
+                        utc.wMinute, utc.wSecond);
+    community_crash_text(file, line);
+    char where[192]{};
+    community_crash_where(
+        record != nullptr
+            ? reinterpret_cast<std::uintptr_t>(record->ExceptionAddress)
+            : 0U,
+        where, sizeof(where));
+    (void)std::snprintf(line, sizeof(line), "code=0x%08lx\nat=%s\n",
+                        record != nullptr
+                            ? static_cast<unsigned long>(record->ExceptionCode)
+                            : 0UL,
+                        where);
+    community_crash_text(file, line);
+    (void)std::snprintf(line, sizeof(line),
+                        "access=%s host_address=0x%llx guest_address=%s\n",
+                        access, static_cast<unsigned long long>(data),
+                        guest_text);
+    community_crash_text(file, line);
+    (void)std::snprintf(line, sizeof(line),
+                        "guest_pc=0x%08x (timing model: pc 0x%08x word 0x%08x)\n",
+                        static_cast<unsigned>(g_community_crash_pc),
+                        state.guest_last_pc, state.guest_last_word);
+    community_crash_text(file, line);
+    community_crash_text(file, "guest_calls_oldest_first=");
+    const std::size_t ring = state.recent_dispatches.size();
+    const std::size_t count = (std::min)(state.recent_dispatch_position, ring);
+    for (std::size_t index = 0U; index < count; ++index) {
+      (void)std::snprintf(
+          line, sizeof(line), " %08x",
+          state.recent_dispatches[(state.recent_dispatch_position - count +
+                                   index) %
+                                  ring]);
+      community_crash_text(file, line);
+    }
+    community_crash_text(file, "\n");
+    const recomp_context *const cpu = g_community_crash_context;
+    if (cpu != nullptr) {
+      const gpr registers[32] = {
+          cpu->r0,  cpu->r1,  cpu->r2,  cpu->r3,  cpu->r4,  cpu->r5,
+          cpu->r6,  cpu->r7,  cpu->r8,  cpu->r9,  cpu->r10, cpu->r11,
+          cpu->r12, cpu->r13, cpu->r14, cpu->r15, cpu->r16, cpu->r17,
+          cpu->r18, cpu->r19, cpu->r20, cpu->r21, cpu->r22, cpu->r23,
+          cpu->r24, cpu->r25, cpu->r26, cpu->r27, cpu->r28, cpu->r29,
+          cpu->r30, cpu->r31};
+      community_crash_text(file, "guest_registers (latest guest thread)\n");
+      for (unsigned index = 0U; index < 32U; ++index) {
+        (void)std::snprintf(line, sizeof(line), "r%u=%08x%s", index,
+                            static_cast<unsigned>(registers[index]),
+                            index % 8U == 7U ? "\n" : " ");
+        community_crash_text(file, line);
+      }
+    }
+    community_crash_text(file, "stack=");
+    void *frames[32]{};
+    const USHORT frame_count = RtlCaptureStackBackTrace(0U, 32U, frames, nullptr);
+    for (USHORT index = 0U; index < frame_count; ++index) {
+      community_crash_where(reinterpret_cast<std::uintptr_t>(frames[index]),
+                            where, sizeof(where));
+      (void)std::snprintf(line, sizeof(line), " %s", where);
+      community_crash_text(file, line);
+    }
+    community_crash_text(
+        file, "\nrdram=crash-rdram.bin (4 MiB guest RAM, 32-bit words in host "
+              "byte order)\n");
+    (void)FlushFileBuffers(file);
+    CloseHandle(file);
+  }
+  if (state.rdram != nullptr) {
+    const HANDLE memory = community_crash_open(L"crash-rdram.bin");
+    if (memory != INVALID_HANDLE_VALUE) {
+      DWORD written = 0U;
+      (void)WriteFile(memory, state.rdram, static_cast<DWORD>(kRdramSize),
+                      &written, nullptr);
+      (void)FlushFileBuffers(memory);
+      CloseHandle(memory);
+    }
+  }
+}
+
 LONG WINAPI child_exception_filter(EXCEPTION_POINTERS *exception) {
   jfg::support_crash(exception);
   State *const state = g_active_child_state;
   if (state != nullptr) {
+    community_crash_report(*state, exception);
     const std::uint32_t target =
         state->recent_dispatch_position == 0U
             ? 0U
@@ -6876,6 +7064,7 @@ int dispatch(void *opaque, std::int32_t address, std::uint8_t *rdram,
                           state.recent_dispatches.size()] = target;
   ++state.recent_dispatch_position;
 #if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
+  g_community_crash_context = context;
   if (state.vi_retraces >= 5683U && state.dispatch_calls % 1024U == 0U)
     write_private_progress(state, "dispatch");
 #endif
@@ -9432,6 +9621,7 @@ extern "C" void jfg_phase9_execution_probe(unsigned section, unsigned pc,
 extern "C" void jfg_phase9_execution_probe_predecoded(unsigned metadata, unsigned pc,
                                           unsigned word, void* context) {
 #if defined(_WIN32) && defined(JFG_PHASE8_LIVE_RUNTIME)
+  g_community_crash_pc = pc;  // community crash report: last guest instruction
   const unsigned section=metadata&255U;
   if (g_active_child_state != nullptr && context != nullptr) {
     auto& state = *g_active_child_state;
