@@ -73,4 +73,39 @@ class PrebuiltReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'clean source'):
                 package.package(self.launcher, self.runtime, self.root / 'dirty', '1.1.0')
 
+
+class DraftPublicationTests(unittest.TestCase):
+    def publish(self, draft=True, assets=None, tag='v1.1.0'):
+        metadata = {'tag': 'v1.1.0', 'version': '1.1.0', 'commit': 'fixture', 'prerelease': False}
+        paths = [Path('bundle.zip'), Path('bundle.sha256'), Path('bundle.inventory.json')]
+        response = {'isDraft': draft, 'tagName': tag, 'url': 'https://example.invalid/release',
+                    'assets': assets if assets is not None else [{'name': p.name} for p in paths]}
+        with mock.patch('sys.argv', ['release_prebuilt.py', 'publish', '--output', '.']), \
+             mock.patch.dict(release.os.environ, {'GITHUB_REPOSITORY': 'owner/repo'}), \
+             mock.patch.object(release, 'release_metadata', return_value=metadata), \
+             mock.patch.object(release, 'verify_bundle', return_value=paths), \
+             mock.patch.object(release.subprocess, 'check_output', return_value=json.dumps(response)) as lookup, \
+             mock.patch.object(release.subprocess, 'run') as edit:
+            try:
+                result = release.main()
+            except ValueError:
+                edit.assert_not_called()
+                raise
+            self.assertEqual(result, 0)
+            self.assertEqual(lookup.call_args.args[0][:4], ['gh', 'release', 'view', 'v1.1.0'])
+            self.assertIn('--draft=false', edit.call_args.args[0])
+
+    def test_authenticated_draft_lookup_publishes_verified_bundle(self):
+        self.publish()
+
+    def test_public_release_cannot_be_overwritten(self):
+        with self.assertRaisesRegex(ValueError, 'already public'):
+            self.publish(draft=False)
+
+    def test_different_assets_or_tag_cannot_be_published(self):
+        with self.assertRaisesRegex(ValueError, 'assets differ'):
+            self.publish(assets=[])
+        with self.assertRaisesRegex(ValueError, 'tag differs'):
+            self.publish(tag='v9.0.0')
+
 if __name__ == '__main__': unittest.main()

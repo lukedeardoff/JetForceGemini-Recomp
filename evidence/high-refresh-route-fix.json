@@ -1,0 +1,717 @@
+{
+  "schema": 1,
+  "status": "verified in bounded tests; full-route and physical-display issues remain open",
+  "previous_source_commit": "7531fecbd2bfa0fb17ff3ccff3fd7a9f81e41bd9",
+  "develop_commit": "63e49a7a71c3a914d2adc1d91fdcf00bef30d38e",
+  "guard_enabled_during_work": true,
+  "private_evidence_id": "high-refresh-20261011/route-fix-20261013",
+  "focused_cpp_suites": [
+    "interpolation_history",
+    "semantic_presentation",
+    "rt64_interpolation",
+    "interpolation_trace",
+    "async_diagnostic_file",
+    "async_snapshots",
+    "original_timing_fast",
+    "original_timing_runtime",
+    "host_count_clock",
+    "count_sample_tape",
+    "native_audio_source",
+    "rt64_f3ddkr_texture"
+  ],
+  "python_tests": {
+    "native_timing_spans": 8,
+    "compiled_differential_pairs": 4096,
+    "presentation_trace_analyzer": 5
+  },
+  "beam_status": "Synthetic double-buffer/lifetime tests and real non-target LightBeam coverage pass; late-room exit beam and visible bridge not qualified",
+  "visible_late_room_fix_verified": false,
+  "full_tutorial_combat_fix_verified": false,
+  "shadow_fix_included": false,
+  "public_release": false,
+  "limits": [
+    "Native Play paths vary when wall-clock performance changes; unmatched paths are not causal FPS comparisons.",
+    "Recorded-clock FPS is not real-time performance.",
+    "Initial owner waiting is excluded from analyzed gameplay windows; raw evidence is retained.",
+    "Hidden present-return timing does not establish physical monitor scanout or 360 Hz visual quality.",
+    "Procedural beam texture/color animation keeps original cadence.",
+    "Exact damage hitch, late crates/exit marker/bridge and shadow cadence remain open.",
+    "Unlimited queue starvation remains; prepared-scene-age candidate was rejected for worse output spacing."
+  ],
+  "date_utc": "2026-10-13T23:17:52.219918+00:00",
+  "runtime_sha256": "1b0bdd0fbfe25eacbf3ed0417c1607a70eed49d4198a6add62f3fba12900f0db",
+  "native_play": [
+    {
+      "case": "selected-play-120",
+      "runtime_sha256": "1b0bdd0fbfe25eacbf3ed0417c1607a70eed49d4198a6add62f3fba12900f0db",
+      "windows": [
+        {
+          "vi": [
+            2000,
+            2250
+          ],
+          "scenes": 29.762690547225468,
+          "output": 119.77082728278636,
+          "median_ms": 8.337,
+          "p99_ms": 8.916,
+          "max_ms": 9.596
+        },
+        {
+          "vi": [
+            2250,
+            2500
+          ],
+          "scenes": 29.689377284465895,
+          "output": 119.95466144772108,
+          "median_ms": 8.34,
+          "p99_ms": 8.526,
+          "max_ms": 8.64
+        },
+        {
+          "vi": [
+            2500,
+            2750
+          ],
+          "scenes": 29.63988495900135,
+          "output": 119.75469648757803,
+          "median_ms": 8.343,
+          "p99_ms": 8.533,
+          "max_ms": 15.88
+        },
+        {
+          "vi": [
+            2750,
+            3000
+          ],
+          "scenes": 29.742173730752732,
+          "output": 119.92811988206748,
+          "median_ms": 8.339500000000001,
+          "p99_ms": 8.534,
+          "max_ms": 8.713
+        },
+        {
+          "vi": [
+            3000,
+            3250
+          ],
+          "scenes": 29.71514676886121,
+          "output": 119.819140197021,
+          "median_ms": 8.3385,
+          "p99_ms": 8.626,
+          "max_ms": 9.355
+        },
+        {
+          "vi": [
+            3250,
+            3500
+          ],
+          "scenes": 29.774703939793632,
+          "output": 119.57905291949378,
+          "median_ms": 8.336500000000001,
+          "p99_ms": 9.002,
+          "max_ms": 12.57
+        },
+        {
+          "vi": [
+            3500,
+            3750
+          ],
+          "scenes": 29.342962956192878,
+          "output": 119.53649663301525,
+          "median_ms": 8.338,
+          "p99_ms": 8.623,
+          "max_ms": 14.433
+        },
+        {
+          "vi": [
+            3750,
+            4000
+          ],
+          "scenes": 29.23105785521186,
+          "output": 119.79941743939287,
+          "median_ms": 8.3385,
+          "p99_ms": 8.609,
+          "max_ms": 11.054
+        },
+        {
+          "vi": [
+            4000,
+            4250
+          ],
+          "scenes": 28.691324150037453,
+          "output": 119.78627832640638,
+          "median_ms": 8.339,
+          "p99_ms": 8.612,
+          "max_ms": 11.881
+        },
+        {
+          "vi": [
+            4250,
+            4500
+          ],
+          "scenes": 28.836338400198393,
+          "output": 119.67080436082334,
+          "median_ms": 8.338,
+          "p99_ms": 8.597,
+          "max_ms": 13.835
+        },
+        {
+          "vi": [
+            4500,
+            4750
+          ],
+          "scenes": 28.339075598566907,
+          "output": 119.84066714987192,
+          "median_ms": 8.338,
+          "p99_ms": 8.644,
+          "max_ms": 9.67
+        },
+        {
+          "vi": [
+            4750,
+            5000
+          ],
+          "scenes": 28.657770339494277,
+          "output": 119.64619116738861,
+          "median_ms": 8.337,
+          "p99_ms": 8.985,
+          "max_ms": 13.531
+        }
+      ],
+      "damage_events": 18,
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "fps_log_complete": true,
+      "trace_complete": true,
+      "backward_phases": 0,
+      "repeated_phases": 8,
+      "present_interval_ms": {
+        "median": 8.339,
+        "p99": 8.653,
+        "maximum": 15.879
+      },
+      "pause_resume_test": false
+    },
+    {
+      "case": "selected-play-360",
+      "runtime_sha256": "1b0bdd0fbfe25eacbf3ed0417c1607a70eed49d4198a6add62f3fba12900f0db",
+      "windows": [
+        {
+          "vi": [
+            2000,
+            2250
+          ],
+          "scenes": 29.665014995186613,
+          "output": 355.26247796654934,
+          "median_ms": 2.777,
+          "p99_ms": 2.964,
+          "max_ms": 15.095
+        },
+        {
+          "vi": [
+            2250,
+            2500
+          ],
+          "scenes": 29.699481959600565,
+          "output": 359.5074388819391,
+          "median_ms": 2.778,
+          "p99_ms": 2.968,
+          "max_ms": 6.809
+        },
+        {
+          "vi": [
+            2500,
+            2750
+          ],
+          "scenes": 29.598093691810803,
+          "output": 356.1319015175945,
+          "median_ms": 2.776,
+          "p99_ms": 2.942,
+          "max_ms": 16.33
+        },
+        {
+          "vi": [
+            2750,
+            3000
+          ],
+          "scenes": 29.700207542176088,
+          "output": 354.48634808403716,
+          "median_ms": 2.778,
+          "p99_ms": 3.18,
+          "max_ms": 13.078
+        },
+        {
+          "vi": [
+            3000,
+            3250
+          ],
+          "scenes": 29.69993722295527,
+          "output": 358.55488728035516,
+          "median_ms": 2.777,
+          "p99_ms": 2.944,
+          "max_ms": 7.97
+        },
+        {
+          "vi": [
+            3250,
+            3500
+          ],
+          "scenes": 29.672816517421175,
+          "output": 357.0309858386483,
+          "median_ms": 2.776,
+          "p99_ms": 2.961,
+          "max_ms": 10.914
+        },
+        {
+          "vi": [
+            3500,
+            3750
+          ],
+          "scenes": 28.005277438948497,
+          "output": 358.08457306552947,
+          "median_ms": 2.778,
+          "p99_ms": 3.034,
+          "max_ms": 14.669
+        },
+        {
+          "vi": [
+            3750,
+            4000
+          ],
+          "scenes": 27.5459130488104,
+          "output": 356.65969156242335,
+          "median_ms": 2.778,
+          "p99_ms": 2.987,
+          "max_ms": 33.437
+        },
+        {
+          "vi": [
+            4000,
+            4250
+          ],
+          "scenes": 26.576622197513146,
+          "output": 358.9041141808307,
+          "median_ms": 2.776,
+          "p99_ms": 3.092,
+          "max_ms": 4.648
+        },
+        {
+          "vi": [
+            4250,
+            4500
+          ],
+          "scenes": 28.490560526639634,
+          "output": 358.8852960456539,
+          "median_ms": 2.778,
+          "p99_ms": 3.035,
+          "max_ms": 4.117
+        },
+        {
+          "vi": [
+            4500,
+            4750
+          ],
+          "scenes": 26.681390307155684,
+          "output": 359.5978369324766,
+          "median_ms": 2.777,
+          "p99_ms": 2.939,
+          "max_ms": 3.507
+        },
+        {
+          "vi": [
+            4750,
+            5000
+          ],
+          "scenes": 28.73916952421826,
+          "output": 359.00012597335973,
+          "median_ms": 2.777,
+          "p99_ms": 2.961,
+          "max_ms": 5.176
+        }
+      ],
+      "damage_events": 16,
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "fps_log_complete": true,
+      "trace_complete": null,
+      "backward_phases": null,
+      "repeated_phases": null,
+      "present_interval_ms": null,
+      "pause_resume_test": false
+    },
+    {
+      "case": "selected-play-pause",
+      "runtime_sha256": "1b0bdd0fbfe25eacbf3ed0417c1607a70eed49d4198a6add62f3fba12900f0db",
+      "windows": [
+        {
+          "vi": [
+            2000,
+            2250
+          ],
+          "scenes": 29.758590633147612,
+          "output": 119.7543284350053,
+          "median_ms": 8.338,
+          "p99_ms": 8.907,
+          "max_ms": 9.278
+        },
+        {
+          "vi": [
+            2250,
+            2500
+          ],
+          "scenes": 29.69023033393368,
+          "output": 119.95810804274818,
+          "median_ms": 8.337,
+          "p99_ms": 8.51,
+          "max_ms": 8.638
+        },
+        {
+          "vi": [
+            2500,
+            2750
+          ],
+          "scenes": 29.749459171626313,
+          "output": 119.95749665978352,
+          "median_ms": 8.337,
+          "p99_ms": 8.511,
+          "max_ms": 8.813
+        },
+        {
+          "vi": [
+            2750,
+            3000
+          ],
+          "scenes": 29.751500591311075,
+          "output": 119.96572819077046,
+          "median_ms": 8.337,
+          "p99_ms": 8.489,
+          "max_ms": 8.549
+        },
+        {
+          "vi": [
+            3000,
+            3250
+          ],
+          "scenes": 29.716855879959237,
+          "output": 119.82603177402919,
+          "median_ms": 8.334,
+          "p99_ms": 8.608,
+          "max_ms": 9.469
+        },
+        {
+          "vi": [
+            3250,
+            3500
+          ],
+          "scenes": 29.73468507851156,
+          "output": 119.6581278562683,
+          "median_ms": 8.339,
+          "p99_ms": 9.083,
+          "max_ms": 10.016
+        },
+        {
+          "vi": [
+            3500,
+            3750
+          ],
+          "scenes": 29.50738500276362,
+          "output": 119.70882208438249,
+          "median_ms": 8.334,
+          "p99_ms": 8.529,
+          "max_ms": 15.474
+        },
+        {
+          "vi": [
+            3750,
+            4000
+          ],
+          "scenes": 29.626911174697472,
+          "output": 119.94120491692041,
+          "median_ms": 8.3395,
+          "p99_ms": 8.556,
+          "max_ms": 8.651
+        }
+      ],
+      "damage_events": 11,
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "fps_log_complete": true,
+      "trace_complete": null,
+      "backward_phases": null,
+      "repeated_phases": null,
+      "present_interval_ms": null,
+      "pause_resume_test": true
+    },
+    {
+      "case": "queue-stage-native-unlimited",
+      "runtime_sha256": "1b0bdd0fbfe25eacbf3ed0417c1607a70eed49d4198a6add62f3fba12900f0db",
+      "windows": [
+        {
+          "vi": [
+            2000,
+            2250
+          ],
+          "scenes": 24.402450742732327,
+          "output": 1291.4881949691355
+        },
+        {
+          "vi": [
+            2250,
+            2500
+          ],
+          "scenes": 23.144586957616813,
+          "output": 1270.002482370405
+        },
+        {
+          "vi": [
+            2500,
+            2750
+          ],
+          "scenes": 23.857591949012388,
+          "output": 1229.2450531398908
+        },
+        {
+          "vi": [
+            2750,
+            3000
+          ],
+          "scenes": 23.76262960915044,
+          "output": 1325.6805480027967
+        },
+        {
+          "vi": [
+            3000,
+            3250
+          ],
+          "scenes": 24.015197925641097,
+          "output": 1345.5438299299103
+        },
+        {
+          "vi": [
+            3250,
+            3500
+          ],
+          "scenes": 24.315038484283082,
+          "output": 1425.6411715077297
+        },
+        {
+          "vi": [
+            3500,
+            3750
+          ],
+          "scenes": 24.155667402686017,
+          "output": 1274.9591309112943
+        },
+        {
+          "vi": [
+            3750,
+            4000
+          ],
+          "scenes": 20.326314130085702,
+          "output": 1161.987624436566
+        }
+      ],
+      "audio_underruns": 343,
+      "audio_overruns": 0,
+      "fps_log_complete": true,
+      "trace_complete": true,
+      "backward_phases": 0,
+      "repeated_phases": 757,
+      "present_interval_ms": {
+        "median": 0.596,
+        "p99": 2.733,
+        "maximum": 57.842
+      },
+      "qualification": "Functional only; native source starvation and audio underruns remain."
+    }
+  ],
+  "original_custom_state": {
+    "runtime_sha256": "1609c019314e4448ebef40bf09fb252c0dd476b57c38fff9f76a8ff43b49afa5",
+    "result": {
+      "different_bytes": 3407,
+      "different_non_framebuffer_bytes": 0,
+      "save_equal": true,
+      "purpose": "Final runtime Original/Custom game-state parity; recorded-clock FPS is not native performance"
+    },
+    "scope": "Original/Custom parity on functional predecessor; selected observer build separately preserves all guest bytes, save, instruction counts and logical matching."
+  },
+  "selected_observer_parity": {
+    "cases": [
+      {
+        "case": "queue-observer-before",
+        "sha256": "1609c019314e4448ebef40bf09fb252c0dd476b57c38fff9f76a8ff43b49afa5",
+        "hashes": {
+          "jfg.flash": "5001781e2e8de931d8858b88d39ab5482ac106f8f4db161a414b1c0530640674",
+          "rdram.bin": "888c7ea40977cb0aee51a97ec7b64b57175a717b5eb99b971682a10e8f9da1c2",
+          "rdram.bin.rt64": "c1866dc4934f8d786ea2fd9576408daf3f2e452ce8009b6a239beb7e5716ac9f"
+        },
+        "windows": [
+          {
+            "vi": [
+              2000,
+              2300
+            ],
+            "updates": 147,
+            "median_instructions": 650354,
+            "active_update_ms": 22.189,
+            "history_ms": 1.556
+          },
+          {
+            "vi": [
+              3300,
+              3600
+            ],
+            "updates": 150,
+            "median_instructions": 650635.5,
+            "active_update_ms": 19.1385,
+            "history_ms": 1.442
+          },
+          {
+            "vi": [
+              3700,
+              4000
+            ],
+            "updates": 142,
+            "median_instructions": 714724.5,
+            "active_update_ms": 21.332500000000003,
+            "history_ms": 1.0385
+          },
+          {
+            "vi": [
+              4000,
+              4500
+            ],
+            "updates": 244,
+            "median_instructions": 839913.5,
+            "active_update_ms": 25.53,
+            "history_ms": 1.0815000000000001
+          },
+          {
+            "vi": [
+              4500,
+              4900
+            ],
+            "updates": 200,
+            "median_instructions": 708445.0,
+            "active_update_ms": 20.179499999999997,
+            "history_ms": 0.9555
+          }
+        ]
+      },
+      {
+        "case": "queue-observer-after",
+        "sha256": "1b0bdd0fbfe25eacbf3ed0417c1607a70eed49d4198a6add62f3fba12900f0db",
+        "hashes": {
+          "jfg.flash": "5001781e2e8de931d8858b88d39ab5482ac106f8f4db161a414b1c0530640674",
+          "rdram.bin": "888c7ea40977cb0aee51a97ec7b64b57175a717b5eb99b971682a10e8f9da1c2",
+          "rdram.bin.rt64": "c1866dc4934f8d786ea2fd9576408daf3f2e452ce8009b6a239beb7e5716ac9f"
+        },
+        "windows": [
+          {
+            "vi": [
+              2000,
+              2300
+            ],
+            "updates": 147,
+            "median_instructions": 650354,
+            "active_update_ms": 22.011,
+            "history_ms": 1.557
+          },
+          {
+            "vi": [
+              3300,
+              3600
+            ],
+            "updates": 150,
+            "median_instructions": 650635.5,
+            "active_update_ms": 19.419,
+            "history_ms": 1.4595
+          },
+          {
+            "vi": [
+              3700,
+              4000
+            ],
+            "updates": 142,
+            "median_instructions": 714724.5,
+            "active_update_ms": 21.211,
+            "history_ms": 1.0495
+          },
+          {
+            "vi": [
+              4000,
+              4500
+            ],
+            "updates": 244,
+            "median_instructions": 839913.5,
+            "active_update_ms": 25.0865,
+            "history_ms": 1.0910000000000002
+          },
+          {
+            "vi": [
+              4500,
+              4900
+            ],
+            "updates": 200,
+            "median_instructions": 708445.0,
+            "active_update_ms": 20.298000000000002,
+            "history_ms": 0.959
+          }
+        ]
+      }
+    ],
+    "logical_interpolation_equal": true,
+    "update_instruction_counts_equal": true,
+    "guest_bytes_differing": 0,
+    "save_equal": true
+  },
+  "unlimited_scene_age_candidate": {
+    "status": "Rejected and removed",
+    "runtime_sha256": "38ddad27e7b9f5a7ab8271f141fe559850c1350d58f7885d99499db3df53bd59",
+    "reason": "Reduced queue waiting and audio underruns but regressed native presentation spacing; p99 about 31 ms versus about 2.75 ms in the preceding sample. Native paths differ; no causal whole-route FPS claim.",
+    "same_clock_state_equal": true,
+    "delivered": false
+  },
+  "selected_source_restored_from_pre_candidate": true,
+  "artifact_hashes": {
+    "accepted-focused-tests.log": "0e27f54a52505ba6005e3b649379f323e8f9930285d1664c54fc9c4daeed071a",
+    "beam-dense-replay-review.json": "956ba519fbc0bccf9b1aa399fad3cb19e559916f51f715e41c048420d1408797",
+    "beam-quiet-replay-review.json": "e43052c5f7f5c6900d5c91e1d0b464ac95a4f2aa5b57ffca3e6fe90aeaade488",
+    "beam-room-qualification.json": "033110521443aee7edf3234b363e7b03a18a16327e84bc1a0a4de3970d9e88b1",
+    "controlled-room-input-landmarks.json": "a4bf6813a42831b980662ccee19afa8e425c741ac84904e286b3c5af04aeff6a",
+    "delivery-analyze_presentation_trace-tests.log": "46a59d823d772c3809446eba836399e2612ba33924b6c71abe8e15b736b8f4b7",
+    "delivery-original-custom-state.json": "0d45e8889b55d438880fc2bfc1ea1ac2f71c81c440038a6bd4f0f5f7f252e02c",
+    "delivery-span-compiled-tests.log": "a53f90f16034787fd351bde2f03db5e0d59ae30563f372e09f9824f64ac31dda",
+    "dense-poll-replay-review.json": "03e5c4d8268a782f2f6b8fa55cbf6470f52d38e8cc42297f1df7e56faab1475d",
+    "endpoint-write-review.json": "657018ea1c37d3b149777ac87ec37bd4c5df09c2fa2c3d13177d5abee24335f2",
+    "queue-observer-replay-review.json": "19f0660694acca18228fae1de2a690e15441f15e7570658a0f408ddaa74928d4",
+    "queue-stage-native-review.json": "54a8e94cb5f3015167b4c2c53ac2961366b3a42408d281acc302e28c68eb0229",
+    "room-generation-retry-summary.json": "b9e1ecf0f2d46580c5d9110565d7c114149175ca8f89ccea5390365aef17c0ad",
+    "scene-age-dense-replay-review.json": "5493a894cbfcc9091e653f951073264665428fa826cda93adfa04afd2e695228",
+    "scene-age-original-custom-state.json": "0d45e8889b55d438880fc2bfc1ea1ac2f71c81c440038a6bd4f0f5f7f252e02c",
+    "scene-age-play-review.json": "2657c3a47cce628166e6c711fc788b7ab1f80621d743c48ddee00c799bb22592",
+    "selected-focused-tests.log": "4f69b783f46f7b133d4b6b87b7e8f5f9392d2a4b264c838218e143cd93882bdb",
+    "selected-play-review.json": "7d72cdcc6f48cef382a55af986cac6e13ce977e184c93590b8dc0fe8d2c66f43",
+    "semantic-index-dense-replay-review.json": "887d2067ff383a1b4bf5cd828a410a58bcfd14f3ceda85fa81b43806b8cef48e",
+    "variable-cadence-replay-review.json": "fc716019764006bef7b9e106ba554fa3e698a7894a565cc55247fca28b83b5a7"
+  },
+  "delivery": {
+    "source_commit": "aaae085c7be7d6ce140cde06c683ef19082470ee",
+    "previous_commit": "7531fecbd2bfa0fb17ff3ccff3fd7a9f81e41bd9",
+    "runtime_sha256": "1b0bdd0fbfe25eacbf3ed0417c1607a70eed49d4198a6add62f3fba12900f0db",
+    "tests_verified": true,
+    "owner_visible_bridge_light_fix_verified": false,
+    "full_route_damage_fix_verified": false,
+    "shadow_fix_included": false,
+    "unlimited_scene_age_included": false,
+    "public_release": false,
+    "committed_at_utc": "2026-10-13T23:17:52 +0000",
+    "package_name": "high-refresh-route-fix-20261013",
+    "manifest_verified": 14,
+    "launcher_init_passed": true,
+    "muted_tests": true,
+    "owner_profiles_preserved": true,
+    "delivered": true,
+    "delivered_at_utc": "2026-10-13T23:17:58.203818+00:00"
+  }
+}

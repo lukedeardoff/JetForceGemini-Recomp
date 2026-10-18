@@ -1,44 +1,43 @@
 # Development guide
 
-For playing the preview, start with [getting started](../getting-started.md).
-For reporting a problem, use [playtesting](../playtesting.md).
+To play, start with [getting started](../getting-started.md); to report a
+problem, use [playtesting](../playtesting.md). Code changes follow
+[CONTRIBUTING.md](../../CONTRIBUTING.md); automated work follows
+[AGENTS.md](../../AGENTS.md).
 
-## Build and test
+## Build, test and release
 
-- [ROM build setup](rom-bootstrap.md) produces the playable Windows runtime.
-- [Development setup](setup.md) builds and tests source without a ROM.
-- [Launcher guide](launcher.md) covers setup, controls, saves, and support reports.
-- [Release workflow](releasing.md) builds and publishes versioned launcher releases.
-- [Contributing](../../CONTRIBUTING.md) describes focused pull requests and validation.
-- [Test quarantine](../tests/quarantine.md) records the Linux runner exception.
+- [Development setup](setup.md): build and test the source without a ROM.
+- [ROM build](rom-bootstrap.md): produce the playable Windows runtime (shipped in the release ZIP).
+- [Launcher guide](launcher.md): the player-facing guide shipped as the ZIP's `README.md`.
+- [Releasing](releasing.md): package the launcher and publish a versioned release.
+- [Support diagnostics](support-diagnostics.md): crash/freeze capture, symbols and the gameplay trace.
+- [Test quarantine](test-quarantine.md): the documented Linux CI exclusion.
+
+## Engineering reference
+
+- [Experimental high-refresh rendering](../features/high-refresh-rendering.md): implementation, preview launchers, 60/240 FPS replay evidence and remaining limits.
+- [Runtime architecture](architecture.md): build pipeline, overlays, timing, graphics, audio and saves.
+- [Issue investigations and resolutions](issues/README.md): ongoing reports, attempted remedies and verified outcomes.
+- [Runtime fix log](boot-gameplay-fix.md): confirmed defects with cause, fix and validation.
+- [Feature pages](../features/): PC controls, live map and navigation mod, frontend.
+- [Automation](automation.md): the guarded supervisor and diagnostic workflow.
+- [Plans and acceptance contracts](../planning/README.md) and [project status](../status.md).
 
 ## Source layout
 
 | Location | Purpose |
 |---|---|
-| `src/`, `include/jfg/` | Native runtime, boot, rendering, audio, and host interfaces |
-| `launcher/windows/` | Windows launcher and setup workflow |
-| `scripts/` | Build orchestration, validation, and diagnostic tools |
+| `src/`, `include/jfg/` | Native runtime, boot, rendering, audio, frontend (`src/app`) and host interfaces |
+| `launcher/` | Frontend build and RmlUi resources; embedded Windows helper (C#, PowerShell setup) |
+| `scripts/` | Build orchestration, validation and diagnostic tools |
 | `scripts/autonomy/` | Guarded job scheduling and execution |
 | `tests/` | Source tests and synthetic fixtures |
 | `config/`, `schemas/`, `examples/` | Versioned contracts and validation fixtures |
 | `patches/` | Maintained dependency patches and upstream notices |
-| `evidence/` | Milestone summaries and signatures |
-| `docs/planning/` | Current roadmap and acceptance requirements |
+| `evidence/` | Milestone aggregates and signatures |
+| `docs/` | Documentation ([index](../README.md)) |
 
-Generated output, dependencies, local inputs, and job results use ignored
-directories. Files under `examples/` are used by validation; phase-numbered
-scripts may still be part of the public build.
-
-## Engineering references
-
-- [Recent gameplay fixes](boot-gameplay-fix.md).
-- [Runtime research summary](runtime-research.md).
-- [Perfect Dark PC references](../upstream/perfect-dark-pc-reference.md): retained input sources, implemented PC bindings, experimental manual aim, and remaining modern-control work.
-- [Automation operation and boundaries](automation.md).
-- [Execution profiles](../adr/0002-execution-profiles.md).
-- [Dependency architecture](../adr/0003-phase4-dependency-architecture.md).
-- [Progress](../dashboard.md) and [plans](../planning/README.md).
-
-Automated work must follow [AGENTS.md](../../AGENTS.md). Historical experiments
-are available through [Git history](../history.md).
+Generated output, dependencies, local inputs and job results use ignored
+directories (`tools/`, `build/`, local caches). Files under `examples/` are
+used by validation, and phase-numbered scripts can still be part of the build.

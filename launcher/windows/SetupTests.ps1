@@ -64,4 +64,50 @@ try {
     try { Get-PinnedSource '../main' } catch { $rejected = $_.Exception.Message -like '*source revision*' }
     Assert-Setup $rejected 'Mutable or path-like source revisions must be rejected.'
 } finally { Remove-Item -LiteralPath $RomPath }
+# Issue #4: exercise firmware, old WSL and failure classifications without
+# installing software or changing this machine's Windows/firmware settings.
+function Test-Ubuntu { return $script:ubuntuReady }
+function Get-VirtualizationFirmwareState { return $script:firmwareState }
+function Get-WslOnlineDistributions {
+    $lines = if ($script:onlineReady) { @('NAME FRIENDLY NAME', 'Ubuntu-24.04 Ubuntu 24.04 LTS') } else { @('Ubuntu Ubuntu') }
+    return [pscustomobject]@{ ExitCode = 0; Lines = $lines }
+}
+function Install-Package([string]$Id, [string]$Override = '') {
+    Assert-Setup ($Id -eq 'Microsoft.WSL') 'Unexpected package in WSL upgrade fixture.'
+    $script:wslUpgrades++
+    if ($script:upgradeWorks) { $script:onlineReady = $true }
+}
+function Invoke-WslDistributionInstall {
+    $script:wslInstalls++
+    if ($script:installWorks) { $script:ubuntuReady = $true }
+    return $script:installExit
+}
+$script:ubuntuReady = $false; $script:firmwareState = 'disabled'
+$script:onlineReady = $true; $script:wslUpgrades = 0; $script:wslInstalls = 0
+$script:installWorks = $true; $script:installExit = 0; $script:upgradeWorks = $true
+$rejected = $false
+try { Ensure-Ubuntu } catch { $rejected = $_.Exception.Message -like '*BIOS/UEFI*' }
+Assert-Setup $rejected 'Disabled firmware must explain the BIOS prerequisite.'
+Assert-Setup ($script:wslUpgrades -eq 0 -and $script:wslInstalls -eq 0) 'Disabled firmware must not start an installation.'
+$script:firmwareState = 'enabled'; $script:onlineReady = $false
+Ensure-Ubuntu
+Assert-Setup ($script:wslUpgrades -eq 1 -and $script:wslInstalls -eq 1 -and $script:ubuntuReady) 'Old WSL must be upgraded before installing the requested distribution.'
+Ensure-Ubuntu
+Assert-Setup ($script:wslUpgrades -eq 1 -and $script:wslInstalls -eq 1) 'An existing distribution must be reused.'
+$script:ubuntuReady = $false; $script:onlineReady = $false; $script:upgradeWorks = $false
+$rejected = $false
+try { Ensure-Ubuntu } catch { $rejected = $_.Exception.Message -like '*does not list Ubuntu-24.04*' }
+Assert-Setup $rejected 'An unsupported distribution after upgrade must be actionable, not a reboot loop.'
+Assert-Setup ($script:wslInstalls -eq 1) 'Missing distribution must not invoke an unsupported installation command.'
+$script:onlineReady = $true; $script:installWorks = $false; $script:installExit = 23
+$rejected = $false
+try { Ensure-Ubuntu } catch { $rejected = $_.Exception.Message -like '*failed (23)*' }
+Assert-Setup $rejected 'A failed WSL installation must retain its error instead of requesting a restart.'
+$script:installExit = 0; $script:firmwareState = 'unknown'
+$rejected = $false
+try { Ensure-Ubuntu } catch { $rejected = $_.Exception.Message -like '*not registered*' }
+Assert-Setup $rejected 'Zero exit with missing Ubuntu must not claim success or loop on reboot.'
+Assert-Setup (Test-RequestedDistribution ([pscustomobject]@{ ExitCode = 0; Lines = @("Ubuntu-24.04`0 Ubuntu") })) 'WSL UTF-16 NUL output must be normalized.'
+Assert-Setup (-not (Test-RequestedDistribution ([pscustomobject]@{ ExitCode = 0; Lines = @('Ubuntu-24.04-preview Ubuntu') }))) 'A different distribution must not satisfy the requested name.'
+Assert-Setup (-not (Test-RequestedDistribution ([pscustomobject]@{ ExitCode = 7; Lines = @('Ubuntu-24.04 Ubuntu') }))) 'A failed catalog probe must not be accepted.'
 Write-Output "Setup checks passed: $script:checks"

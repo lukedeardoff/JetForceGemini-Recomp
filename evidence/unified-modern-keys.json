@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "status": "unified Keys and shared-action editor verified and delivered locally",
+  "runtime_sha256": "93514316aada84480c437c3f6eb08dfe192b22a43fa29f678242d4143bf133d7",
+  "runtime_source_files": {
+    "cmake/rt64_video_settings.cmake": "99d2cc6c190d94b1ff54a2c575892fe9ca88850803078234e2e63a5ae7fcb2bf",
+    "include/jfg/renderer/interpolation_bridge.hpp": "a2c20766ec494c570a97e2a31a5df9c9adb022d3644a0f06c5ef48193678b3bf",
+    "src/renderer/rt64_cpu_overlay.hpp": "2939c4aef328074f588a926a40fb86194e59fad8605c0d1b8d08e2f590b64a35",
+    "src/renderer/rt64_shell.cpp": "3c7f1e680e77620a9d077ec725be1d77fcc5c29b9bbb62c7d60bd47b2e27691a",
+    "src/boot/native_boot.cpp": "36609fc73cdf12b2dc50640feb1e575e27aa4a9b650cd8b468c191394483bf15",
+    "include/jfg/runtime/modern_controls.hpp": "ae48638bcebe8dacb581130a1b56cc6b821926628bb8a420b96b66966d19f5de"
+  },
+  "core_checks": 155,
+  "native_ui_checks": 772,
+  "physical_desktop_input": false,
+  "visual_reviewed": true,
+  "visual_artifacts": [
+    "unified-keys-20261016/unified-keys-f.png",
+    "unified-keys-20261016/unified-keys-shared-e.png"
+  ],
+  "verified_behavior": [
+    "Left Mouse and W/A/S/D movement lists retained.",
+    "Every other added keyboard key appears in right-hand Keys, including menu and movement actions.",
+    "Confirm, Back and Save share Keys; no separate menu/dialogue card.",
+    "Shared E retains Interact and Confirm through save/reload; each assignment can be removed independently.",
+    "Keep both retains overlapping-context actions through reload.",
+    "Default and legacy modern arrow bindings removed; new arrow capture rejected; raw arrow mappings ignored.",
+    "Non-arrow profile choices, inversion and controller mappings preserved in migration checks."
+  ],
+  "reticle_rendering_source_unchanged": true,
+  "delivered": true,
+  "limits": [
+    "This changes modern keyboard binding policy; original Controller Mapping remains available.",
+    "Existing reticle rendering qualification is inherited by unchanged renderer source; sustained owner shuriken gameplay remains pending.",
+    "Goldwood exit-cutscene audio and Unlimited stress limitations remain open."
+  ],
+  "private_evidence": "unified-keys-20261016/verified-checks.json",
+  "runtime_source_commit": "19a2373266dc78845abddf7ea468e312e2d4b8eb",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T15:53:15.245590+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "manifest_verified": 14,
+    "launcher_sha256": "1038b4c4bc2dbbc962e2e59c8750fd487e8a5ed0661a1c59d6f0b0a2704d5611",
+    "launcher_setup_runtime_protocol_passed": true,
+    "profile_files_checked": 41,
+    "profile_files_other_than_requested_bindings_unchanged": 39,
+    "shared_E_interact_confirm": true,
+    "modern_arrow_bindings_removed": true
+  }
+}

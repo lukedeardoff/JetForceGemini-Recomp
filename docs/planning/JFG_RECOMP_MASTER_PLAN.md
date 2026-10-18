@@ -2,7 +2,7 @@
 
 Build a complete, faithful PC version of Jet Force Gemini, then add optional
 modern enhancements. Compatibility and reliable progression come first.
-This roadmap defines goals; [development progress](../dashboard.md) records
+This roadmap defines goals; [project status](../status.md) records
 what has actually been demonstrated. No release dates are committed.
 
 ## Product goals
@@ -19,7 +19,7 @@ what has actually been demonstrated. No release dates are committed.
    requires differential evidence and is separate from the mod interface.
 7. A dependable PC experience: setup, controls, diagnostics, packaging, and support.
 
-Windows x64 is the playable preview target. Linux source CI does not establish
+Windows x64 is the released v1 platform. See the [dashboard](../dashboard.md) for current feature availability. Linux source CI does not establish
 a supported Linux or Steam Deck game package. Additional ROM regions and
 platforms require their own explicit support and verification decisions.
 
@@ -39,7 +39,7 @@ Code changes use focused, reviewed [pull requests](../../CONTRIBUTING.md).
 Completed milestone records retain their original contracts. The broader
 requirements below remain obligations where those records provide less coverage.
 Historical estimates, staffing assumptions, and day-by-day schedules are in
-[Git history](../history.md).
+[Git history](../README.md#historical-material).
 
 | Gate | Required outcome |
 |---|---|
@@ -71,7 +71,7 @@ release matrix, not measurements already achieved or obligations for each tester
 - Replay, first-divergence diagnosis, representative subsystem corpora, and recovery.
 - [Automated exploration](phase9-5-autonomous-exploration.md) and
   [bounded engineering automation](autonomous-full-scope-execution.md).
-- Installer reliability and [reporting improvements](tester-onboarding.md).
+- Installer reliability and [support diagnostics](../development/support-diagnostics.md).
 
 Native snapshots must restore scheduler, thread/continuation, device, and
 external state as well as RDRAM, with restored/uninterrupted equivalence and

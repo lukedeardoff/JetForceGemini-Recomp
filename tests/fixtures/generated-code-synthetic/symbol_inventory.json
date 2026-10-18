@@ -44,6 +44,8 @@
     "jfg_minimal_runtime_section_capacity",
     "jfg_minimal_runtime_unbind_cpu",
     "jfg_minimal_runtime_unbind_dispatch",
+    "jfg_mmio_mask_read32",
+    "jfg_mmio_mask_write32",
     "pause_self",
     "recomp_syscall_handler",
     "reserved_instruction",
@@ -55,7 +57,7 @@
   "link_smoke_entry_symbols": [
     "jfg_generated_link_smoke"
   ],
-  "coverage_symbol_count": 31,
-  "coverage_sha256": "91c1999b9e48b463a4e0214e1ca48021b76559c082fa5456c170e8a8136db120",
+  "coverage_symbol_count": 33,
+  "coverage_sha256": "cebbfef83e706e39e483cc708f35b25fffd7e2047a9119242e9d9d8f107c1853",
   "section_count": 2
 }

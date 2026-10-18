@@ -22,5 +22,5 @@
     "audit/link_smoke_registry.c"
   ],
   "symbol_inventory": "symbol_inventory.json",
-  "symbol_inventory_sha256": "d3caeb47339e2279c92c90cbf259df3786bbfec8e8fc27c358957f3d946bf9e1"
+  "symbol_inventory_sha256": "a078fb8faa9ebaefde6f1f94814a6781f9e18895ec7228e04e8531c9174bf4fa"
 }

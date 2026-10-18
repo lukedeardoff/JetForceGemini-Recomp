@@ -1,0 +1,651 @@
+{
+  "schema": 1,
+  "scope": "2026-10-13 captured tutorial review; bounded local candidate qualification, not full-route acceptance",
+  "baseline_source": "9407ccd726001bad4e2372af3bdfb94688394209",
+  "runtime_sha256": "f6c420fdb4ef5c7b4c361e334ca86e91a7ca94126c866e5645ab5f2db5d7546c",
+  "build": {
+    "sha256": "f6c420fdb4ef5c7b4c361e334ca86e91a7ca94126c866e5645ab5f2db5d7546c",
+    "tests": [
+      "pc_input",
+      "input_replay",
+      "semantic_presentation",
+      "interpolation_history",
+      "rt64_interpolation",
+      "rt64_f3ddkr_texture",
+      "video_settings",
+      "native_audio_source",
+      "original_timing_fast",
+      "original_timing_runtime"
+    ],
+    "private_geometry_code_removed": true
+  },
+  "owner_capture": "20261013-172104-64f71b80910f404ea335d70fc1e747da",
+  "owner_active_route": {
+    "first_active_input_vi": 2010,
+    "duration_s": 225.85104,
+    "output_fps": 113.72982829744772,
+    "scene_fps": 28.142442912815454,
+    "p99_present_ms": 17.575,
+    "max_present_ms": 1466.224,
+    "over20ms": 211,
+    "over40ms": 67,
+    "includes_room_transitions": true
+  },
+  "bounded_play": [
+    {
+      "case": "final-combat-120-light",
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.64700898646049,
+          "scenes": 29.821927164793458,
+          "interval_ms": {
+            "n": 999,
+            "median": 8.337,
+            "p99": 8.987,
+            "max": 9.71
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.433,
+            "p99": 34.253,
+            "max": 35.047
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 119.85691481509373,
+          "scenes": 29.76446717908161,
+          "interval_ms": {
+            "n": 600,
+            "median": 8.344,
+            "p99": 8.605,
+            "max": 9.078
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.423,
+            "p99": 33.996,
+            "max": 34.283
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 119.9208622160217,
+          "scenes": 29.85540200049166,
+          "interval_ms": {
+            "n": 1201,
+            "median": 8.334,
+            "p99": 8.635,
+            "max": 9.262
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.442,
+            "p99": 35.177,
+            "max": 36.111
+          },
+          "vi_deltas": {
+            "2": 299
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 119.68110004755789,
+          "scenes": 29.80793355377224,
+          "interval_ms": {
+            "n": 799,
+            "median": 8.339,
+            "p99": 9.284,
+            "max": 10.198
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.445,
+            "p99": 34.452,
+            "max": 34.837
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        }
+      ],
+      "audio_underruns": 0,
+      "diagnostic_drops": 0,
+      "muted": true,
+      "hidden": true,
+      "isolated": true,
+      "pause": null
+    },
+    {
+      "case": "final-combat-120-expanded",
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.66592722946068,
+          "scenes": 29.826642522658368,
+          "interval_ms": {
+            "n": 999,
+            "median": 8.339,
+            "p99": 9.264,
+            "max": 9.862
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.427,
+            "p99": 34.553,
+            "max": 34.82
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 119.94691149697144,
+          "scenes": 29.78681635508124,
+          "interval_ms": {
+            "n": 600,
+            "median": 8.339,
+            "p99": 8.504,
+            "max": 8.611
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.437,
+            "p99": 34.635,
+            "max": 34.776
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 119.91642164609132,
+          "scenes": 29.82945929465999,
+          "interval_ms": {
+            "n": 1202,
+            "median": 8.339500000000001,
+            "p99": 8.613,
+            "max": 8.919
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.422,
+            "p99": 35.482,
+            "max": 36.453
+          },
+          "vi_deltas": {
+            "2": 299
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 119.73887035442405,
+          "scenes": 29.822321903041786,
+          "interval_ms": {
+            "n": 799,
+            "median": 8.335,
+            "p99": 8.744,
+            "max": 10.601
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.419,
+            "p99": 34.541,
+            "max": 34.802
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        }
+      ],
+      "audio_underruns": 0,
+      "diagnostic_drops": 0,
+      "muted": true,
+      "hidden": true,
+      "isolated": true,
+      "pause": null
+    },
+    {
+      "case": "final-combat-360-light",
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 350.45420205121036,
+          "scenes": 29.802970051486128,
+          "interval_ms": {
+            "n": 2928,
+            "median": 2.777,
+            "p99": 4.525,
+            "max": 15.593
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.399,
+            "p99": 36.801,
+            "max": 37.883
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 354.0159255281403,
+          "scenes": 29.734144816061388,
+          "interval_ms": {
+            "n": 1774,
+            "median": 2.777,
+            "p99": 3.452,
+            "max": 13.281
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.412,
+            "p99": 37.836,
+            "max": 38.6
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 354.9170926037432,
+          "scenes": 29.817423627007365,
+          "interval_ms": {
+            "n": 3559,
+            "median": 2.778,
+            "p99": 3.451,
+            "max": 16.806
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.402,
+            "p99": 37.733,
+            "max": 40.484
+          },
+          "vi_deltas": {
+            "2": 299
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 349.8904778480734,
+          "scenes": 29.76836472499641,
+          "interval_ms": {
+            "n": 2339,
+            "median": 2.778,
+            "p99": 6.408,
+            "max": 17.185
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.447,
+            "p99": 36.649,
+            "max": 37.267
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        }
+      ],
+      "audio_underruns": 0,
+      "diagnostic_drops": 0,
+      "muted": true,
+      "hidden": true,
+      "isolated": true,
+      "pause": null
+    },
+    {
+      "case": "final-pause-120",
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 103.82031776077017,
+          "scenes": 25.85125912243177,
+          "interval_ms": {
+            "n": 1000,
+            "median": 8.336,
+            "p99": 8.709,
+            "max": 1297.205
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.405,
+            "p99": 35.175,
+            "max": 1293.904
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 120.19008524250661,
+          "scenes": 27.736173517501527,
+          "interval_ms": {
+            "n": 13,
+            "median": 8.369,
+            "p99": 8.444,
+            "max": 8.497
+          },
+          "update_ms": {
+            "n": 3,
+            "median": 33.221,
+            "p99": 33.221,
+            "max": 34.369
+          },
+          "vi_deltas": {
+            "2": 3
+          }
+        }
+      ],
+      "audio_underruns": 0,
+      "diagnostic_drops": 0,
+      "muted": true,
+      "hidden": true,
+      "isolated": true,
+      "pause": {
+        "vi": 4105,
+        "ack_seconds": 0.0,
+        "paused_seconds": 1.25,
+        "resume_seconds": 0.01600000000325963,
+        "owned_pid": 34400,
+        "hidden": true
+      }
+    }
+  ],
+  "bounded_expanded_health_changes": [
+    {
+      "vi": 1988,
+      "health": 8363
+    },
+    {
+      "vi": 4451,
+      "health": 8107
+    },
+    {
+      "vi": 4591,
+      "health": 7851
+    },
+    {
+      "vi": 4625,
+      "health": 7595
+    },
+    {
+      "vi": 4911,
+      "health": 7339
+    },
+    {
+      "vi": 4999,
+      "health": 7083
+    },
+    {
+      "vi": 5013,
+      "health": 6827
+    },
+    {
+      "vi": 5109,
+      "health": 6571
+    },
+    {
+      "vi": 5143,
+      "health": 6315
+    },
+    {
+      "vi": 5233,
+      "health": 6059
+    },
+    {
+      "vi": 5267,
+      "health": 5803
+    },
+    {
+      "vi": 5333,
+      "health": 5547
+    },
+    {
+      "vi": 5391,
+      "health": 5291
+    },
+    {
+      "vi": 5481,
+      "health": 5035
+    },
+    {
+      "vi": 5515,
+      "health": 4779
+    },
+    {
+      "vi": 5581,
+      "health": 4523
+    },
+    {
+      "vi": 5639,
+      "health": 4267
+    },
+    {
+      "vi": 5701,
+      "health": 4011
+    },
+    {
+      "vi": 5789,
+      "health": 3755
+    }
+  ],
+  "bounded_expanded_damage_events": [
+    {
+      "vi": 4451,
+      "health": 8107
+    },
+    {
+      "vi": 4591,
+      "health": 7851
+    },
+    {
+      "vi": 4625,
+      "health": 7595
+    },
+    {
+      "vi": 4911,
+      "health": 7339
+    },
+    {
+      "vi": 4999,
+      "health": 7083
+    },
+    {
+      "vi": 5013,
+      "health": 6827
+    },
+    {
+      "vi": 5109,
+      "health": 6571
+    },
+    {
+      "vi": 5143,
+      "health": 6315
+    },
+    {
+      "vi": 5233,
+      "health": 6059
+    },
+    {
+      "vi": 5267,
+      "health": 5803
+    },
+    {
+      "vi": 5333,
+      "health": 5547
+    },
+    {
+      "vi": 5391,
+      "health": 5291
+    },
+    {
+      "vi": 5481,
+      "health": 5035
+    },
+    {
+      "vi": 5515,
+      "health": 4779
+    },
+    {
+      "vi": 5581,
+      "health": 4523
+    },
+    {
+      "vi": 5639,
+      "health": 4267
+    },
+    {
+      "vi": 5701,
+      "health": 4011
+    },
+    {
+      "vi": 5789,
+      "health": 3755
+    }
+  ],
+  "bounded_expanded_levels": {
+    "0": 593,
+    "349": 130,
+    "127": 180,
+    "21": 1905
+  },
+  "original_custom_state": {
+    "non_framebuffer_different_bytes": 0,
+    "save_equal": true,
+    "diagnostic_readback_audio_underruns": [
+      2,
+      3
+    ]
+  },
+  "limits": [
+    "Exact owner route diverges under available replay timing; full-route A/B performance is not controlled.",
+    "Stationary bridge matching improves in bounded orbit but all newly matched triangles are offscreen; visible reported bridge/light correction unverified.",
+    "Shadow screenshot sequence is beside a wall without a clearly measurable ground shadow; no visual cadence acceptance.",
+    "Original/Custom state probes use diagnostic readback and report 2/3 audio underruns; normal Play runs report zero.",
+    "360 cap does not reach a sustained 360 outputs on this host.",
+    "CPU writes still update the base framebuffer while completed presentation may select an interpolated target; this pre-existing path is not fully corrected."
+  ],
+  "completed_window_comparison": {
+    "focus-fixed-recorded-time": {
+      "repeated_phase": 995,
+      "backwards": 0,
+      "completed_output_windows": {
+        "(1, 0, 4)": 1064,
+        "(1, 0, 6)": 186
+      }
+    },
+    "dirty-window-recorded-time": {
+      "repeated_phase": 35,
+      "backwards": 0,
+      "completed_output_windows": {
+        "(1, 0, 1)": 37
+      }
+    }
+  },
+  "stationary_camera_matching": {
+    "bridge-camera-geometry": {
+      "actors": {
+        "0x801bc030": {
+          "total": 3500,
+          "matched": 2610
+        },
+        "0x801bbc70": {
+          "total": 232,
+          "matched": 230
+        }
+      },
+      "poses": {}
+    },
+    "bridge-trig-camera": {
+      "actors": {
+        "0x801bc030": {
+          "total": 3500,
+          "matched": 3500
+        },
+        "0x801bbc70": {
+          "total": 232,
+          "matched": 230
+        }
+      },
+      "poses": {
+        "total": 3732,
+        "valid": 3732
+      }
+    }
+  },
+  "stationary_camera_non_framebuffer_different_bytes": 0,
+  "visible_newly_matched_bridge_samples": 0,
+  "delivery": {
+    "source_commit": "34c9986224c0508a45d1f7d1caa10f2b6b377526",
+    "previous_commit": "9407ccd726001bad4e2372af3bdfb94688394209",
+    "runtime_sha256": "f6c420fdb4ef5c7b4c361e334ca86e91a7ca94126c866e5645ab5f2db5d7546c",
+    "tests_verified": true,
+    "owner_visible_bridge_light_fix_verified": false,
+    "full_route_damage_fix_verified": false,
+    "shadow_fix_included": false,
+    "public_release": false,
+    "committed_at_utc": "2026-10-13T18:54:15 +0000",
+    "package_name": "high-refresh-route-review-20261013",
+    "manifest_verified": 14,
+    "launcher_init_passed": true,
+    "muted_tests": true,
+    "owner_profiles_preserved": true,
+    "delivered": true,
+    "delivered_at_utc": "2026-10-13T18:56:05.842380+00:00"
+  }
+}

@@ -1,0 +1,833 @@
+{
+  "schema": 1,
+  "issue": "RENDER-004",
+  "status": "Corrections implemented, tested and delivered locally; owner live acceptance and full-game coverage pending",
+  "source_parent": "1169b1243fc0df3b1ddf518309f481affe4e3829",
+  "baseline_runtime_sha256": "8bd6b7635ec71a70c735055af97df5119df9f8a0b00d942825b226259ffe9cf7",
+  "candidate_runtime_sha256": "cb3de8f6593fa2abb0a12e7a2ea7f98ecf23ea817ad247505c1338a39dcd2292",
+  "dependencies": {
+    "rt64": "5473732a822a4423b5696e7cb18fecc425a59875",
+    "jfg_decomp": "b49aa4791e8fb1e7acd3bba10346876358d0a9a7",
+    "updated": false
+  },
+  "implementation": [
+    "Resolve reduced-detail geometry and shared skeletal palette within the same actor lifetime",
+    "Bind billboard transforms to camDoSprite actor, asset, anchor and camera identities",
+    "Defer main-target interpolation clipping to the GPU presentation pose; preserve Original and offscreen clipping",
+    "Hold ambiguous palette/geometry samples conservatively; preserve provenance through UV clones"
+  ],
+  "identity_diagnostics": {
+    "drone-invalid-sources": {
+      "actors": {
+        "0x0-0x0-0x0": {
+          "scenes": 235,
+          "vertices": 564396,
+          "valid": 0,
+          "matched": 0,
+          "held_scenes": 235
+        },
+        "playerBoy-0x801bede0-0x80320760": {
+          "scenes": 235,
+          "vertices": 353910,
+          "valid": 353910,
+          "matched": 349392,
+          "held_scenes": 3
+        },
+        "BlueAnt-0x801c1270-0x803a6790": {
+          "scenes": 235,
+          "vertices": 30316,
+          "valid": 0,
+          "matched": 0,
+          "held_scenes": 235
+        },
+        "BlueAnt-0x801c1720-0x803a83a0": {
+          "scenes": 235,
+          "vertices": 28683,
+          "valid": 0,
+          "matched": 0,
+          "held_scenes": 235
+        }
+      },
+      "billboards": {},
+      "images": [
+        "2074-0.ppm",
+        "2074-1.ppm",
+        "2074-2.ppm",
+        "2074-3.ppm",
+        "2074-4.ppm",
+        "2074-5.ppm"
+      ]
+    },
+    "identity-visibility-candidate": {
+      "actors": {
+        "0x0-0x0-0x0": {
+          "scenes": 251,
+          "vertices": 792278,
+          "valid": 0,
+          "matched": 0,
+          "held_scenes": 251
+        },
+        "playerBoy-0x801bede0-0x80320760": {
+          "scenes": 251,
+          "vertices": 378006,
+          "valid": 378006,
+          "matched": 374994,
+          "held_scenes": 2
+        },
+        "BlueAnt-0x801c1270-0x803a7fb0": {
+          "scenes": 251,
+          "vertices": 47439,
+          "valid": 47439,
+          "matched": 47061,
+          "held_scenes": 2
+        },
+        "BlueAnt-0x801c1720-0x803a9bc0": {
+          "scenes": 251,
+          "vertices": 47439,
+          "valid": 47439,
+          "matched": 47061,
+          "held_scenes": 2
+        }
+      },
+      "billboards": {
+        "scenes": 251,
+        "transforms": 753,
+        "matched": 747
+      },
+      "images": [
+        "2311-0.ppm",
+        "2311-1.ppm",
+        "2311-2.ppm",
+        "2311-3.ppm",
+        "2311-4.ppm",
+        "2311-5.ppm"
+      ]
+    }
+  },
+  "visible_lod_drone": {
+    "roi": [
+      720,
+      300,
+      810,
+      380
+    ],
+    "samples": [
+      {
+        "scene_alpha": [
+          5001,
+          0.166667
+        ],
+        "samples": {
+          "clear-drone-before": {
+            "blue_pixels": 720,
+            "centroid": [
+              756.3305555555555,
+              343.22777777777776
+            ],
+            "crop_sha256": "77d300df1d52cdfcc574aa889e889b4c6745188e43040978654484b4d8798693"
+          },
+          "clear-drone-after": {
+            "blue_pixels": 701,
+            "centroid": [
+              757.845934379458,
+              342.7332382310984
+            ],
+            "crop_sha256": "7f7646bd49f9c375607cfe513aa06e4a6afbb70f33d019b376dfacfbd09bab09"
+          }
+        },
+        "changed_pixels": 791
+      },
+      {
+        "scene_alpha": [
+          5001,
+          0.333333
+        ],
+        "samples": {
+          "clear-drone-before": {
+            "blue_pixels": 720,
+            "centroid": [
+              756.3305555555555,
+              343.22777777777776
+            ],
+            "crop_sha256": "bc9c826f34d7254b932192c9102b87860083fa8cd0989ab8f02850ccd6a81f66"
+          },
+          "clear-drone-after": {
+            "blue_pixels": 719,
+            "centroid": [
+              757.7204450625869,
+              342.73018080667595
+            ],
+            "crop_sha256": "86a1fd53c86ac14fb0bdab2d586c8095db66cc2cd639242616cee419b2cf7d61"
+          }
+        },
+        "changed_pixels": 689
+      },
+      {
+        "scene_alpha": [
+          5001,
+          0.5
+        ],
+        "samples": {
+          "clear-drone-before": {
+            "blue_pixels": 719,
+            "centroid": [
+              756.326842837274,
+              343.21557719054243
+            ],
+            "crop_sha256": "98b146c05501e46fbf6c6972dbd727cd9f6851392b25cfeaf5c8671e7678e205"
+          },
+          "clear-drone-after": {
+            "blue_pixels": 723,
+            "centroid": [
+              757.1106500691562,
+              342.54771784232366
+            ],
+            "crop_sha256": "83521c3aa4c75e91de602d7d26fb10b95ef635fd0e414b67c8a7895f9fc72076"
+          }
+        },
+        "changed_pixels": 588
+      },
+      {
+        "scene_alpha": [
+          5001,
+          0.666667
+        ],
+        "samples": {
+          "clear-drone-before": {
+            "blue_pixels": 717,
+            "centroid": [
+              756.3012552301255,
+              343.17852161785214
+            ],
+            "crop_sha256": "2d6151815e331f5cf21b1a73974ae168189c649e1aecb73d9748873ad0037d75"
+          },
+          "clear-drone-after": {
+            "blue_pixels": 722,
+            "centroid": [
+              757.1024930747923,
+              342.8254847645429
+            ],
+            "crop_sha256": "82bef60ac867dcfddefd3c28c7518e5a32b1b204da5b81aca06c1c8d45286f39"
+          }
+        },
+        "changed_pixels": 508
+      },
+      {
+        "scene_alpha": [
+          5001,
+          0.833333
+        ],
+        "samples": {
+          "clear-drone-before": {
+            "blue_pixels": 717,
+            "centroid": [
+              756.3012552301255,
+              343.17852161785214
+            ],
+            "crop_sha256": "acc877965189d90db4c24d6e09ceb12ec88657b7f9c3dab94dd76cfb37530a2e"
+          },
+          "clear-drone-after": {
+            "blue_pixels": 715,
+            "centroid": [
+              756.7468531468531,
+              343.05034965034963
+            ],
+            "crop_sha256": "2bd3d1bcf79b228832d1a01e075a3f9cb89a83326f34ba9e36c8ce9b478e2110"
+          }
+        },
+        "changed_pixels": 335
+      },
+      {
+        "scene_alpha": [
+          5001,
+          1.0
+        ],
+        "samples": {
+          "clear-drone-before": {
+            "blue_pixels": 717,
+            "centroid": [
+              756.3012552301255,
+              343.17852161785214
+            ],
+            "crop_sha256": "a12e1e8c5adc3f13cb7a0977639f25dab41a62539cd68750229c2b38ca95cf8d"
+          },
+          "clear-drone-after": {
+            "blue_pixels": 717,
+            "centroid": [
+              756.3012552301255,
+              343.17852161785214
+            ],
+            "crop_sha256": "a12e1e8c5adc3f13cb7a0977639f25dab41a62539cd68750229c2b38ca95cf8d"
+          }
+        },
+        "changed_pixels": 0
+      }
+    ]
+  },
+  "visible_full_detail_drone": {
+    "source_scene": 4591,
+    "presentation_samples": 6,
+    "all_before_after_pixels_identical": true,
+    "interpretation": "Preserves an already interpolating path; separate from corrected reduced-detail path"
+  },
+  "gem_pixels": {
+    "deterministic-before": [
+      {
+        "scene_alpha": [
+          4201,
+          0.25
+        ],
+        "pixels": 1108,
+        "centroid": [
+          253.09296028880865,
+          388.20126353790613
+        ]
+      },
+      {
+        "scene_alpha": [
+          4201,
+          0.5
+        ],
+        "pixels": 1109,
+        "centroid": [
+          253.08746618575293,
+          388.19747520288547
+        ]
+      },
+      {
+        "scene_alpha": [
+          4201,
+          0.75
+        ],
+        "pixels": 1107,
+        "centroid": [
+          253.09846431797652,
+          388.2041553748871
+        ]
+      },
+      {
+        "scene_alpha": [
+          4201,
+          1.0
+        ],
+        "pixels": 1107,
+        "centroid": [
+          253.09846431797652,
+          388.2041553748871
+        ]
+      },
+      {
+        "scene_alpha": [
+          4205,
+          0.25
+        ],
+        "pixels": 1391,
+        "centroid": [
+          250.91804457225018,
+          388.1423436376707
+        ]
+      },
+      {
+        "scene_alpha": [
+          4205,
+          0.5
+        ],
+        "pixels": 1392,
+        "centroid": [
+          250.92025862068965,
+          388.1537356321839
+        ]
+      },
+      {
+        "scene_alpha": [
+          4205,
+          0.75
+        ],
+        "pixels": 1392,
+        "centroid": [
+          250.92025862068965,
+          388.1537356321839
+        ]
+      },
+      {
+        "scene_alpha": [
+          4205,
+          1.0
+        ],
+        "pixels": 1393,
+        "centroid": [
+          250.92821249102656,
+          388.16223977027994
+        ]
+      }
+    ],
+    "deterministic-after": [
+      {
+        "scene_alpha": [
+          4201,
+          0.25
+        ],
+        "pixels": 1115,
+        "centroid": [
+          253.59551569506726,
+          388.2825112107623
+        ]
+      },
+      {
+        "scene_alpha": [
+          4201,
+          0.5
+        ],
+        "pixels": 1103,
+        "centroid": [
+          253.34995466908433,
+          388.222121486854
+        ]
+      },
+      {
+        "scene_alpha": [
+          4201,
+          0.75
+        ],
+        "pixels": 1099,
+        "centroid": [
+          253.19836214740673,
+          388.18471337579615
+        ]
+      },
+      {
+        "scene_alpha": [
+          4201,
+          1.0
+        ],
+        "pixels": 1107,
+        "centroid": [
+          253.09846431797652,
+          388.2041553748871
+        ]
+      },
+      {
+        "scene_alpha": [
+          4205,
+          0.25
+        ],
+        "pixels": 1389,
+        "centroid": [
+          251.54211663066954,
+          388.130309575234
+        ]
+      },
+      {
+        "scene_alpha": [
+          4205,
+          0.5
+        ],
+        "pixels": 1393,
+        "centroid": [
+          251.35247666905957,
+          388.2203876525484
+        ]
+      },
+      {
+        "scene_alpha": [
+          4205,
+          0.75
+        ],
+        "pixels": 1394,
+        "centroid": [
+          251.11477761836443,
+          388.1929698708752
+        ]
+      },
+      {
+        "scene_alpha": [
+          4205,
+          1.0
+        ],
+        "pixels": 1393,
+        "centroid": [
+          250.92821249102656,
+          388.16223977027994
+        ]
+      }
+    ]
+  },
+  "edge_pixels": [
+    {
+      "scene_alpha": [
+        4165,
+        0.25
+      ],
+      "changed_pixels": 220,
+      "edge_changed_pixels": 220,
+      "bounds": [
+        951,
+        207,
+        956,
+        329
+      ]
+    },
+    {
+      "scene_alpha": [
+        4165,
+        0.5
+      ],
+      "changed_pixels": 37,
+      "edge_changed_pixels": 37,
+      "bounds": [
+        955,
+        233,
+        956,
+        327
+      ]
+    },
+    {
+      "scene_alpha": [
+        4165,
+        0.75
+      ],
+      "changed_pixels": 0,
+      "edge_changed_pixels": 0,
+      "bounds": null
+    },
+    {
+      "scene_alpha": [
+        4165,
+        1.0
+      ],
+      "changed_pixels": 0,
+      "edge_changed_pixels": 0,
+      "bounds": null
+    },
+    {
+      "scene_alpha": [
+        4169,
+        0.25
+      ],
+      "changed_pixels": 532,
+      "edge_changed_pixels": 532,
+      "bounds": [
+        948,
+        170,
+        956,
+        266
+      ]
+    },
+    {
+      "scene_alpha": [
+        4169,
+        0.5
+      ],
+      "changed_pixels": 206,
+      "edge_changed_pixels": 206,
+      "bounds": [
+        953,
+        170,
+        956,
+        265
+      ]
+    },
+    {
+      "scene_alpha": [
+        4169,
+        0.75
+      ],
+      "changed_pixels": 0,
+      "edge_changed_pixels": 0,
+      "bounds": null
+    },
+    {
+      "scene_alpha": [
+        4169,
+        1.0
+      ],
+      "changed_pixels": 0,
+      "edge_changed_pixels": 0,
+      "bounds": null
+    }
+  ],
+  "pixel_method": {
+    "paired_by": "Source scene VI and interpolation alpha, not wall-clock frame number",
+    "edge_masks": "HUD rectangle and diagnostic overlay excluded; their presentation differences are not qualified by this scenery comparison",
+    "lod_roi": [
+      720,
+      300,
+      810,
+      380
+    ],
+    "capture_performance_acceptance": false
+  },
+  "guest_state": {
+    "custom_diagnostic": {
+      "framebuffers": [
+        "0x10ff00",
+        "0x135700"
+      ],
+      "framebuffer_bytes": 153648,
+      "different_bytes": 3318,
+      "all_differences_in_framebuffers": true,
+      "all_other_guest_bytes_identical": true,
+      "actor_and_camera_events": {
+        "actor": {
+          "before": 25525,
+          "after": 25525,
+          "identical": true
+        },
+        "actor-removed": {
+          "before": 11,
+          "after": 11,
+          "identical": true
+        },
+        "pc-shoulder-camera": {
+          "before": 249,
+          "after": 249,
+          "identical": true
+        },
+        "pc-shoulder": {
+          "before": 249,
+          "after": 249,
+          "identical": true
+        }
+      }
+    },
+    "final_custom_pair_non_framebuffer_exact": true,
+    "original_full_exact": true,
+    "original_hashes": {
+      "jfg.flash": "924760151a1e41b433f1dd0ed0aca5569d9810845fc39ae1821434772a8147b3",
+      "rdram.bin": "1e41ca3e56cfad119ab838acc560c19ff6cc9be4b81a4f2303a92e6bd6de81ae",
+      "rdram.bin.rt64": "8103b94fab58363d8f832bd671e705ddf9cfbf1ae3caeb01b432eb377268ba68"
+    }
+  },
+  "final_circle_120": {
+    "phase": {
+      "samples": 1698,
+      "repeated_phases": 0,
+      "backward_phases": 0,
+      "phase_step_counts": {
+        "0.5000": 1697
+      },
+      "present_interval_ms": {
+        "median": 8.34,
+        "p99": 8.848,
+        "maximum": 22.749
+      },
+      "expected_phase_step": 0.5,
+      "uneven_phase_steps": 0
+    },
+    "bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 119.66866289703722,
+        "scenes": 29.883887453153346,
+        "interval_ms": {
+          "n": 1798,
+          "median": 8.337499999999999,
+          "p99": 9.077,
+          "max": 10.432
+        },
+        "update_ms": {
+          "n": 449,
+          "median": 33.451,
+          "p99": 34.792,
+          "max": 35.409
+        },
+        "vi_deltas": {
+          "2": 449
+        }
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 119.4135129232458,
+        "scenes": 27.487638823841486,
+        "interval_ms": {
+          "n": 795,
+          "median": 8.341,
+          "p99": 9.199,
+          "max": 22.75
+        },
+        "update_ms": {
+          "n": 183,
+          "median": 33.583,
+          "p99": 53.276,
+          "max": 53.687
+        },
+        "vi_deltas": {
+          "2": 152,
+          "3": 31
+        }
+      },
+      {
+        "vi": [
+          4113,
+          4275
+        ],
+        "output": 118.95496241059676,
+        "scenes": 24.81269154576865,
+        "interval_ms": {
+          "n": 326,
+          "median": 8.3445,
+          "p99": 9.309,
+          "max": 22.75
+        },
+        "update_ms": {
+          "n": 68,
+          "median": 33.9505,
+          "p99": 53.276,
+          "max": 53.687
+        },
+        "vi_deltas": {
+          "2": 43,
+          "3": 25
+        }
+      }
+    ],
+    "audio_underruns": 0,
+    "queue_drops": 0
+  },
+  "final_combined_360": {
+    "bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 347.8881388031119,
+        "scenes": 29.85507919009886,
+        "interval_ms": {
+          "n": 5232,
+          "median": 2.779,
+          "p99": 4.516,
+          "max": 17.09
+        },
+        "update_ms": {
+          "n": 449,
+          "median": 33.419,
+          "p99": 37.416,
+          "max": 38.121
+        },
+        "vi_deltas": {
+          "2": 449
+        }
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 351.68192516459936,
+        "scenes": 29.768057468207264,
+        "interval_ms": {
+          "n": 2351,
+          "median": 2.78,
+          "p99": 4.048,
+          "max": 18.877
+        },
+        "update_ms": {
+          "n": 199,
+          "median": 33.466,
+          "p99": 38.458,
+          "max": 38.659
+        },
+        "vi_deltas": {
+          "2": 199
+        }
+      },
+      {
+        "vi": [
+          4113,
+          4275
+        ],
+        "output": 349.6754228448202,
+        "scenes": 29.570860282860064,
+        "interval_ms": {
+          "n": 946,
+          "median": 2.7805,
+          "p99": 4.27,
+          "max": 18.877
+        },
+        "update_ms": {
+          "n": 80,
+          "median": 33.487,
+          "p99": 38.458,
+          "max": 38.62
+        },
+        "vi_deltas": {
+          "2": 80
+        }
+      }
+    ],
+    "audio_underruns": 0,
+    "queue_drops": 0
+  },
+  "focused_tests": {
+    "count": 9,
+    "failed": 0,
+    "log_sha256": "edd3d9b409a4708b58e475bded1b9dfa5abc91ac149138ddb68b9a469ab032b0",
+    "suites": [
+      "host_count_clock",
+      "rt64_shell",
+      "rt64_f3ddkr_texture",
+      "rt64_interpolation",
+      "original_timing_fast",
+      "native_event_batch",
+      "interpolation_history",
+      "video_settings",
+      "semantic_presentation"
+    ]
+  },
+  "limits": [
+    "Bounded Goldwood visual qualification, not full-game acceptance or physical monitor scanout",
+    "Texture animation remains at original game cadence; new objects, LOD switches and cuts can hold endpoints",
+    "Guest-level visibility paths are unchanged; this establishes F3DDKR endpoint culling as one reproduced cause",
+    "Adaptive 30/20-Hz recovery remains present in baseline and candidate under some workloads",
+    "Measured final 360-cap combined window averaged 351.68 output FPS and 29.77 scenes/s; sustained 360 is not established",
+    "Earlier repeated 360-cap measurements varied; screenshot readbacks caused underruns and are excluded from performance acceptance",
+    "Existing Unlimited saturation limitation remains; a Custom cap is the current qualified path"
+  ],
+  "fixture": {
+    "muted": true,
+    "hidden_owned_windows": true,
+    "copied_saves": true,
+    "owner_profile_untouched": true,
+    "guard_enabled": true,
+    "private_artifact_set": "high-refresh-20261011/visibility-20261013",
+    "large_artifacts_drive": "D:",
+    "heavy_runtime_diagnostics_removed": true
+  },
+  "private_proof_hashes": {
+    "candidate-comparison.json": "845c15e2fe98db9faa9f1b8aeab1646b2a061755ea36065221ac34b679410f83",
+    "guest-state-proof.json": "3d96af37ff3944267c6e19333dab21ae05ddb20b4cd6c3220a608c0503164d4a",
+    "pixel-visibility-proof.json": "1add58ea574c885b38aa831159796d8364a64baa145496e57f88002e97e148d8",
+    "edge-scene-pixel-proof.json": "21aacfc72deb097151cbdaac273e790ac689b918f120bec73b7cfa1bc8cc54d3",
+    "final-drone-pixel-proof.json": "84d4ff70b6037299d4c4a2567ef102feaaf50c8fa3fa0ef392204623ca68acee",
+    "visible-lod-drone-pixel-proof.json": "35b2110387fc6c7e8754be719b4248e29e50aefa5edfef86b5c026ad3d72fd35",
+    "clear-drone-pixel-proof.json": "2a317674692a8f3bf8144569b3b88887426ce7dc73f11612b041175d9efef36a",
+    "final-compatibility.json": "bfa2911cce7df579d5bc115851a67a4d06c50794b23f385cbe6fa56a7d5d39d2",
+    "renderer-cost-comparison.json": "3abde3e7b7222018e437a7fdcf17f31eaf57ed728178a1ef630370d7104081e9"
+  },
+  "delivery": {
+    "source_commit": "c9189c1d1d2e356f53a9801c283a527620f71b9b",
+    "runtime_sha256": "cb3de8f6593fa2abb0a12e7a2ea7f98ecf23ea817ad247505c1338a39dcd2292",
+    "qualified_runtime_sha256": "cb3de8f6593fa2abb0a12e7a2ea7f98ecf23ea817ad247505c1338a39dcd2292",
+    "branch": "research/high-refresh-20261011",
+    "guarded": true,
+    "manifest_verified": 14,
+    "launcher_init_passed": true,
+    "muted_tests": true,
+    "owner_profile_preserved": true,
+    "owner_live_validation_pending": true,
+    "public_release": false,
+    "delivered_at_utc": "2026-10-13T09:39:57.720851+00:00",
+    "delivered": true,
+    "package_name": "high-refresh-visibility-20261013",
+    "desktop_shortcut": "JFG - High Refresh Preview",
+    "owner_live_acceptance_pending": true
+  },
+  "implementation_commit": "c9189c1d1d2e356f53a9801c283a527620f71b9b"
+}

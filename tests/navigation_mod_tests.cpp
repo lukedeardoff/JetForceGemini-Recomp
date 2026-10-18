@@ -26,6 +26,21 @@ int main(int argc, char **argv) {
   navigation_pilot_tests();
   const auto npc_catalog = NpcFixture().catalog();
   using namespace jfg::mod;
+  // Private captured-state acceptance uses the production predicates. The
+  // memory image stays outside the public repository and is never modified.
+  if(argc==5 && std::string_view(argv[1])=="--boss-state") {
+    std::ifstream in(argv[2],std::ios::binary);
+    std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>(in),
+                                  std::istreambuf_iterator<char>()};
+    check(bytes.size()==4194304U);
+    Memory m(bytes,false);
+    const auto player=static_cast<std::uint32_t>(std::strtoul(argv[3],nullptr,0));
+    check(gameplay_active(m,player) && !pc_gameplay_active(m,player));
+    check(pc_boss_gameplay_active(m,player) && pc_actions_active(m,player));
+    std::ofstream out(argv[4]);
+    out << "{\"boss_actions\":true,\"ordinary_camera\":false,\"player\":" << player << "}\n";
+    check(bool(out));return 0;
+  }
   if (argc >= 3 && argc <= 5) {
     std::ifstream in(argv[1], std::ios::binary);
     std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>(in),
@@ -175,6 +190,59 @@ int main(int argc, char **argv) {
     m.put16(0x8010C048U,100U);put32(0x8002B484U,0);check(!scripted_camera_active(m,player));
     put32(0x8002B484U,0x8E0505C0U);put32(control+0x5C0U,0x80400000U);check(!scripted_camera_active(m,player));
     put32(control+0x5C0U,0);
+    check(pc_gameplay_active(m,player));
+    for(auto offset:{0x56BU,0x577U,0x1F9U,0x1FAU,0x186U,0x198U,0x5EEU,0x10DU,0x19FU}) {
+      put8(control+offset,1);check(!pc_gameplay_active(m,player));
+      put8(control+offset,0);check(pc_gameplay_active(m,player));
+    }
+    put32(control+0xFCU,0x8010C000U);check(!pc_gameplay_active(m,player));
+    put32(control+0xFCU,0);check(pc_gameplay_active(m,player));
+    // A real boss update selects a different controller, not a menu. Its
+    // fixed camera remains outside the ordinary shoulder/locomotion adapter.
+    check(pc_actions_active(m,player) && !pc_boss_gameplay_active(m,player));
+    put32(0x80032FD8U,0x8E0D00FCU);put32(0x80032FE0U,0x11A0001EU);
+    put32(0x8003301CU,0x0CD00000U);put32(0x80033034U,0x0CC80000U);
+    put32(0x8003304CU,0x0CCC0000U);put32(control+0xFCU,0x8010C000U);
+    for(auto call:{0x8003301CU,0x80033034U,0x8003304CU}) {
+      put32(call-8U,0x8FA40090U);put32(call-4U,0x8FA50094U);
+    }
+    for(auto character:{0U,1U,2U})for(auto movement:{0x20U,0x23U}) {
+      put8(control+1U,static_cast<std::uint8_t>(character));
+      put8(control+0x568U,static_cast<std::uint8_t>(movement));
+      check(pc_boss_gameplay_active(m,player) && pc_actions_active(m,player));
+      check(!pc_gameplay_active(m,player));
+    }
+    // Captured Vela relocation plus unloaded Juno/Lupus loader thunks.
+    put32(0x8003301CU,0x0C0D86CCU);put32(0x80033034U,0x0C01514CU);
+    put32(0x8003304CU,0x0C01514CU);check(pc_actions_active(m,player));
+    for(auto call:{0x8003301CU,0x80033034U,0x8003304CU}) {
+      const auto saved=m.u32(call);put32(call,saved^0x04000000U);
+      check(!pc_actions_active(m,player));put32(call,saved);
+      put32(call-4U,0U);check(!pc_actions_active(m,player));put32(call-4U,0x8FA50094U);
+    }
+    const auto boss_bytes=bytes;
+    for(int i=0;i<100;++i)check(pc_actions_active(m,player));
+    check(bytes==boss_bytes);
+    for(auto offset:{0x56BU,0x577U,0x1F9U,0x1FAU,0x186U,0x198U,0x5EEU,0x10DU,0x19FU,0x18EU}) {
+      put8(control+offset,1);check(!pc_actions_active(m,player));put8(control+offset,0);
+    }
+    for(auto gate:{0x800FD7C4U,0x801045B8U,0x800F6DBCU,control+0x5C0U}) {
+      put32(gate,1);check(!pc_actions_active(m,player));put32(gate,0);
+    }
+    for(auto movement:{0U,3U,10U,0x2AU,0xFFU}) {
+      put8(control+0x568U,static_cast<std::uint8_t>(movement));check(!pc_actions_active(m,player));
+    }
+    put8(control+0x568U,0x20U);
+    for(auto pointer:{0U,0x8010C001U,0x80400000U}) {
+      put32(control+0xFCU,pointer);check(!pc_boss_gameplay_active(m,player));
+    }
+    put32(control+0xFCU,0x8010C000U);put32(0x80032FD8U,0);
+    check(!pc_actions_active(m,player));put32(0x80032FD8U,0x8E0D00FCU);
+    put8(control+1U,3);check(!pc_actions_active(m,player));
+    put8(control+1U,0);put8(control+0x568U,0);put32(control+0xFCU,0);
+    check(pc_actions_active(m,player) && pc_gameplay_active(m,player));
+    put32(0x800F6DBCU,1);check(!pc_gameplay_active(m,player));
+    put32(0x800F6DBCU,0);check(pc_gameplay_active(m,player));
     put32(player + 0x4CU, props);
     put32(0x800FD7D4U, game);
     m.put16(game + 0x15EU, 6U);
@@ -465,6 +533,11 @@ int main(int argc, char **argv) {
         check(!configure(text)&&mods.kill_enabled()&&!mods.health_enabled());
       mods.enabled=true;check(configure("JFGMODS1 0 0 0"));
       check(!mods.full_health(m,player)&&!mods.clear_enemy(m,enemy));mods.enabled=false;
+      // Match the supported guest's contact producer and transition consumer.
+      put32(0x8002561CU,0x27BDFF70U);put32(0x800257F4U,0xACF000F4U);
+      put32(0x800257F8U,0xA0EC0196U);put32(0x80032B94U,0x8E0200F4U);
+      put32(0x80032DACU,0xAE0000F4U);m.put16(props+6U,512U);
+      put8(control+0x197U,0x5AU);
       auto send=[&](unsigned nonce,unsigned gen,unsigned room,unsigned address,int stamp=1000){
         std::ostringstream text;text<<"JFGWARP1 "<<room<<' '<<gen<<' '<<nonce<<' '<<stamp<<' '<<address;
         std::istringstream in(text.str());
@@ -479,11 +552,32 @@ int main(int argc, char **argv) {
       check(!send(7,1,room,exit));
       check(send(8,1,room,exit));
       check(m.f32(player+12U)==101&&m.f32(player+16U)==202&&m.f32(player+20U)==303);
+      check(m.u32(control+0xF4U)==exit && m.u8(control+0x196U)==0x88U &&
+            m.u8(control+0x197U)==0x5AU);
       check(!send(8,1,room,exit));
       check(configure("JFGMODS1 0 0 0"));unchanged_mods=bytes;
       check(!send(9,1,room,exit)&&bytes==unchanged_mods);
-      check(configure("JFGMODS1 1 0 0"));mods.transition();unchanged_mods=bytes;
+      check(configure("JFGMODS1 1 0 0"));
+      // A new click cannot replace a pending transition.
       check(!send(10,1,room,exit)&&bytes==unchanged_mods);
+      put32(control+0xF4U,0);put8(control+0x196U,0);
+      put8(0x800FD7BDU,1);unchanged_mods=bytes;
+      check(!send(11,1,room,exit)&&bytes==unchanged_mods);put8(0x800FD7BDU,0);
+      m.put16(props+6U,255);unchanged_mods=bytes;
+      check(!send(12,1,room,exit)&&bytes==unchanged_mods);m.put16(props+6U,512);
+      put32(0x800257F4U,0);unchanged_mods=bytes;
+      check(!send(13,1,room,exit)&&bytes==unchanged_mods);put32(0x800257F4U,0xACF000F4U);
+      // Missing progression must not queue a contact or move the character.
+      m.put16(xc+0x14U,7);
+      put8(0x800A113CU,23);put8(0x800A113DU,1);put8(0x800A113EU,255);
+      put8(game+0x32U,static_cast<std::uint8_t>(m.u8(game+0x32U)&0x7FU));
+      unchanged_mods=bytes;
+      check(!send(14,1,room,exit)&&bytes==unchanged_mods);
+      put8(game+0x32U,static_cast<std::uint8_t>(m.u8(game+0x32U)|0x80U));
+      check(send(15,1,room,exit)&&m.u32(control+0xF4U)==exit);
+      put32(control+0xF4U,0);put8(control+0x196U,0);m.put16(xc+0x14U,0xFFFFU);
+      mods.transition();unchanged_mods=bytes;
+      check(!send(16,1,room,exit)&&bytes==unchanged_mods);
     }
     // Inventory and dialogue completion are separate, character-scoped facts.
     put8(control + 1U, 1U);

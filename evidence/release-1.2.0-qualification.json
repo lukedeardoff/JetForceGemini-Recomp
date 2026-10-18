@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "version": "1.2.0",
+  "status": "published-and-download-verified",
+  "issues": {
+    "14": "reproduced-old-runtime-current-enabled-startup-pass",
+    "15": "GCC-native-translation-unit-and-volume-pass-Windows-package-only",
+    "13": "inversion-persistence-and-deltas-pass",
+    "4": "28-mocked-setup-checks-pass-clean-Windows10-retest-pending"
+  },
+  "checks": {
+    "managed_launcher": 642,
+    "modern_ui": 790,
+    "update_ui": 78,
+    "windows_native_build": true,
+    "gcc_native_source_warnings_as_errors": true,
+    "source_policy": true,
+    "local_python": {
+      "run": 1790,
+      "failures": 2,
+      "errors": 1,
+      "skipped": 48,
+      "limitation": "pinned local WSL trust/sanitizer harness"
+    },
+    "clang_18_host_tests": 100,
+    "asan_ubsan_host_tests": 84,
+    "gcc_host_tests": 99
+  },
+  "limits": [
+    "No Linux AppImage release qualification",
+    "No exhaustive no-20-FPS guarantee",
+    "Unlimited/shadow/Goldwood-exit audio acceptance remains scoped"
+  ],
+  "release": {
+    "source_commit": "f56cd94c4bd7583bceee201eb3f229f744216bc1",
+    "release_url": "https://github.com/TK22-26/JetForceGemini-Recomp/releases/tag/v1.2.0",
+    "published_at": "2026-10-16T23:31:30Z",
+    "sha256": "1dd938466993c7dfb49e2685bdde84b2242246a12839138a2acec03a72d54e30",
+    "downloaded_bundle_verified": true,
+    "updater_current": true,
+    "assets": [
+      "JFG-1.2.0-windows-x64.inventory.json",
+      "JFG-1.2.0-windows-x64.sha256",
+      "JFG-1.2.0-windows-x64.zip"
+    ],
+    "ci_url": "https://github.com/TK22-26/JetForceGemini-Recomp/actions/runs/38981221560"
+  }
+}

@@ -39,6 +39,9 @@ BizHawk bdddf4a58aa1a022afb11dc73294a81a5aa7bbd5.
 namespace jfg::boot {
 class OriginalTimingPiDma final {
 public:
+  struct RomTransfers {
+    std::uint64_t calls=0,bytes=0,bus_ticks=0,scheduled_ticks=0,native_calls=0;
+  };
   using CartridgeTransfer = bool (*)(void*, bool, std::uint32_t, std::uint32_t,
                                      std::uint32_t, std::span<std::uint8_t>);
   [[nodiscard]] std::optional<std::uint32_t> read(std::uint32_t offset) const {
@@ -48,7 +51,8 @@ public:
   }
   bool write(std::uint32_t offset, std::uint32_t value, std::uint64_t count,
              std::span<std::uint8_t> rdram, std::span<const std::uint8_t> rom,
-             CartridgeTransfer flash = nullptr, void* device = nullptr) {
+             CartridgeTransfer flash = nullptr, void* device = nullptr,
+             bool native_rom_completion = false) {
     if ((offset & 3U) != 0U || offset > 0x30U) return false;
     if (offset == 0x10U) {
       if ((value & ~3U) != 0U) return false;
@@ -91,7 +95,10 @@ public:
         ((registers_[6] & 255U) + (registers_[8] & 3U) + 2U) * (bus_length / 2U) +
         buffers * 28U + partial;
     const auto numerator = cycles * 3U + bus_fraction_;
-    const auto duration = numerator / 4U;
+    // The host ROM copy below is synchronous. Native play keeps PI completion
+    // asynchronous but does not additionally wait for an emulated cartridge bus.
+    // The reference path and the separate FlashRAM branch retain their timing.
+    const auto duration = native_rom_completion ? std::uint64_t{1} : numerator / 4U;
 
     if (deadline_ || (dram & 1U) != 0U || (cart & 1U) != 0U ||
         (rdram.size() & 3U) != 0U || cart < 0x10000000U ||
@@ -104,6 +111,11 @@ public:
     registers_[3] = value;
     deadline_ = count + duration;
     bus_fraction_ = numerator % 4U;
+    ++rom_transfers_.calls;
+    rom_transfers_.bytes+=length;
+    rom_transfers_.bus_ticks+=numerator/4U;
+    rom_transfers_.scheduled_ticks+=duration;
+    if(native_rom_completion)++rom_transfers_.native_calls;
     busy_status_ = 3U;
     ++transfers_;
     return true;
@@ -119,7 +131,9 @@ public:
   [[nodiscard]] bool interrupt() const { return interrupt_; }
   [[nodiscard]] std::optional<std::uint64_t> deadline() const { return deadline_; }
   [[nodiscard]] std::uint64_t transfers() const { return transfers_; }
+  [[nodiscard]] RomTransfers rom_transfers() const { return rom_transfers_; }
 private:
+  RomTransfers rom_transfers_{};
   std::array<std::uint32_t, 13> registers_{};
   std::optional<std::uint64_t> deadline_;
   std::uint64_t transfers_ = 0;

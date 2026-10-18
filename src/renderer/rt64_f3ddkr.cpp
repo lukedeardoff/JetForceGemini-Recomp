@@ -1,4 +1,9 @@
 #include "rt64_f3ddkr.hpp"
+#include "jfg/renderer/frame_diagnostics_state.hpp"
+#include "jfg/renderer/interpolation_bridge.hpp"
+#include "jfg/renderer/presentation_identity.hpp"
+#include "jfg/renderer/semantic_presentation.hpp"
+#include <bit>
 #include "jfg/renderer/rt64_f3ddkr_address.hpp"
 
 #include "gbi/rt64_gbi_f3d.h"
@@ -10,9 +15,12 @@
 #include <bitset>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <future>
+#include "jfg/renderer/floating_environment.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <cstdio>
@@ -236,6 +244,15 @@ constexpr std::size_t kMaximumReturnStackDepth = 64U;
 // F3D G_MOVEMEM payloads are at most 64 bytes (a full light set).
 constexpr std::uint32_t kMaximumMoveMemBytes = 64U;
 
+struct SemanticVertexState {
+    SemanticPresentationSample sample;
+    PresentationMatrix world{};
+    std::uint32_t source = 0;
+    std::array<std::uint64_t, 4> billboard_key{}, rigid_key{};
+    // Points into this task's immutable identities; consumed before begin()
+    // replaces that shared snapshot or clears the per-task vertex metadata.
+    const RigidPresentationPose* rigid_pose = nullptr;
+};
 struct Context {
     RT64::Application* application = nullptr;
     RT64::GBI gbi{};
@@ -261,14 +278,34 @@ struct Context {
     Rt64F3ddkrStats stats{};
     std::bitset<kVertexCount> loaded_vertices{};
     std::span<const std::uint8_t> simulation_rdram{};
+    bool interpolate = false;
+    std::uint64_t vi_tick = 0U;
+    PresentationHistory presentation_history;
+    PresentationHistory rigid_baseline_history; // Used only by explicit diagnostics.
+    PresentationHistory shared_matrix_baseline_history; // Same-input old-policy diagnostic.
+    PresentationHistory camera_shape_baseline_history; // Explicit comparison only.
+    SemanticPresentationHistory semantic_history;
+    std::shared_ptr<const PresentationSceneIdentity> identities;
+    std::array<hlslpp::float4x4,kMatrixCount> model_matrices{}, camera_matrices{};
+    std::array<std::uint64_t,kMatrixCount> camera_ids{};
+    std::array<bool,kMatrixCount> model_finite{};
+    bool semantic_target = false;
+    std::vector<SemanticVertexState> semantic_vertices;
     bool billboard = false;
     bool failed = false;
 };
 
 std::mutex contexts_mutex;
 std::unordered_map<RT64::State*, Context*> contexts;
+// Bound only during synchronous interpretation by the owning adapter. This
+// avoids a global mutex/hash lookup for every command without retaining a
+// pointer after the call, across destruction, or on another renderer thread.
+thread_local Context* dispatch_context = nullptr;
+
 
 [[nodiscard]] Context* find_context(RT64::State* state) noexcept {
+    if (dispatch_context && dispatch_context->application->state.get() == state)
+        return dispatch_context;
     const std::scoped_lock lock(contexts_mutex);
     const auto iterator = contexts.find(state);
     return iterator == contexts.end() ? nullptr : iterator->second;
@@ -417,6 +454,7 @@ void dma_matrix(RT64::State* state, RT64::DisplayList** dl) {
             ? context->simulation_rdram.data() + address
             : state->fromRDRAM(address));
     hlslpp::float4x4 decoded = fixed->toMatrix4x4();
+    const auto model_matrix = decoded;
     if (multiply) {
         if (!context->loaded_matrices.test(0U)) {
             reject(state, dl);
@@ -425,6 +463,21 @@ void dma_matrix(RT64::State* state, RT64::DisplayList** dl) {
         // JFG's multiply form composes the object matrix with slot zero's
         // already-combined camera MVP. RT64 uses row-vector matrices here.
         decoded = hlslpp::mul(decoded, context->matrices[0U]);
+    }
+    context->camera_ids[index] = 0U;
+    if (multiply && index != 0U && context->interpolate && context->identities) {
+        context->model_matrices[index] = model_matrix;
+        context->camera_matrices[index] = context->matrices[0U];
+        context->camera_ids[index] = context->camera_ids[0U];
+        const auto inverse = hlslpp::inverse(model_matrix);
+        bool finite = true;
+        for(int r=0;r<4;++r) for(int c=0;c<4;++c)
+            finite = finite && std::isfinite(float(model_matrix[r][c])) && std::isfinite(float(inverse[r][c]));
+        context->model_finite[index] = finite;
+    }
+    else if (!multiply && index == 0U && context->identities) {
+        for (const auto& camera : context->identities->cameras)
+            if (camera.matrix == address) context->camera_ids[index] = camera.identity;
     }
     context->matrices[index] = decoded;
     context->loaded_matrices.set(index);
@@ -477,6 +530,7 @@ void set_color_image(RT64::State* state, RT64::DisplayList** dl) {
         (*dl)->p0(19U, 2U));
     const std::uint16_t width = static_cast<std::uint16_t>(
         (*dl)->p0(0U, 12U) + 1U);
+    context->semantic_target = format == G_IM_FMT_RGBA && size == G_IM_SIZ_16b && width >= 320U;
     context->stats.color_image_address =
         segmented_physical(*state, (*dl)->w1);
     state->rdp->setColorImage(
@@ -676,6 +730,80 @@ void load_tile(RT64::State* state, RT64::DisplayList** dl) {
     RT64::GBI_RDP::loadTile(state, dl);
 }
 
+PresentationMatrix presentation_matrix(const hlslpp::float4x4& value) {
+    PresentationMatrix result{};
+    for(int r=0;r<4;++r) for(int c=0;c<4;++c) result[r*4+c]=value[r][c];
+    return result;
+}
+hlslpp::float4x4 presentation_matrix(const PresentationMatrix& m) {
+    return hlslpp::float4x4(m[0],m[1],m[2],m[3],m[4],m[5],m[6],m[7],
+            m[8],m[9],m[10],m[11],m[12],m[13],m[14],m[15]);
+}
+SemanticVertexState semantic_vertex(const Context& context,std::uint32_t source,
+                                   const std::array<float,3>& local,
+                                   const PresentationRigidIdentity* rigid,
+                                   const PresentationBeamIdentity* beam,
+                                   const PresentationModelIdentity* bridge) {
+    SemanticVertexState result;
+    result.source = source;
+    if(!context.identities || context.billboard) return result;
+    const auto slot=context.selected_matrix;
+    if (beam && rigid->camera && rigid_pose_matches_matrix(rigid->pose,
+            presentation_matrix(context.matrices[slot]))) {
+        result.sample.key={beam->lifetime,
+            (std::uint64_t(beam->actor)<<32U)|beam->control,
+            (std::uint64_t(beam->header)<<16U)|beam->flags,rigid->camera,
+            0x4245414dU,(source-beam->vertices)/10U};
+        result.world=rigid->pose.world;
+        result.sample.camera=presentation_matrix(hlslpp::mul(
+            presentation_matrix(rigid->pose.view),presentation_matrix(rigid->pose.projection)));
+        const auto world=hlslpp::mul(hlslpp::float4(local[0],local[1],local[2],1.0f),
+            presentation_matrix(result.world));
+        result.sample.world={world.x,world.y,world.z};
+        result.sample.valid=std::isfinite(float(world.w)) &&
+            std::abs(float(world.w)-1.0f)<0.001f;
+        return result;
+    }
+    if (bridge && rigid->camera && rigid_pose_matches_matrix(rigid->pose,
+            presentation_matrix(context.matrices[slot]))) {
+        result.sample.key={bridge->lifetime,
+            (std::uint64_t(bridge->actor)<<32U)|bridge->instance,
+            bridge->model,rigid->camera,0x42524944U,(source-bridge->vertices)/10U};
+        result.world=rigid->pose.world;
+        result.sample.camera=presentation_matrix(hlslpp::mul(
+            presentation_matrix(rigid->pose.view),presentation_matrix(rigid->pose.projection)));
+        const auto world=hlslpp::mul(hlslpp::float4(local[0],local[1],local[2],1.0f),
+            presentation_matrix(result.world));
+        result.sample.world={world.x,world.y,world.z};
+        result.sample.valid=std::isfinite(float(world.w)) &&
+            std::abs(float(world.w)-1.0f)<0.001f;
+        return result;
+    }
+    if(context.camera_ids[slot]==0U) return result;
+    const auto identity = presentation_vertex_identity(
+        *context.identities, context.matrix_physical_addresses[slot], source);
+    if (!identity.owner)
+        return result;
+    const auto &owner = *identity.owner;
+    const auto &geometry = identity.geometry ? *identity.geometry : owner;
+    result.sample.key = {
+        owner.lifetime, (std::uint64_t(owner.actor) << 32U) | geometry.instance,
+        geometry.model, context.camera_ids[slot],
+        identity.joint, identity.vertex};
+    result.world = presentation_matrix(context.model_matrices[slot]);
+    result.sample.camera = presentation_matrix(context.camera_matrices[slot]);
+    if (!identity.geometry)
+        return result;
+    const auto world =
+        hlslpp::mul(hlslpp::float4(local[0], local[1], local[2], 1.0f),
+                    context.model_matrices[slot]);
+    result.sample.world = {world.x, world.y, world.z};
+    result.sample.valid = context.model_finite[slot] &&
+                          std::isfinite(float(world.w)) &&
+                          std::abs(float(world.w) - 1.0f) < 0.001f;
+    return result;
+}
+
 void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     if (context == nullptr) {
@@ -717,6 +845,35 @@ void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
 
     hlslpp::float4x4 unanchored_matrix{};
     bool anchored_billboard = false;
+    std::array<std::uint64_t, 4> billboard_key{};
+    const auto rigid_key = context->interpolate && context->identities &&
+            context->semantic_target && !context->billboard
+        ? presentation_rigid_key(*context->identities,
+            context->matrix_physical_addresses[context->selected_matrix], address,
+            static_cast<std::uint32_t>(count))
+        : std::array<std::uint64_t, 4>{};
+    const auto* rigid_owner = context->interpolate && context->identities &&
+        (rigid_key[0] || !context->identities->beams.empty())
+        ? presentation_rigid_owner(*context->identities,
+            context->matrix_physical_addresses[context->selected_matrix]) : nullptr;
+    const auto* beam = rigid_owner ? presentation_beam_vertex(
+        *context->identities,*rigid_owner,address) : nullptr;
+    if (beam && count > (80U-(address-beam->vertices))/10U) beam=nullptr;
+    static const bool bridge_vertices_enabled=[] {
+#ifdef _MSC_VER
+        char* value=nullptr;std::size_t length=0U;
+        if(_dupenv_s(&value,&length,"JFG_DIAGNOSTIC_BRIDGE_VERTICES")!=0)return false;
+        const bool enabled=!value || (length==2U && value[0]=='1');
+        std::free(value);return enabled;
+#else
+        const char* value=std::getenv("JFG_DIAGNOSTIC_BRIDGE_VERTICES");
+        return !value || std::strcmp(value,"1")==0;
+#endif
+    }();
+    const auto* bridge=bridge_vertices_enabled && rigid_owner
+        ? presentation_bridge_vertices(*context->identities,*rigid_owner,address,
+            static_cast<std::uint32_t>(count)) : nullptr;
+
     if (context->billboard) {
         const int workload_cursor = state->ext.workloadQueue->writeCursor;
         RT64::Workload& workload =
@@ -725,6 +882,16 @@ void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
         if (anchor_index >= workload.drawData.posTransformed.size()) {
             reject(state, dl);
             return;
+        }
+        if (context->identities &&
+            anchor_index < context->semantic_vertices.size()) {
+            const auto source = context->semantic_vertices[anchor_index].source;
+            for (const auto &sprite : context->identities->sprites)
+                if (sprite.anchor == source) {
+                    billboard_key = {sprite.lifetime, sprite.actor,
+                                     sprite.sprite, context->camera_ids[0]};
+                    break;
+                }
         }
         unanchored_matrix = context->matrices[context->selected_matrix];
         context->matrices[context->selected_matrix][3] +=
@@ -767,6 +934,17 @@ void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
             if (global >= workload.drawData.posTransformed.size()) {
                 continue;
             }
+            if(context->interpolate && context->identities && context->semantic_target) {
+                context->semantic_vertices.resize(workload.drawData.worldIndices.size());
+                const auto& positions=workload.drawData.posFloats;
+                context->semantic_vertices[global]=semantic_vertex(*context,
+                    address+static_cast<std::uint32_t>((index-first)*10U),
+                    {positions[global*3U],positions[global*3U+1U],positions[global*3U+2U]},rigid_owner,beam,bridge);
+                context->semantic_vertices[global].billboard_key =
+                    billboard_key;
+                context->semantic_vertices[global].rigid_key = rigid_key;
+                context->semantic_vertices[global].rigid_pose = rigid_owner ? &rigid_owner->pose : nullptr;
+            }
             const hlslpp::float4 position =
                 workload.drawData.posTransformed[global];
             if (!std::isfinite(position.x) || !std::isfinite(position.y) ||
@@ -797,7 +975,7 @@ void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
 }
 
 [[nodiscard]] bool set_vertex_texture_coordinates(
-    RT64::State& state,
+    Context& context, RT64::State& state,
     RT64::RSP& rsp,
     const std::uint8_t vertex,
     const std::uint32_t coordinate) {
@@ -869,6 +1047,11 @@ void dma_vertex(RT64::State* state, RT64::DisplayList** dl) {
         draw.lookAtIndices.emplace_back(look_at);
         draw.posTransformed.emplace_back(transformed);
         draw.posScreen.emplace_back(screen);
+        if(context.interpolate && context.identities && context.semantic_target) {
+            const auto semantic=global<context.semantic_vertices.size() ? context.semantic_vertices[global] : SemanticVertexState{};
+            context.semantic_vertices.resize(draw.worldIndices.size());
+            context.semantic_vertices[replacement]=semantic;
+        }
         rsp.indices[vertex] = replacement;
         rsp.used[vertex] = false;
         global = replacement;
@@ -976,7 +1159,11 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
             common_clip &=
                 vertex_clip_code(workload.drawData.posTransformed[global]);
         }
-        if (common_clip != 0U)
+        // The current endpoint may be outside while an intermediate camera
+        // still sees this triangle. Clip interpolated scene geometry on the
+        // GPU at its presentation pose; keep original/offscreen behavior.
+        if (common_clip != 0U &&
+            !(context->interpolate && context->semantic_target))
             continue;
         // JFG's microcode (DMA-triangle handler IMEM 0x1754-0x1770, triangle
         // setup 0x1B18-0x1BF8): a triangle without flag 0x40 gets G_CULL_BACK.
@@ -1003,7 +1190,7 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
                     *context, *state, source + 6U +
                         static_cast<std::uint32_t>(corner * 4U)));
             if (!set_vertex_texture_coordinates(
-                    *state, *state->rsp, vertices[corner], coordinate)) {
+                    *context, *state, *state->rsp, vertices[corner], coordinate)) {
                 context->stats.rejection_reason = 4U;
                 context->stats.rejection_detail = vertices[corner];
                 reject(state, dl);
@@ -1189,6 +1376,10 @@ void cull_display_list(RT64::State* state, RT64::DisplayList** dl) {
         if (common_clip == 0U)
             return;
     }
+    // As with individual triangles, the endpoint is insufficient to cull
+    // an interpolated display list. Loaded-vertex validation still applies.
+    if (context->interpolate && context->semantic_target)
+        return;
     // A cull at the top level has nothing to return to. RT64 would report
     // that as a clean EndDL and silently terminate the whole task.
     if (state->returnAddressStack.empty()) {
@@ -1341,15 +1532,431 @@ void run_display_list(RT64::State* state, RT64::DisplayList** dl) {
         address) - 1;
 }
 
+bool detailed_function_profile_enabled() {
+    static const bool enabled=[] {
+#ifdef _MSC_VER
+        char* value=nullptr;std::size_t length=0U;
+        if(_dupenv_s(&value,&length,"JFG_DIAGNOSTIC_FUNCTION_PROFILE")!=0)return false;
+        const bool selected=value && length==2U && (value[0]=='1' || value[0]=='2');
+        std::free(value);
+        return selected;
+#else
+        const char* value=std::getenv("JFG_DIAGNOSTIC_FUNCTION_PROFILE");
+        return value && (value[0]=='1' || value[0]=='2') && value[1]=='\0';
+#endif
+    }();
+    return enabled;
+}
+
+void prepare_interpolation(Context& context, RT64::State& state) {
+    if (!context.interpolate) return;
+    state.flush();
+    auto& workload = state.ext.workloadQueue->workloads[state.ext.workloadQueue->writeCursor];
+    auto& data = workload.drawData;
+    bool scene = false;
+    for (std::uint32_t f = 0; f < workload.fbPairCount; ++f) {
+        const auto& pair = workload.fbPairs[f];
+        scene = scene || (pair.colorImage.width >= 320U &&
+            pair.colorImage.siz == G_IM_SIZ_16b && !pair.drawColorRect.isEmpty());
+    }
+    const bool history_profile=interpolation_trace_enabled() || detailed_function_profile_enabled();
+    auto history_stage_started=history_profile ? std::chrono::steady_clock::now()
+        : std::chrono::steady_clock::time_point{};
+    const auto history_stage=[&](unsigned stage) {
+        if (!history_profile) return;
+        const auto now=std::chrono::steady_clock::now();
+        const auto elapsed=static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(now-history_stage_started).count());
+        if(stage>=1U && stage<=context.stats.history_stage_microseconds.size())
+            context.stats.history_stage_microseconds[stage-1U]+=elapsed;
+        if(interpolation_trace_enabled())
+            trace_interpolation("history-stage",context.vi_tick,stage,scene?1U:0U,0U,
+                static_cast<unsigned>(data.worldIndices.size()),0.0f,elapsed,
+                data.worldTransforms.size());
+        history_stage_started=std::chrono::steady_clock::now();
+    };
+    context.semantic_vertices.resize(data.worldIndices.size());
+    std::vector<SemanticPresentationSample> semantic_samples;
+    semantic_samples.reserve(context.semantic_vertices.size());
+    for (const auto& vertex : context.semantic_vertices) {
+        auto sample = vertex.sample;
+        if (!data.modifyPosUints.empty()) sample.valid = false;
+        semantic_samples.push_back(sample);
+    }
+    SemanticRigidPoses semantic_rigid_poses;
+    std::set<std::uint64_t> semantic_pose_conflicts;
+    for(const auto& vertex:context.semantic_vertices) {
+        if(!vertex.sample.valid || vertex.sample.key[4]!=0x42524944U || !vertex.rigid_pose)continue;
+        const auto lifetime=vertex.sample.key[0];
+        const auto [it,inserted]=semantic_rigid_poses.emplace(lifetime,*vertex.rigid_pose);
+        if(!inserted && it->second!=*vertex.rigid_pose)semantic_pose_conflicts.insert(lifetime);
+    }
+    for(const auto lifetime:semantic_pose_conflicts)semantic_rigid_poses.erase(lifetime);
+    const bool semantic_cadence = context.presentation_history.has_continuous_cadence(context.vi_tick, scene);
+    std::fenv_t semantic_environment{};
+    const bool semantic_parallel = scene && semantic_samples.size() >= 128 &&
+        capture_floating_environment(semantic_environment);
+    struct SemanticResult {
+        std::vector<SemanticPresentationSample> samples;
+        std::vector<SemanticPresentationPrevious> history;
+        int flags = 0;
+    };
+    auto semantic_job = std::async(semantic_parallel ? std::launch::async : std::launch::deferred,
+        [&context, values = std::move(semantic_samples), tick = context.vi_tick, scene,
+         semantic_cadence, semantic_parallel, semantic_environment,
+         poses=std::move(semantic_rigid_poses)]() mutable {
+            const ScopedFloatingEnvironment environment(
+                semantic_parallel ? &semantic_environment : nullptr);
+            SemanticPresentationDiagnostics reasons;
+            auto history = context.semantic_history.record(values, tick, scene, semantic_cadence,
+                interpolation_trace_enabled()?&reasons:nullptr,&poses);
+            for(const auto& [lifetime,counts]:reasons) {
+                const auto sample=std::find_if(values.begin(),values.end(),[&](const auto& s){
+                    return s.key[0]==lifetime;
+                });
+                const auto actor=sample==values.end()?0U:static_cast<unsigned>(sample->key[1]>>32U);
+                trace_interpolation("semantic-reject",tick,actor,
+                    static_cast<unsigned>(counts[0]),static_cast<unsigned>(counts[1]),
+                    static_cast<unsigned>(counts[2]),0.0f,counts[3],counts[4]);
+            }
+            return SemanticResult{std::move(values), std::move(history), floating_exception_flags()};
+        });
+    std::vector<PresentationMesh> meshes(data.worldTransforms.size());
+    std::vector<std::uint32_t> local_indices(data.worldIndices.size());
+    std::vector<std::size_t> vertex_counts(meshes.size());
+    for (std::size_t v=0;v<data.worldIndices.size();++v)
+        if (data.worldIndices[v]<meshes.size() && v*3U+2U<data.posFloats.size())
+            ++vertex_counts[data.worldIndices[v]];
+    for (std::size_t i = 0; i < meshes.size(); ++i) {
+        // UV clones normally contribute one triangle index per position.
+        // Reserve headroom once; unusual topology still grows normally.
+        meshes[i].positions.reserve(vertex_counts[i]);
+        meshes[i].key.reserve(vertex_counts[i]*6U+11U);
+        for (std::size_t r = 0; r < 4; ++r)
+            for (std::size_t c = 0; c < 4; ++c)
+                meshes[i].matrix[r*4+c] = data.worldTransforms[i].m[r][c];
+        meshes[i].eligible = data.modifyPosUints.empty();
+    }
+    for (std::size_t v = 0; v < data.worldIndices.size(); ++v) {
+        const auto m = data.worldIndices[v];
+        if (m >= meshes.size() || v*3+2 >= data.posFloats.size()) continue;
+        auto& mesh = meshes[m];
+        local_indices[v] = static_cast<std::uint32_t>(mesh.positions.size());
+        std::array<float, 3> point{};
+        for (std::size_t c = 0; c < 3; ++c) {
+            point[c] = data.posFloats[v*3+c];
+            mesh.key.push_back(std::bit_cast<std::uint32_t>(point[c]));
+        }
+        mesh.positions.push_back(point);
+    }
+    for (auto& mesh : meshes) {
+        mesh.key.push_back(0xFFFFFFFFU);
+        mesh.key.push_back(static_cast<std::uint32_t>(mesh.positions.size()));
+    }
+    std::size_t cross_matrix_triangles=0, equal_matrix_triangles=0;
+    for (std::size_t t = 0; t + 2 < data.faceIndices.size(); t += 3) {
+        const auto a = data.faceIndices[t], b = data.faceIndices[t+1], c = data.faceIndices[t+2];
+        if (a >= data.worldIndices.size() || b >= data.worldIndices.size() ||
+            c >= data.worldIndices.size()) continue;
+        const auto ma = data.worldIndices[a], mb = data.worldIndices[b], mc = data.worldIndices[c];
+        if (ma >= meshes.size() || mb >= meshes.size() || mc >= meshes.size()) continue;
+        if (ma != mb || ma != mc) {
+            ++cross_matrix_triangles;
+            if(allow_shared_matrix_triangle(meshes[ma],meshes[mb],meshes[mc]))
+                ++equal_matrix_triangles;
+            continue;
+        }
+        meshes[ma].key.insert(meshes[ma].key.end(),
+            {local_indices[a], local_indices[b], local_indices[c]});
+    }
+    history_stage(1U); // Geometry keys and local indices.
+    // Identical sprite quads must not match a different pickup just because
+    // their geometry is equal. Stable actor lifetime + asset + camera owns
+    // the billboard transform; texture animation keeps its authored cadence.
+    std::map<unsigned, std::array<std::uint64_t, 4>> billboard_owners;
+    for (std::size_t v = 0;
+         v < context.semantic_vertices.size() && v < data.worldIndices.size();
+         ++v) {
+        const auto &key = context.semantic_vertices[v].billboard_key;
+        if (key[0] != 0 && key[3] != 0)
+            billboard_owners[data.worldIndices[v]] = key;
+    }
+    for (const auto &[matrix, key] : billboard_owners)
+        if (matrix < meshes.size())
+            bind_presentation_billboard(meshes[matrix], key);
+    const bool rigid_trace = scene && interpolation_trace_enabled();
+    const bool rigid_compare=rigid_trace && interpolation_compare_enabled();
+    PresentationHistoryFrame rigid_baseline;
+    if (rigid_compare)
+        rigid_baseline = context.rigid_baseline_history.record(meshes, context.vi_tick, scene);
+    std::map<unsigned, std::array<std::uint64_t, 4>> rigid_owners;
+    std::set<unsigned> rigid_conflicts;
+    std::map<unsigned, const RigidPresentationPose*> rigid_poses;
+    for (std::size_t v = 0; v < context.semantic_vertices.size() && v < data.worldIndices.size(); ++v) {
+        const auto &key = context.semantic_vertices[v].rigid_key;
+        if (!key[0] || !key[3]) continue;
+        const auto matrix = data.worldIndices[v];
+        const auto [it, inserted] = rigid_owners.emplace(matrix, key);
+        if (!inserted && it->second != key) rigid_conflicts.insert(matrix);
+        const auto* pose=context.semantic_vertices[v].rigid_pose;
+        if (pose) {
+            const auto [previous, fresh]=rigid_poses.emplace(matrix,pose);
+            if (!fresh && *previous->second != *pose) rigid_conflicts.insert(matrix);
+        }
+    }
+    for (const auto &[matrix, key] : rigid_owners) if (matrix < meshes.size()) {
+        if (rigid_conflicts.contains(matrix)) meshes[matrix].eligible = false;
+        else {
+            bind_presentation_rigid(meshes[matrix], key);
+            const auto pose=rigid_poses.find(matrix);
+            if (pose!=rigid_poses.end() && rigid_pose_matches_matrix(*pose->second, meshes[matrix].matrix))
+                meshes[matrix].rigid_pose=*pose->second;
+            else if (pose!=rigid_poses.end() && rigid_compare && context.vi_tick>=3300U) {
+                static unsigned captured=0;
+                if(captured<512U) {
+                    ++captured;
+                    const std::array<float,16>* matrices[]{&pose->second->world,&pose->second->view,
+                        &pose->second->projection,&meshes[matrix].matrix};
+                    for(unsigned part=0;part<4;++part)for(unsigned row=0;row<4;++row) {
+                        const auto& m=*matrices[part];
+                        const auto pair=[&](unsigned c) { return
+                            (std::uint64_t(std::bit_cast<std::uint32_t>(m[row*4+c]))<<32U)|
+                            std::bit_cast<std::uint32_t>(m[row*4+c+1]); };
+                        trace_interpolation("rigid-reject",context.vi_tick,static_cast<unsigned>(key[1]>>32U),
+                            part,row,captured,0.0f,pair(0),pair(2));
+                    }
+                }
+            }
+        }
+    }
+    PresentationHistoryFrame shared_matrix_baseline;
+    if(rigid_compare) {
+        auto old_policy=meshes;
+        for(auto& mesh:old_policy) if(!mesh.complete_local_topology) mesh.eligible=false;
+        shared_matrix_baseline=context.shared_matrix_baseline_history.record(
+            old_policy,context.vi_tick,scene);
+    }
+    PresentationHistoryFrame camera_shape_baseline;
+    if(rigid_compare) camera_shape_baseline=context.camera_shape_baseline_history.record(
+        meshes,context.vi_tick,scene);
+    if(context.identities)for(std::size_t m=0;m<meshes.size() && m<data.worldTransformPhysicalAddresses.size();++m) {
+        const PresentationCameraIdentity* owner=nullptr;
+        bool ambiguous=false;
+        for(const auto& camera:context.identities->cameras)
+            if(camera.matrix==data.worldTransformPhysicalAddresses[m] && camera.pose_valid) {
+                if(owner)ambiguous=true;
+                owner=&camera;
+            }
+        if(owner && !ambiguous) {
+            meshes[m].camera_owner=std::array<std::uint64_t,2>{owner->generation,owner->identity};
+            meshes[m].camera_pose=owner->pose;
+        }
+    }
+    auto frame = std::make_shared<PresentationHistoryFrame>(
+        context.presentation_history.record(meshes, context.vi_tick, scene, rigid_compare));
+    if(rigid_compare) {
+        std::size_t gained=0,lost=0,changed=0,owned=0;
+        for(std::size_t m=0;m<meshes.size();++m) {
+            const auto& old=camera_shape_baseline.transforms[m];
+            const auto& current=frame->transforms[m];
+            owned+=meshes[m].camera_owner.has_value();
+            if(current.matched && !old.matched)gained+=meshes[m].positions.size();
+            if(old.matched && !current.matched)lost+=meshes[m].positions.size();
+            if(old.matched && current.matched && old.previous!=current.previous)++changed;
+        }
+        trace_interpolation("camera-identity",context.vi_tick,frame->source_rate,
+            static_cast<unsigned>(changed),static_cast<unsigned>(owned),
+            static_cast<unsigned>(data.worldIndices.size()),0.0f,gained,lost);
+        const auto& camera_debug=frame->debug_cameras;
+        trace_interpolation("camera-history",context.vi_tick,frame->source_rate,
+            static_cast<unsigned>(camera_debug[0]),static_cast<unsigned>(camera_debug[1]),
+            static_cast<unsigned>(camera_debug[2]),frame->debug_projection_delta,
+            camera_debug[3],camera_debug[4]);
+        for(unsigned owner=0;owner<frame->debug_camera_rejections.size();++owner)
+            for(unsigned endpoint=0;endpoint<2;++endpoint)for(unsigned part=0;part<2;++part)
+                for(unsigned row=0;row<4;++row) {
+                    const auto& pose=frame->debug_camera_rejections[owner][endpoint];
+                    const auto& matrix=part?pose.projection:pose.view;
+                    const auto pair=[&](unsigned c) {return
+                        (std::uint64_t(std::bit_cast<std::uint32_t>(matrix[row*4+c]))<<32U)|
+                        std::bit_cast<std::uint32_t>(matrix[row*4+c+1]);};
+                    trace_interpolation("camera-operand",context.vi_tick,owner,
+                        endpoint,part,row,0.0f,pair(0),pair(2));
+                }
+    }
+    if(rigid_compare) {
+        std::size_t gained=0,lost=0,changed=0;
+        for(std::size_t m=0;m<meshes.size();++m) {
+            const auto& old=shared_matrix_baseline.transforms[m];
+            const auto& current=frame->transforms[m];
+            if(current.matched && !old.matched)gained+=meshes[m].positions.size();
+            if(old.matched && !current.matched)lost+=meshes[m].positions.size();
+            if(old.matched && current.matched && old.previous!=current.previous)++changed;
+        }
+        trace_interpolation("matrix-sharing",context.vi_tick,frame->source_rate,
+            static_cast<unsigned>(changed),0U,static_cast<unsigned>(data.worldIndices.size()),
+            0.0f,gained,lost);
+    }
+    history_stage(2U); // Matrix ownership and rigid/shape history.
+    if (rigid_trace) {
+        std::size_t valid=0;
+        for (const auto& mesh:meshes) valid+=mesh.rigid_pose.has_value();
+        trace_interpolation("rigid-pose", context.vi_tick, frame->source_rate, 0U, 0U,
+            static_cast<unsigned>(rigid_owners.size()), 0.0f, valid, 0U);
+    }
+    if (rigid_compare) for (const auto &[matrix,key] : rigid_owners)
+        if (matrix < frame->transforms.size())
+            trace_interpolation("rigid",context.vi_tick,static_cast<unsigned>(key[1]>>32U),
+                static_cast<unsigned>(key[1]),static_cast<unsigned>(key[2]),
+                static_cast<unsigned>(meshes[matrix].positions.size()),0.0f,
+                rigid_baseline.transforms[matrix].matched,frame->transforms[matrix].matched);
+    if (rigid_trace) for (const auto &[matrix,key] : rigid_owners)
+        if (matrix < frame->transforms.size())
+            trace_interpolation("rigid-owned",context.vi_tick,static_cast<unsigned>(key[1]>>32U),
+                static_cast<unsigned>(key[1]),static_cast<unsigned>(key[2]),
+                static_cast<unsigned>(meshes[matrix].positions.size()),0.0f,
+                frame->transforms[matrix].matched,0U);
+    auto semantic_result = semantic_job.get();
+    if (semantic_parallel) merge_floating_exceptions(semantic_result.flags);
+    const auto& samples = semantic_result.samples;
+    const auto& history = semantic_result.history;
+    history_stage(3U); // Semantic history and ownership diagnostics.
+    std::size_t semantic_count=0,matched_count=0,moving_count=0;
+    if (scene && interpolation_trace_enabled()) {
+        std::size_t matched = 0;
+        for (const auto &[matrix, key] : billboard_owners)
+            matched += matrix < frame->transforms.size() &&
+                       frame->transforms[matrix].matched;
+        trace_interpolation("billboard", context.vi_tick, frame->source_rate, 0,
+                            0, static_cast<unsigned>(billboard_owners.size()),
+                            0, matched, 0);
+    }
+    std::vector<hlslpp::float4x4> inverse_worlds(frame->transforms.size());
+    std::vector<bool> inverse_ready(frame->transforms.size(),false);
+    for(std::size_t v=0;v<samples.size();++v) {
+        if(samples[v].key[0]==0U) continue;
+        ++semantic_count;
+        const auto m=data.worldIndices[v];
+        if(m>=frame->transforms.size()) continue;
+        auto& transform=frame->transforms[m];
+        transform.matched=false; // Hold all parts together on an invalid sample.
+        if(!history[v].matched) continue;
+        const auto& vertex=context.semantic_vertices[v];
+        if(!inverse_ready[m]) {
+            inverse_worlds[m]=hlslpp::inverse(presentation_matrix(vertex.world));
+            inverse_ready[m]=true;
+        }
+        const auto& inverse=inverse_worlds[m];
+        const auto& p=history[v].world;
+        const auto old_local=hlslpp::mul(hlslpp::float4(p[0],p[1],p[2],1.0f),inverse);
+        const float old[3]={old_local.x,old_local.y,old_local.z};
+        for(std::size_t c=0;c<3;++c) data.velFloats[v*3U+c]=data.posFloats[v*3U+c]-old[c];
+        transform.matched=true;transform.semantic_vertices=true;
+        transform.current_world=vertex.world;
+        transform.previous_camera=history[v].camera;
+        transform.current_camera=samples[v].camera;
+        ++matched_count;
+        if(samples[v].world!=history[v].world) ++moving_count;
+    }
+    history_stage(4U); // Previous-world endpoint conversion.
+    if(scene) trace_interpolation("semantic",context.vi_tick,frame->source_rate,0U,0U,
+        static_cast<unsigned>(semantic_count),0.0f,matched_count,moving_count);
+    if (scene && interpolation_trace_enabled()) {
+        std::map<std::uint32_t,std::array<unsigned,3>> bridges;
+        for (std::size_t v=0;v<samples.size();++v) if(samples[v].key[4]==0x42524944U) {
+            auto& count=bridges[static_cast<std::uint32_t>(samples[v].key[1]>>32U)];
+            ++count[0];count[1]+=history[v].matched;
+            count[2]+=history[v].matched && samples[v].world!=history[v].world;
+        }
+        for (const auto& [actor,count]:bridges)
+            trace_interpolation("bridge-owned",context.vi_tick,actor,0U,0U,
+                count[0],0.0f,count[1],count[2]);
+        std::map<std::uint32_t,std::array<unsigned,2>> beams;
+        for (std::size_t v=0;v<samples.size();++v) if(samples[v].key[4]==0x4245414dU) {
+            auto& count=beams[static_cast<std::uint32_t>(samples[v].key[1]>>32U)];
+            ++count[0]; count[1]+=history[v].matched;
+        }
+        for (const auto& [actor,count]:beams)
+            trace_interpolation("beam-owned",context.vi_tick,actor,0U,0U,count[0],0.0f,count[1],0U);
+    }
+    if(scene && interpolation_trace_enabled()) {
+        std::set<PresentationMatrix> cameras;
+        for(const auto& sample:samples) if(sample.valid) cameras.insert(sample.camera);
+        std::size_t camera_vertices=0, camera_matched=0, all_matched=0;
+        std::size_t invalid_camera_vertices=0;
+        for(std::size_t v=0;v<data.worldIndices.size();++v) {
+            const auto m=data.worldIndices[v];
+            if(m>=meshes.size()) continue;
+            const bool matched=frame->transforms[m].matched;
+            all_matched+=matched;
+            if(cameras.contains(meshes[m].matrix)) {
+                ++camera_vertices;camera_matched+=matched;
+                invalid_camera_vertices+=!meshes[m].eligible;
+            }
+        }
+        trace_interpolation("geometry-conflict",context.vi_tick,frame->source_rate,0U,0U,
+            static_cast<unsigned>(cross_matrix_triangles),0.0f,equal_matrix_triangles,invalid_camera_vertices);
+        if(rigid_compare && context.vi_tick>=3300U) {
+            static unsigned captured_camera_holds=0;
+            for(std::size_t m=0;m<meshes.size();++m) {
+                if(!cameras.contains(meshes[m].matrix) || frame->transforms[m].matched ||
+                    meshes[m].positions.empty() || captured_camera_holds>=2048U) continue;
+                ++captured_camera_holds;
+                trace_interpolation("camera-hold",context.vi_tick,frame->source_rate,
+                    static_cast<unsigned>(m),frame->debug_reasons[m],
+                    static_cast<unsigned>(meshes[m].positions.size()),0.0f,
+                    meshes[m].key.size(),captured_camera_holds);
+                for(unsigned part=0;part<2;++part) for(unsigned row=0;row<4;++row) {
+                    const auto& matrix=part?meshes[m].matrix:frame->debug_previous[m];
+                    const auto pair=[&](unsigned c) {return
+                        (std::uint64_t(std::bit_cast<std::uint32_t>(matrix[row*4+c]))<<32U)|
+                        std::bit_cast<std::uint32_t>(matrix[row*4+c+1]);};
+                    trace_interpolation("camera-matrix",context.vi_tick,static_cast<unsigned>(m),
+                        part,row,captured_camera_holds,0.0f,pair(0),pair(2));
+                }
+            }
+        }
+        trace_interpolation("coverage",context.vi_tick,frame->source_rate,0U,
+            static_cast<unsigned>(camera_vertices),static_cast<unsigned>(data.worldIndices.size()),
+            0.0f,camera_matched,all_matched);
+    }
+    history_stage(5U); // Coverage diagnostics.
+    state.setRefreshRate(static_cast<std::uint16_t>(frame->source_rate));
+    publish_presentation_snapshot(&workload, std::move(frame));
+    context.semantic_vertices.clear();
+}
+
 void full_sync(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     const auto start = std::chrono::steady_clock::now();
+    const bool detailed=detailed_function_profile_enabled();
+    auto rdp_started=std::chrono::steady_clock::time_point{};
+    if (context != nullptr) {
+        const auto& workload = state->ext.workloadQueue->workloads[state->ext.workloadQueue->writeCursor];
+        bool scene = false;
+        for (std::uint32_t f = 0; f < workload.fbPairCount; ++f) {
+            const auto& pair = workload.fbPairs[f];
+            scene = scene || (pair.colorImage.width >= 320U && pair.colorImage.siz == G_IM_SIZ_16b);
+        }
+        if (scene) frame_diagnostic_state().scene(context->vi_tick);
+        const auto history_start=std::chrono::steady_clock::now();
+        prepare_interpolation(*context, *state);
+        if(scene && interpolation_trace_enabled()) trace_interpolation("history-cost",context->vi_tick,
+            0U,0U,0U,0U,0.0f,std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now()-history_start).count(),0U);
+        if(detailed) {
+            rdp_started=std::chrono::steady_clock::now();
+            context->stats.history_prepare_microseconds+=static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::microseconds>(rdp_started-history_start).count());
+        }
+    }
     RT64::GBI_RDP::fullSync(state, dl);
     if (context != nullptr) {
-        context->stats.full_sync_microseconds +=
-            static_cast<std::uint64_t>(
-                std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::steady_clock::now() - start).count());
+        const auto end=std::chrono::steady_clock::now();
+        context->stats.full_sync_microseconds+=static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(end-start).count());
+        if(detailed)context->stats.rdp_sync_microseconds+=static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(end-rdp_started).count());
     }
 }
 
@@ -1445,6 +2052,9 @@ void reset(RT64::State* state) {
         context->matrix_segmented_addresses.fill(0U);
         context->matrix_physical_addresses.fill(0U);
         context->loaded_matrices.reset();
+        context->camera_ids.fill(0U);
+        context->model_finite.fill(false);
+        context->semantic_target=false;
         context->billboard = false;
     }
 }
@@ -1458,8 +2068,9 @@ struct Rt64F3ddkr::Impl {
     Context context;
 };
 
-Rt64F3ddkr::Rt64F3ddkr(RT64::Application& application)
+Rt64F3ddkr::Rt64F3ddkr(RT64::Application& application, const bool interpolate)
     : impl_(std::make_unique<Impl>(application)) {
+    impl_->context.interpolate = interpolate;
     const std::scoped_lock lock(contexts_mutex);
     contexts.emplace(application.state.get(), &impl_->context);
 }
@@ -1469,11 +2080,18 @@ Rt64F3ddkr::~Rt64F3ddkr() {
         impl_->context.application->state != nullptr) {
         const std::scoped_lock lock(contexts_mutex);
         contexts.erase(impl_->context.application->state.get());
+        if (impl_->context.application->workloadQueue != nullptr)
+            for (auto& workload : impl_->context.application->workloadQueue->workloads)
+                publish_presentation_snapshot(&workload, nullptr);
     }
 }
 
 void Rt64F3ddkr::begin(
-    const std::span<const std::uint8_t> simulation_rdram) noexcept {
+    const std::span<const std::uint8_t> simulation_rdram, const std::uint64_t vi_tick,
+    std::shared_ptr<const PresentationSceneIdentity> identities) noexcept {
+    impl_->context.identities=std::move(identities);
+    impl_->context.semantic_vertices.clear();
+    impl_->context.vi_tick = vi_tick;
     impl_->context.simulation_rdram = simulation_rdram;
     impl_->context.commands = 0U;
     impl_->context.stats = {};
@@ -1499,6 +2117,17 @@ void Rt64F3ddkr::begin(
         std::fflush(texlog.file);
     }
     reset(impl_->context.application->state.get());
+}
+
+void Rt64F3ddkr::process_display_list(std::uint32_t address) {
+    auto& context=impl_->context;
+    struct RestoreBinding {
+        Context* previous;
+        ~RestoreBinding() { dispatch_context=previous; }
+    } restore{dispatch_context};
+    dispatch_context=&context;
+    context.application->processDisplayLists(
+        const_cast<std::uint8_t*>(context.simulation_rdram.data()),address,0U,true);
 }
 
 void Rt64F3ddkr::install() noexcept {

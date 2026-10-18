@@ -61,15 +61,20 @@ def main() -> int:
     assets = verify_bundle(args.output, metadata)
     if args.action == 'publish':
         repo = os.environ['GITHUB_REPOSITORY']
-        endpoint = 'repos/' + repo + '/releases/tags/' + metadata['tag']
-        release = json.loads(subprocess.check_output(['gh', 'api', endpoint], text=True))
+        # The REST tag endpoint excludes drafts. The CLI resolves draft releases
+        # by tag through its authenticated release listing.
+        release = json.loads(subprocess.check_output(
+            ['gh', 'release', 'view', metadata['tag'], '--repo', repo,
+             '--json', 'isDraft,assets,url,tagName'], text=True))
+        if release['tagName'] != metadata['tag']:
+            raise ValueError('Draft tag differs from the verified source')
         if {a['name'] for a in release['assets']} != {p.name for p in assets}:
             raise ValueError('Draft assets differ from the verified bundle')
-        if not release['draft']:
+        if not release['isDraft']:
             raise ValueError('Release is already public; do not overwrite it')
         subprocess.run(['gh', 'release', 'edit', metadata['tag'], '--repo', repo,
                         '--draft=false', '--prerelease=' + ('true' if metadata['prerelease'] else 'false'), '--latest=' + ('false' if metadata['prerelease'] else 'true')], check=True)
-        print(release['html_url'])
+        print(release['url'])
     else:
         print(json.dumps({'verified': True, 'tag': metadata['tag'], 'assets': [p.name for p in assets]}))
     return 0

@@ -7,6 +7,11 @@
 
 namespace jfg {
 
+inline constexpr char kInputReplayHeaderV8[] = "jfg-phase8-input-v8";
+inline constexpr char kInputReplayHeaderV7[] = "jfg-phase8-input-v7";
+inline constexpr char kInputReplayHeaderV6[] = "jfg-phase8-input-v6";
+inline constexpr char kInputReplayHeaderV5[] = "jfg-phase8-input-v5";
+inline constexpr char kInputReplayHeaderV4[] = "jfg-phase8-input-v4";
 inline constexpr char kInputReplayHeaderV3[] = "jfg-phase8-input-v3";
 inline constexpr char kInputReplayHeaderV1[] = "jfg-phase8-input-v1";
 inline constexpr char kInputReplayHeader[] = "jfg-phase8-input-v2";
@@ -22,14 +27,21 @@ struct ControllerReplaySample {
     std::int8_t stick_x = 0;
     std::int8_t stick_y = 0;
 
-    // 0: stock, 1/2: legacy mouse/stick aim, 3/4: modern mouse/stick look.
+    // 0: stock, 1/2: legacy aim, 3: mouse angles, 4: legacy 8-bit stick rate,
+    // 5 (v4 only): precise modern stick rate, 2048 units at full travel/100%.
     std::uint8_t pc_mode = 0;
     std::int16_t look_x = 0, look_y = 0;
+    // v5: bit 7 selects modern action semantics; bits 0..2 are held scope actions.
+    std::uint8_t modern_flags = 0;
+
+    // v6: semantic native-menu selection, separate from emulated pad input.
+    // kind 2=start, 3=saves, 4=save actions; target is one-based (0=no event).
+    std::uint8_t menu_kind = 0, menu_target = 0;
 
     bool operator==(const ControllerReplaySample&) const = default;
 
     [[nodiscard]] bool neutral() const noexcept {
-        return connected && buttons == 0U && stick_x == 0 && stick_y == 0 && pc_mode == 0 && look_x == 0 && look_y == 0;
+        return connected && buttons == 0U && stick_x == 0 && stick_y == 0 && pc_mode == 0 && look_x == 0 && look_y == 0 && modern_flags == 0 && menu_kind == 0 && menu_target == 0;
     }
 };
 

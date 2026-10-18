@@ -40,7 +40,7 @@ jobs:
         run: python scripts/validate_project.py
       - name: Run Python tests
         # JFG_QUARANTINE_TRAP_PROBE skips the environment-incompatible seccomp
-        # escape probe on the runner (see docs/tests/quarantine.md).
+        # escape probe on the runner (see docs/development/test-quarantine.md).
         env:
           JFG_QUARANTINE_TRAP_PROBE: "1"
         run: python -m unittest discover -s tests -p "test_*.py" -v
@@ -69,7 +69,7 @@ jobs:
       - name: Build and test Linux
         if: runner.os == 'Linux'
         # -E excludes the quarantined trap-probe test by name without editing
-        # any build-closure-pinned file (see docs/tests/quarantine.md); it
+        # any build-closure-pinned file (see docs/development/test-quarantine.md); it
         # still builds and runs locally.
         run: |
           cmake --build --preset linux
@@ -83,7 +83,7 @@ jobs:
         run: python scripts/build_windows.py --config Debug --test
       - name: Build and test Windows Release
         # The trap-probe quarantine is Linux-runner-specific (see
-        # docs/tests/quarantine.md); it passes on Windows and runs here.
+        # docs/development/test-quarantine.md); it passes on Windows and runs here.
         if: runner.os == 'Windows'
         run: |
           python scripts/build_windows.py --config Release --test

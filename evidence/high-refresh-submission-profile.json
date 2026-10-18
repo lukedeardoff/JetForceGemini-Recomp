@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "status": "Opt-in submission profiling qualified in bounded tests; no no-dip resolution and desktop package unchanged",
+  "runtime_sha256": "699502f5f4118366b9af349056ddc5eaa7d78f5e1986eb67e70674947280cb67",
+  "default_enabled": false,
+  "python_tests": 13,
+  "cpp_scope_fixture": true,
+  "recorded_disabled_and_original": [
+    {
+      "case": "submit-final-recorded-disabled",
+      "runtime_sha256": "699502f5f4118366b9af349056ddc5eaa7d78f5e1986eb67e70674947280cb67",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true,
+        "cycles_off": true
+      }
+    },
+    {
+      "case": "submit-final-original",
+      "runtime_sha256": "699502f5f4118366b9af349056ddc5eaa7d78f5e1986eb67e70674947280cb67",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "probe": true,
+        "hashes": true,
+        "cycles_off": true
+      }
+    }
+  ],
+  "profiled_captures": [
+    {
+      "case": "submit-final-recorded-stages",
+      "runtime_sha256": "699502f5f4118366b9af349056ddc5eaa7d78f5e1986eb67e70674947280cb67",
+      "active_ms": {
+        "n": 279,
+        "median": 25.154,
+        "p95": 36.709,
+        "max": 50.485
+      },
+      "vi_deltas": {
+        "2": 184,
+        "3": 94
+      },
+      "profile_updates": 279
+    },
+    {
+      "case": "submit-final-native120-stages",
+      "runtime_sha256": "699502f5f4118366b9af349056ddc5eaa7d78f5e1986eb67e70674947280cb67",
+      "active_ms": {
+        "n": 1250,
+        "median": 21.2655,
+        "p95": 24.931,
+        "max": 31.185
+      },
+      "vi_deltas": {
+        "2": 1249
+      },
+      "profile_updates": 1250
+    },
+    {
+      "case": "submit-final-native360-stages",
+      "runtime_sha256": "699502f5f4118366b9af349056ddc5eaa7d78f5e1986eb67e70674947280cb67",
+      "active_ms": {
+        "n": 1250,
+        "median": 22.159,
+        "p95": 26.084,
+        "max": 30.633
+      },
+      "vi_deltas": {
+        "2": 1248,
+        "3": 1
+      },
+      "profile_updates": 1250
+    }
+  ],
+  "native_audio_errors": [
+    {
+      "case": "submit-final-native120-stages",
+      "underruns": 0,
+      "overruns": 0
+    },
+    {
+      "case": "submit-final-native360-stages",
+      "underruns": 0,
+      "overruns": 0
+    }
+  ],
+  "source_sha256": {
+    "cmake/rt64_gpu_timing.cmake": "800f3bab7517cab76b2681fd93fa13039108894d3ffaefa401c5ddc162e4b551",
+    "include/jfg/renderer/submission_profile.hpp": "6a24ca68aeb1af5107900a0b938e7ad48d515a379753ce4b7b4e1eb5de494fe2",
+    "src/boot/native_boot.cpp": "9f80399d9cb88fe47f536ea0c5999bd67e62e28fa0987c4b538dcd901b818374",
+    "scripts/analyze_function_profile.py": "067bbcb9e8821fb7725b1e59c54b14ea9e107bc885763861619b08df6a77d829",
+    "tests/CMakeLists.txt": "684f7d7d5e2399ed4d3155d1148007dfd5112648e347a3bebb1a39e2bb77c668",
+    "tests/submission_profile_tests.cpp": "209868027131371c17970118d55cc6734387c14ea1a5f44e34f4c59cda32b955",
+    "tests/test_function_profile.py": "6ee79f03319772dd93894c8b868c942d6c6cf0c6d3794d8b0cae560b9b2772f6"
+  },
+  "evidence_ids": [
+    "submission-profile-build",
+    "submission-profile-final-recorded",
+    "submission-profile-final-captures",
+    "submit-sync-breakdown-captures",
+    "submit-thread-attribution-review"
+  ],
+  "limits": [
+    "Hidden captures do not establish monitor scanout or live visual acceptance.",
+    "Full profiling changes timing. Native routes can diverge with the same input recording.",
+    "OS thread CPU-time counters have 15.625 ms granularity in this environment; aggregate only.",
+    "CPU cycles are not milliseconds; submission CPU can belong to a different thread.",
+    "Geometry candidates remain private and unselected."
+  ]
+}

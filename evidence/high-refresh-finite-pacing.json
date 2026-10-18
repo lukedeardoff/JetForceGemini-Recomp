@@ -1,0 +1,1666 @@
+{
+  "status": "offline analyzer implemented and tested; finite renderer candidates remain private and uninstalled",
+  "date_utc": "2026-10-15T02:04:42.213728+00:00",
+  "installed_runtime_sha256": "e73bd0c1b6377d5bea0d941e6fa13854f8f56b54bea31a2a58b8f4a136d0f478",
+  "clock": {
+    "native_count_hz": 46875000,
+    "qualified_ntsc_vi_period": 783520,
+    "native_vi_hz": 59.82616908311211,
+    "duration_ratio": [
+      78352,
+      78125
+    ],
+    "guest_clock_changed": false
+  },
+  "analyzer": {
+    "tests": 9,
+    "real_capture_cli_passed": true,
+    "anomalies": "32 largest phase deviations, returned in capture order",
+    "native_rate_explicit": true,
+    "physical_scanout": false
+  },
+  "prior_candidates": {
+    "ratio_only": "reduced repeats but exposed whole rendered scenes skipped",
+    "broad_one_pending": {
+      "selected": false,
+      "audio_underruns_360": [
+        53,
+        169
+      ],
+      "subsequent_baseline_audio_underruns": 0,
+      "comparison_limit": "Native paths diverge; acceptance failure, not exact-state causal benchmark"
+    },
+    "same_workload_id": {
+      "selected": false,
+      "retention_rule_fired": 0
+    }
+  },
+  "scene_ownership": {
+    "observed_fresh_skips_same_scene_different_workload": 3,
+    "observed_rendered_undisplayed_vis": [
+      4643,
+      4719
+    ],
+    "cause": "Offscreen shadow workloads advance raw IDs while still belonging to the same logical scene"
+  },
+  "scene_owned_candidate": {
+    "status": "bounded candidate; full qualification pending",
+    "runs": [
+      {
+        "case": "scene-owned-queue-native120",
+        "runtime_sha256": "0cb2f5cbac8ab079258be3d9f67e32d3b4f0c3e340dda917bdb0f2144dde8c92",
+        "hidden": true,
+        "muted": true,
+        "vis": 6005,
+        "unsupported_accesses": 0,
+        "audio_underruns": 0,
+        "audio_overruns": 0,
+        "frame_log_drops": 0,
+        "phase": {
+          "samples": 3608,
+          "render_source_rates": {
+            "0": 2016,
+            "30": 11373,
+            "20": 235
+          },
+          "display_source_rates": {
+            "0": 6,
+            "30": 11375,
+            "20": 237
+          },
+          "selected_display_source_rates": {
+            "30": 3488,
+            "20": 120
+          },
+          "vi_clock_hz": 59.82616908311211,
+          "completion": {
+            "dropped_chunks": 0,
+            "writer_failed": false
+          },
+          "complete": true,
+          "repeated_phases": 0,
+          "backward_phases": 0,
+          "phase_step_counts": {
+            "0.4986": 3309,
+            "0.4985": 264,
+            "0.5157": 1,
+            "0.5072": 14,
+            "0.5101": 6,
+            "0.5449": 1,
+            "0.5971": 1,
+            "0.5159": 3,
+            "0.5043": 1,
+            "0.5797": 1,
+            "0.5150": 1,
+            "0.5389": 1,
+            "0.6956": 1,
+            "0.6202": 1,
+            "0.5328": 1,
+            "0.7187": 1
+          },
+          "present_interval_ms": {
+            "median": 8.336,
+            "p99": 8.503,
+            "maximum": 8.774
+          },
+          "expected_phase_step": 0.49855140902593426,
+          "uneven_phase_steps": 34,
+          "phase_anomaly_count": 34,
+          "phase_anomalies": [
+            {
+              "phase_step": 0.5156980000001568,
+              "present_interval_ms": 8.399,
+              "previous": {
+                "timestamp_us": 58385950592,
+                "source_vi": 4128,
+                "source_rate": 30,
+                "alpha": 0.991427,
+                "present_id": 2315,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58385958991,
+                "source_vi": 4131,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2317,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.384,
+              "previous": {
+                "timestamp_us": 58386000615,
+                "source_vi": 4131,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2317,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58386008999,
+                "source_vi": 4133,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2319,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5101400000003196,
+              "present_interval_ms": 8.102,
+              "previous": {
+                "timestamp_us": 58386067530,
+                "source_vi": 4135,
+                "source_rate": 30,
+                "alpha": 0.994206,
+                "present_id": 2321,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58386075632,
+                "source_vi": 4138,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2323,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.368,
+              "previous": {
+                "timestamp_us": 58386117372,
+                "source_vi": 4138,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2323,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58386125740,
+                "source_vi": 4140,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2325,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5101400000003196,
+              "present_interval_ms": 8.273,
+              "previous": {
+                "timestamp_us": 58386184073,
+                "source_vi": 4142,
+                "source_rate": 30,
+                "alpha": 0.994206,
+                "present_id": 2327,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58386192346,
+                "source_vi": 4145,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2329,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.375,
+              "previous": {
+                "timestamp_us": 58386234037,
+                "source_vi": 4145,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2329,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58386242412,
+                "source_vi": 4147,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2331,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5101400000003196,
+              "present_interval_ms": 8.3,
+              "previous": {
+                "timestamp_us": 58386300791,
+                "source_vi": 4149,
+                "source_rate": 30,
+                "alpha": 0.994206,
+                "present_id": 2333,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58386309091,
+                "source_vi": 4152,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2335,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.348,
+              "previous": {
+                "timestamp_us": 58386350742,
+                "source_vi": 4152,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2335,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58386359090,
+                "source_vi": 4154,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2337,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5101400000003196,
+              "present_interval_ms": 8.361,
+              "previous": {
+                "timestamp_us": 58386417408,
+                "source_vi": 4156,
+                "source_rate": 30,
+                "alpha": 0.994206,
+                "present_id": 2339,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58386425769,
+                "source_vi": 4159,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2341,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.46,
+              "previous": {
+                "timestamp_us": 58386467388,
+                "source_vi": 4159,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2341,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58386475848,
+                "source_vi": 4161,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2343,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5101400000003196,
+              "present_interval_ms": 8.273,
+              "previous": {
+                "timestamp_us": 58386534226,
+                "source_vi": 4163,
+                "source_rate": 30,
+                "alpha": 0.994206,
+                "present_id": 2345,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58386542499,
+                "source_vi": 4166,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2347,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.337,
+              "previous": {
+                "timestamp_us": 58386584181,
+                "source_vi": 4166,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2347,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58386592518,
+                "source_vi": 4168,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2349,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5449060000000827,
+              "present_interval_ms": 8.406,
+              "previous": {
+                "timestamp_us": 58386850929,
+                "source_vi": 4182,
+                "source_rate": 30,
+                "alpha": 0.976823,
+                "present_id": 2363,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58386859335,
+                "source_vi": 4185,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2365,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.381,
+              "previous": {
+                "timestamp_us": 58386900904,
+                "source_vi": 4185,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2365,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58386909285,
+                "source_vi": 4187,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2367,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5101400000003196,
+              "present_interval_ms": 8.21,
+              "previous": {
+                "timestamp_us": 58386967695,
+                "source_vi": 4189,
+                "source_rate": 30,
+                "alpha": 0.994206,
+                "present_id": 2369,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58386975905,
+                "source_vi": 4192,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2371,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.356,
+              "previous": {
+                "timestamp_us": 58387017605,
+                "source_vi": 4192,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2371,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58387025961,
+                "source_vi": 4194,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2373,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5970559999996112,
+              "present_interval_ms": 8.301,
+              "previous": {
+                "timestamp_us": 58387584573,
+                "source_vi": 4226,
+                "source_rate": 30,
+                "alpha": 0.950748,
+                "present_id": 2405,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58387592874,
+                "source_vi": 4229,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2407,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5159340000000157,
+              "present_interval_ms": 8.259,
+              "previous": {
+                "timestamp_us": 58387684578,
+                "source_vi": 4232,
+                "source_rate": 20,
+                "alpha": 0.994206,
+                "present_id": 2409,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58387692837,
+                "source_vi": 4234,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2411,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5159340000000157,
+              "present_interval_ms": 8.393,
+              "previous": {
+                "timestamp_us": 58387817926,
+                "source_vi": 4240,
+                "source_rate": 20,
+                "alpha": 0.994206,
+                "present_id": 2415,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58387826319,
+                "source_vi": 4242,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2417,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5796739999996134,
+              "present_interval_ms": 8.227,
+              "previous": {
+                "timestamp_us": 58388285079,
+                "source_vi": 4268,
+                "source_rate": 30,
+                "alpha": 0.959439,
+                "present_id": 2443,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58388293306,
+                "source_vi": 4271,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 2445,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5159340000000157,
+              "present_interval_ms": 8.38,
+              "previous": {
+                "timestamp_us": 58388384979,
+                "source_vi": 4274,
+                "source_rate": 20,
+                "alpha": 0.994206,
+                "present_id": 2447,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58388393359,
+                "source_vi": 4276,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 2449,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5149899999996705,
+              "present_interval_ms": 8.255,
+              "previous": {
+                "timestamp_us": 58399989389,
+                "source_vi": 4968,
+                "source_rate": 30,
+                "alpha": 0.991781,
+                "present_id": 3141,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58399997644,
+                "source_vi": 4971,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 3143,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.384,
+              "previous": {
+                "timestamp_us": 58400039323,
+                "source_vi": 4971,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3143,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58400047707,
+                "source_vi": 4973,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 3145,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5388759999996182,
+              "present_interval_ms": 8.261,
+              "previous": {
+                "timestamp_us": 58403148926,
+                "source_vi": 5157,
+                "source_rate": 30,
+                "alpha": 0.979838,
+                "present_id": 3329,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58403157187,
+                "source_vi": 5160,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 3331,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.392,
+              "previous": {
+                "timestamp_us": 58403198857,
+                "source_vi": 5160,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3331,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58403207249,
+                "source_vi": 5162,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 3333,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.6955600000001141,
+              "present_interval_ms": 8.338,
+              "previous": {
+                "timestamp_us": 58404332486,
+                "source_vi": 5228,
+                "source_rate": 30,
+                "alpha": 0.901496,
+                "present_id": 3399,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58404340824,
+                "source_vi": 5231,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 3401,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.365,
+              "previous": {
+                "timestamp_us": 58404382475,
+                "source_vi": 5231,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3401,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58404390840,
+                "source_vi": 5233,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 3403,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.6202339999999822,
+              "present_interval_ms": 8.376,
+              "previous": {
+                "timestamp_us": 58405082665,
+                "source_vi": 5273,
+                "source_rate": 30,
+                "alpha": 0.939159,
+                "present_id": 3443,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58405091041,
+                "source_vi": 5276,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 3445,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.407,
+              "previous": {
+                "timestamp_us": 58405132716,
+                "source_vi": 5276,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3445,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58405141123,
+                "source_vi": 5278,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 3447,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.5328460000000632,
+              "present_interval_ms": 8.359,
+              "previous": {
+                "timestamp_us": 58411085556,
+                "source_vi": 5632,
+                "source_rate": 30,
+                "alpha": 0.982853,
+                "present_id": 3801,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58411093915,
+                "source_vi": 5635,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 3803,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            },
+            {
+              "phase_step": 0.5072430000000168,
+              "present_interval_ms": 8.428,
+              "previous": {
+                "timestamp_us": 58411135527,
+                "source_vi": 5635,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3803,
+                "render_frame": 5,
+                "sequence_frames": 6
+              },
+              "current": {
+                "timestamp_us": 58411143955,
+                "source_vi": 5637,
+                "source_rate": 30,
+                "alpha": 0.249276,
+                "present_id": 3805,
+                "render_frame": 0,
+                "sequence_frames": 4
+              }
+            },
+            {
+              "phase_step": 0.7187379999995755,
+              "present_interval_ms": 8.185,
+              "previous": {
+                "timestamp_us": 58412402750,
+                "source_vi": 5711,
+                "source_rate": 30,
+                "alpha": 0.889907,
+                "present_id": 3879,
+                "render_frame": 3,
+                "sequence_frames": 4
+              },
+              "current": {
+                "timestamp_us": 58412410935,
+                "source_vi": 5714,
+                "source_rate": 20,
+                "alpha": 0.166184,
+                "present_id": 3881,
+                "render_frame": 0,
+                "sequence_frames": 6
+              }
+            }
+          ],
+          "phase_anomalies_truncated": true,
+          "elapsed_phase_error_ms": {
+            "minimum": -7.50198467243024,
+            "maximum": 1.1529838003232484,
+            "end": -6.609305984003555
+          }
+        },
+        "rendered_but_undisplayed_scene_vis": [],
+        "queue_events": {
+          "scene-owned-skip": 1264,
+          "scene-owned-retain": 460
+        },
+        "cadence_bins": [
+          {
+            "vi": [
+              4000,
+              4500
+            ],
+            "output": 119.94922109697097,
+            "scenes": 28.9987127926743,
+            "interval_ms": {
+              "n": 1001,
+              "median": 8.334,
+              "p99": 8.517,
+              "max": 8.755
+            },
+            "update_ms": {
+              "n": 242,
+              "median": 33.387,
+              "p99": 48.599,
+              "max": 51.575
+            },
+            "vi_deltas": {
+              "2": 228,
+              "3": 14
+            }
+          },
+          {
+            "vi": [
+              4500,
+              4800
+            ],
+            "output": 119.96405469722151,
+            "scenes": 29.74150440912813,
+            "interval_ms": {
+              "n": 601,
+              "median": 8.334,
+              "p99": 8.478,
+              "max": 8.552
+            },
+            "update_ms": {
+              "n": 149,
+              "median": 33.387,
+              "p99": 36.778,
+              "max": 37.769
+            },
+            "vi_deltas": {
+              "2": 149
+            }
+          },
+          {
+            "vi": [
+              4800,
+              5400
+            ],
+            "output": 119.9571587278713,
+            "scenes": 29.639996790497317,
+            "interval_ms": {
+              "n": 1202,
+              "median": 8.338,
+              "p99": 8.474,
+              "max": 8.664
+            },
+            "update_ms": {
+              "n": 297,
+              "median": 33.36,
+              "p99": 43.742,
+              "max": 46.562
+            },
+            "vi_deltas": {
+              "2": 293,
+              "3": 4
+            }
+          },
+          {
+            "vi": [
+              5400,
+              5800
+            ],
+            "output": 119.9430742083757,
+            "scenes": 29.64884980431759,
+            "interval_ms": {
+              "n": 801,
+              "median": 8.337,
+              "p99": 8.516,
+              "max": 8.772
+            },
+            "update_ms": {
+              "n": 198,
+              "median": 33.3945,
+              "p99": 38.697,
+              "max": 52.724
+            },
+            "vi_deltas": {
+              "2": 196,
+              "3": 2
+            }
+          }
+        ]
+      },
+      {
+        "case": "scene-owned-queue-native360",
+        "runtime_sha256": "0cb2f5cbac8ab079258be3d9f67e32d3b4f0c3e340dda917bdb0f2144dde8c92",
+        "hidden": true,
+        "muted": true,
+        "vis": 6004,
+        "unsupported_accesses": 0,
+        "audio_underruns": 0,
+        "audio_overruns": 0,
+        "frame_log_drops": 0,
+        "phase": {
+          "samples": 10827,
+          "render_source_rates": {
+            "0": 2022,
+            "30": 34269,
+            "20": 505
+          },
+          "display_source_rates": {
+            "0": 6,
+            "30": 34245,
+            "20": 507
+          },
+          "selected_display_source_rates": {
+            "30": 10611,
+            "20": 216
+          },
+          "vi_clock_hz": 59.82616908311211,
+          "completion": {
+            "dropped_chunks": 0,
+            "writer_failed": false
+          },
+          "complete": true,
+          "repeated_phases": 0,
+          "backward_phases": 0,
+          "phase_step_counts": {
+            "0.1662": 10802,
+            "0.1970": 1,
+            "0.1749": 12,
+            "0.2241": 1,
+            "0.3110": 1,
+            "0.1778": 2,
+            "0.1833": 1,
+            "0.1773": 1,
+            "0.2009": 1,
+            "0.3071": 1,
+            "0.2023": 1,
+            "0.2218": 1,
+            "0.2084": 1
+          },
+          "present_interval_ms": {
+            "median": 2.778,
+            "p99": 2.899,
+            "maximum": 7.205
+          },
+          "expected_phase_step": 0.16618380300864477,
+          "uneven_phase_steps": 24,
+          "phase_anomaly_count": 24,
+          "phase_anomalies": [
+            {
+              "phase_step": 0.19700779999993756,
+              "present_interval_ms": 2.8,
+              "previous": {
+                "timestamp_us": 58488470519,
+                "source_vi": 4064,
+                "source_rate": 30,
+                "alpha": 0.984588,
+                "present_id": 2873,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58488473319,
+                "source_vi": 4067,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 2875,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.81,
+              "previous": {
+                "timestamp_us": 58488520525,
+                "source_vi": 4067,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2875,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58488523335,
+                "source_vi": 4069,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 2877,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.224127800000133,
+              "present_interval_ms": 2.744,
+              "previous": {
+                "timestamp_us": 58488854495,
+                "source_vi": 4087,
+                "source_rate": 30,
+                "alpha": 0.971028,
+                "present_id": 2895,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58488857239,
+                "source_vi": 4090,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 2897,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.775,
+              "previous": {
+                "timestamp_us": 58488904486,
+                "source_vi": 4090,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2897,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58488907261,
+                "source_vi": 4092,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 2899,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.31104380000033416,
+              "present_interval_ms": 2.794,
+              "previous": {
+                "timestamp_us": 58489737927,
+                "source_vi": 4140,
+                "source_rate": 30,
+                "alpha": 0.92757,
+                "present_id": 2947,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58489740721,
+                "source_vi": 4143,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 2949,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.763,
+              "previous": {
+                "timestamp_us": 58489787947,
+                "source_vi": 4143,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2949,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58489790710,
+                "source_vi": 4145,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 2951,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.17777180000030057,
+              "present_interval_ms": 2.832,
+              "previous": {
+                "timestamp_us": 58489854588,
+                "source_vi": 4147,
+                "source_rate": 30,
+                "alpha": 0.994206,
+                "present_id": 2953,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58489857420,
+                "source_vi": 4150,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 2955,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.809,
+              "previous": {
+                "timestamp_us": 58489904595,
+                "source_vi": 4150,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 2955,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58489907404,
+                "source_vi": 4152,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 2957,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.18332980000013777,
+              "present_interval_ms": 2.823,
+              "previous": {
+                "timestamp_us": 58492879980,
+                "source_vi": 4328,
+                "source_rate": 30,
+                "alpha": 0.991427,
+                "present_id": 3133,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58492882803,
+                "source_vi": 4331,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 3135,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.804,
+              "previous": {
+                "timestamp_us": 58492930007,
+                "source_vi": 4331,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3135,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58492932811,
+                "source_vi": 4333,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 3137,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.17729979999967327,
+              "present_interval_ms": 2.82,
+              "previous": {
+                "timestamp_us": 58498753213,
+                "source_vi": 4679,
+                "source_rate": 30,
+                "alpha": 0.994442,
+                "present_id": 3482,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58498756033,
+                "source_vi": 4682,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 3484,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.769,
+              "previous": {
+                "timestamp_us": 58498803234,
+                "source_vi": 4682,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3484,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58498806003,
+                "source_vi": 4684,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 3486,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.20094979999976204,
+              "present_interval_ms": 2.845,
+              "previous": {
+                "timestamp_us": 58499003263,
+                "source_vi": 4694,
+                "source_rate": 30,
+                "alpha": 0.982617,
+                "present_id": 3496,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58499006108,
+                "source_vi": 4697,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 3498,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.87,
+              "previous": {
+                "timestamp_us": 58499053257,
+                "source_vi": 4697,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3498,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58499056127,
+                "source_vi": 4699,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 3500,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.17777180000030057,
+              "present_interval_ms": 2.823,
+              "previous": {
+                "timestamp_us": 58499119948,
+                "source_vi": 4701,
+                "source_rate": 30,
+                "alpha": 0.994206,
+                "present_id": 3502,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58499122771,
+                "source_vi": 4704,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 3504,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.802,
+              "previous": {
+                "timestamp_us": 58499169936,
+                "source_vi": 4704,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3504,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58499172738,
+                "source_vi": 4706,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 3506,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.30710180000005494,
+              "present_interval_ms": 2.803,
+              "previous": {
+                "timestamp_us": 58500939585,
+                "source_vi": 4810,
+                "source_rate": 30,
+                "alpha": 0.929541,
+                "present_id": 3610,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58500942388,
+                "source_vi": 4813,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 3612,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.803,
+              "previous": {
+                "timestamp_us": 58500989567,
+                "source_vi": 4813,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 3612,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58500992370,
+                "source_vi": 4815,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 3614,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.2023298000003706,
+              "present_interval_ms": 2.753,
+              "previous": {
+                "timestamp_us": 58507910030,
+                "source_vi": 5227,
+                "source_rate": 30,
+                "alpha": 0.981927,
+                "present_id": 4026,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58507912783,
+                "source_vi": 5230,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 4028,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.745,
+              "previous": {
+                "timestamp_us": 58507960018,
+                "source_vi": 5230,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 4028,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58507962763,
+                "source_vi": 5232,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 4030,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.22180180000032124,
+              "present_interval_ms": 2.729,
+              "previous": {
+                "timestamp_us": 58513074663,
+                "source_vi": 5536,
+                "source_rate": 30,
+                "alpha": 0.972191,
+                "present_id": 4334,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58513077392,
+                "source_vi": 5539,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 4336,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.85,
+              "previous": {
+                "timestamp_us": 58513124657,
+                "source_vi": 5539,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 4336,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58513127507,
+                "source_vi": 5541,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 4338,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            },
+            {
+              "phase_step": 0.20836179999969318,
+              "present_interval_ms": 2.722,
+              "previous": {
+                "timestamp_us": 58517204112,
+                "source_vi": 5783,
+                "source_rate": 30,
+                "alpha": 0.978911,
+                "present_id": 4580,
+                "render_frame": 11,
+                "sequence_frames": 12
+              },
+              "current": {
+                "timestamp_us": 58517206834,
+                "source_vi": 5786,
+                "source_rate": 20,
+                "alpha": 0.0553946,
+                "present_id": 4582,
+                "render_frame": 0,
+                "sequence_frames": 18
+              }
+            },
+            {
+              "phase_step": 0.17487479999999778,
+              "present_interval_ms": 2.785,
+              "previous": {
+                "timestamp_us": 58517254026,
+                "source_vi": 5786,
+                "source_rate": 20,
+                "alpha": 0.997103,
+                "present_id": 4582,
+                "render_frame": 17,
+                "sequence_frames": 18
+              },
+              "current": {
+                "timestamp_us": 58517256811,
+                "source_vi": 5788,
+                "source_rate": 30,
+                "alpha": 0.0830919,
+                "present_id": 4584,
+                "render_frame": 0,
+                "sequence_frames": 12
+              }
+            }
+          ],
+          "phase_anomalies_truncated": false,
+          "elapsed_phase_error_ms": {
+            "minimum": -3.7314804427026615,
+            "maximum": 2.976066529445376,
+            "end": -0.12395927450015165
+          }
+        },
+        "rendered_but_undisplayed_scene_vis": [],
+        "queue_events": {
+          "scene-owned-skip": 1891,
+          "scene-owned-retain": 975
+        },
+        "cadence_bins": [
+          {
+            "vi": [
+              4000,
+              4500
+            ],
+            "output": 359.91324309802707,
+            "scenes": 29.524600147862067,
+            "interval_ms": {
+              "n": 3011,
+              "median": 2.778,
+              "p99": 2.894,
+              "max": 3.303
+            },
+            "update_ms": {
+              "n": 247,
+              "median": 33.441,
+              "p99": 47.68,
+              "max": 53.081
+            },
+            "vi_deltas": {
+              "2": 242,
+              "3": 5
+            }
+          },
+          {
+            "vi": [
+              4500,
+              4800
+            ],
+            "output": 359.5528985702873,
+            "scenes": 29.396149104467316,
+            "interval_ms": {
+              "n": 1798,
+              "median": 2.776,
+              "p99": 2.901,
+              "max": 7.205
+            },
+            "update_ms": {
+              "n": 147,
+              "median": 33.386,
+              "p99": 45.795,
+              "max": 48.362
+            },
+            "vi_deltas": {
+              "2": 144,
+              "3": 3
+            }
+          },
+          {
+            "vi": [
+              4800,
+              5400
+            ],
+            "output": 359.94609986728483,
+            "scenes": 29.72947277174359,
+            "interval_ms": {
+              "n": 3608,
+              "median": 2.778,
+              "p99": 2.897,
+              "max": 3.262
+            },
+            "update_ms": {
+              "n": 298,
+              "median": 33.391999999999996,
+              "p99": 37.336,
+              "max": 48.591
+            },
+            "vi_deltas": {
+              "2": 296,
+              "3": 2
+            }
+          },
+          {
+            "vi": [
+              5400,
+              5800
+            ],
+            "output": 359.89646469783656,
+            "scenes": 29.617414800570092,
+            "interval_ms": {
+              "n": 2406,
+              "median": 2.778,
+              "p99": 2.899,
+              "max": 3.444
+            },
+            "update_ms": {
+              "n": 198,
+              "median": 33.3845,
+              "p99": 38.254,
+              "max": 48.587
+            },
+            "vi_deltas": {
+              "2": 196,
+              "3": 2
+            }
+          }
+        ]
+      }
+    ],
+    "production_source_changed": false,
+    "generated_source_restored": true,
+    "pending": [
+      "Native-only clock configuration and production integration",
+      "Pause/inactive/other caps and physical-display/full-owner-route verification",
+      "Concurrent publication, lifecycle and shutdown review beyond the bounded registry tests"
+    ],
+    "exact_state_qualification": {
+      "completed": [
+        "Original RAM/save/renderer/probe/instruction equality",
+        "Recorded-clock dense RAM/save/instruction/matching equality"
+      ],
+      "step_exit_code": 0,
+      "normal_runtime_restored": true,
+      "registry_CXX17_lifecycle_tests_passed": true,
+      "scope": "Private prototype. Tests do not substitute for native-only production clock integration, pause/other caps or owner display acceptance.",
+      "original_guest_update_records": 4754,
+      "dense_guest_update_records": 1847,
+      "dense_matching_records": 17715,
+      "original_ram_save_renderer_probe_equal": true,
+      "dense_equal_files": {
+        "rdram.bin": true,
+        "jfg.flash": true
+      },
+      "original_audio_underruns": 2,
+      "original_audio_scope": "Instruction-clock reference with final readback; not native-play audio or FPS qualification. The separate 120/360 native prototype captures each report zero audio underruns.",
+      "dense_phase_steps_over_one_vi": 98,
+      "dense_pacing_scope": "Recorded-clock equality fixture still has displayed phase gaps. This is state/matching qualification, not native pacing acceptance."
+    }
+  },
+  "private_evidence": [
+    "finite-clock-ratio-native-review",
+    "clock-queue-retain-review",
+    "clock-queue-repeated360",
+    "queue-outcomes-review",
+    "queue-scene-ownership-review",
+    "scene-owned-queue-review",
+    "scene-owned-full-original-review",
+    "scene-owned-dense-review",
+    "scene-owned-exact-state/qualification"
+  ],
+  "scope": "Normal hidden captures are starting-area observations; complete owner tutorial-route, damage/combat, late visual, shadow and Unlimited issues remain open."
+}

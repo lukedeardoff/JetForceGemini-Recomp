@@ -10,14 +10,14 @@ This tracker does not replace or weaken the roadmap requirements.
 The candidate is the recorded Goldwood route. Its preserved long replay ends
 at retrace 40,452; reaching that input limit is not, by itself, slice completion.
 An explicit in-game completion predicate and subsystem/overlay coverage matrix
-are still required. The latest preserved full-render result is described in
-`../development/runtime-research.md`.
+are still required. Current runtime boundaries are summarized in
+[project status](../status.md).
 
 The preserved full-render route reached 40,452 retraces with zero unsupported
 accesses and repeated state/journal hashes. It exercised shots, enemy kills,
 death/restart, and persistence writes. Those counters establish exercised paths,
 not complete gameplay or save/relaunch acceptance. Detailed run records remain
-in [Git history](../history.md).
+in [Git history](../README.md#historical-material).
 
 | Requirement | Current evidence / remaining work |
 |---|---|

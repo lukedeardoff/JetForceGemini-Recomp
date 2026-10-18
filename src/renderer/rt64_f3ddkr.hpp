@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -10,6 +11,7 @@ struct Application;
 }
 
 namespace jfg {
+struct PresentationSceneIdentity;
 
 struct Rt64F3ddkrStats {
     std::size_t matrix_commands = 0U;
@@ -31,6 +33,10 @@ struct Rt64F3ddkrStats {
     std::uint64_t loaded_vertices_low = 0U;
     std::uint16_t loaded_vertices_high = 0U;
     std::uint64_t full_sync_microseconds = 0U;
+    std::uint64_t history_prepare_microseconds = 0U;
+    std::uint64_t rdp_sync_microseconds = 0U;
+    std::array<std::uint64_t,5> history_stage_microseconds{};
+
     std::size_t display_list_branches = 0U;
     std::uint32_t last_display_list_address = 0U;
     std::uint32_t last_display_list_target = 0U;
@@ -50,13 +56,15 @@ inline constexpr std::uint32_t kF3ddkrRejectMoveMemRange = 10U;
 
 class Rt64F3ddkr final {
 public:
-    explicit Rt64F3ddkr(RT64::Application& application);
+    explicit Rt64F3ddkr(RT64::Application& application, bool interpolate = false);
     ~Rt64F3ddkr();
     Rt64F3ddkr(const Rt64F3ddkr&) = delete;
     Rt64F3ddkr& operator=(const Rt64F3ddkr&) = delete;
 
-    void begin(std::span<const std::uint8_t> simulation_rdram) noexcept;
+    void begin(std::span<const std::uint8_t> simulation_rdram, std::uint64_t vi_tick = 0U,
+        std::shared_ptr<const PresentationSceneIdentity> identities = {}) noexcept;
     void install() noexcept;
+    void process_display_list(std::uint32_t address);
     [[nodiscard]] bool complete() const noexcept;
     [[nodiscard]] std::size_t command_count() const noexcept;
     [[nodiscard]] Rt64F3ddkrStats stats() const noexcept;

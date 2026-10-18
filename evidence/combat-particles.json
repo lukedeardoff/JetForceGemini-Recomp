@@ -1,0 +1,580 @@
+{
+  "schema": 1,
+  "status": "Particle correction retained and delivered with native CPU preview; historical measurements below keep their recorded runtime; owner live review pending",
+  "source_parent": "88929290ae2b3ecc61b293b0a490aee304eafc85",
+  "candidate_runtime_sha256": "14746717614559b93fa535f9caf0a02fce50f23d2df3ab23aa6e9302607f30aa",
+  "guard": {
+    "enabled": true,
+    "investigation": "high-refresh-rendering-20261011",
+    "root": "high-refresh-rendering-20261011-discover",
+    "counters_reset": false
+  },
+  "combat": {
+    "before_runtime_sha256": "cb3de8f6593fa2abb0a12e7a2ea7f98ecf23ea817ad247505c1338a39dcd2292",
+    "before_120": [
+      {
+        "vi": [
+          4000,
+          4500
+        ],
+        "output": 119.67887363308391,
+        "scenes": 19.827038945201526,
+        "interval_ms": {
+          "n": 1002,
+          "median": 8.338,
+          "p99": 8.877,
+          "max": 12.815
+        },
+        "update_ms": {
+          "n": 166,
+          "median": 50.105000000000004,
+          "p99": 55.278,
+          "max": 56.875
+        },
+        "vi_deltas": {
+          "3": 166
+        }
+      },
+      {
+        "vi": [
+          4500,
+          4800
+        ],
+        "output": 119.51452321299807,
+        "scenes": 19.785849160680282,
+        "interval_ms": {
+          "n": 598,
+          "median": 8.337,
+          "p99": 8.914,
+          "max": 14.144
+        },
+        "update_ms": {
+          "n": 99,
+          "median": 50.167,
+          "p99": 56.584,
+          "max": 57.691
+        },
+        "vi_deltas": {
+          "3": 99
+        }
+      },
+      {
+        "vi": [
+          4800,
+          5400
+        ],
+        "output": 117.5007022113273,
+        "scenes": 22.14359583269496,
+        "interval_ms": {
+          "n": 1178,
+          "median": 8.341,
+          "p99": 10.958,
+          "max": 40.005
+        },
+        "update_ms": {
+          "n": 222,
+          "median": 49.674,
+          "p99": 59.314,
+          "max": 77.843
+        },
+        "vi_deltas": {
+          "3": 148,
+          "2": 72,
+          "5": 1,
+          "4": 1
+        }
+      },
+      {
+        "vi": [
+          5400,
+          5800
+        ],
+        "output": 115.93709325780515,
+        "scenes": 19.624768389993058,
+        "interval_ms": {
+          "n": 768,
+          "median": 8.3385,
+          "p99": 17.387,
+          "max": 35.428
+        },
+        "update_ms": {
+          "n": 130,
+          "median": 50.1905,
+          "p99": 65.136,
+          "max": 95.871
+        },
+        "vi_deltas": {
+          "3": 127,
+          "4": 2,
+          "6": 1
+        }
+      }
+    ],
+    "final_120": [
+      {
+        "vi": [
+          4000,
+          4500
+        ],
+        "output": 117.9224974119241,
+        "scenes": 26.789695152404665,
+        "output_interval_ms_median": 8.344,
+        "output_interval_ms_p99": 9.867
+      },
+      {
+        "vi": [
+          4500,
+          4800
+        ],
+        "output": 117.32472445678853,
+        "scenes": 25.183842046942683,
+        "output_interval_ms_median": 8.34,
+        "output_interval_ms_p99": 12.08
+      },
+      {
+        "vi": [
+          4800,
+          5400
+        ],
+        "output": 112.34396478071434,
+        "scenes": 23.981306919532468,
+        "output_interval_ms_median": 8.345,
+        "output_interval_ms_p99": 25.476
+      },
+      {
+        "vi": [
+          5400,
+          5800
+        ],
+        "output": 111.60813198179841,
+        "scenes": 24.33447830558727,
+        "output_interval_ms_median": 8.341,
+        "output_interval_ms_p99": 28.815
+      }
+    ],
+    "final_360": [
+      {
+        "vi": [
+          4000,
+          4500
+        ],
+        "output": 277.18120191736244,
+        "scenes": 26.94817240863246,
+        "output_interval_ms_median": 2.815,
+        "output_interval_ms_p99": 19.446
+      },
+      {
+        "vi": [
+          4500,
+          4800
+        ],
+        "output": 258.71364704522307,
+        "scenes": 22.92147104021622,
+        "output_interval_ms_median": 2.8245,
+        "output_interval_ms_p99": 23.917
+      },
+      {
+        "vi": [
+          4800,
+          5400
+        ],
+        "output": 249.16259787674306,
+        "scenes": 22.878201649468387,
+        "output_interval_ms_median": 2.816,
+        "output_interval_ms_p99": 29.582
+      },
+      {
+        "vi": [
+          5400,
+          5800
+        ],
+        "output": 242.1113906683993,
+        "scenes": 23.613333163954994,
+        "output_interval_ms_median": 2.825,
+        "output_interval_ms_p99": 29.949
+      }
+    ],
+    "audio_underruns_120": 8,
+    "audio_underruns_360": 62,
+    "policy": "Recover from the 20-Hz hold on the next measured fast frame; preserve real elapsed VI delta and genuine overload; existing 128-instruction clock quantum retained",
+    "limitations": [
+      "Open-loop copied-save route and host-load variability limit precise performance attribution",
+      "No sustained-30 guarantee; remaining real host costs are unresolved",
+      "Output timestamps measure present returns, not physical monitor scanout",
+      "Final 120/360 stress runs recorded 8/62 audio underruns; earlier recovery runs had zero and original baseline had five. Regression attribution is unresolved."
+    ],
+    "performance_acceptance": "Not established; genuine dips and audio underruns remain, and another runtime was observed active during late checks",
+    "concurrent_runtime_observation": "A separate modern-controls-camera-collision runtime was observed at 10:46-10:47 UTC; earlier process overlap was not fully recorded. No owner process was stopped."
+  },
+  "particles": {
+    "visible_intermediate_difference": true,
+    "source_endpoint_preserved": true,
+    "samples": [
+      {
+        "scene_alpha": [
+          5007,
+          0.166667
+        ],
+        "changed_pixels": 14,
+        "bounds": [
+          598,
+          391,
+          621,
+          413
+        ]
+      },
+      {
+        "scene_alpha": [
+          5007,
+          0.333333
+        ],
+        "changed_pixels": 9,
+        "bounds": [
+          598,
+          391,
+          621,
+          412
+        ]
+      },
+      {
+        "scene_alpha": [
+          5007,
+          0.5
+        ],
+        "changed_pixels": 3,
+        "bounds": [
+          598,
+          395,
+          616,
+          410
+        ]
+      },
+      {
+        "scene_alpha": [
+          5007,
+          0.666667
+        ],
+        "changed_pixels": 1,
+        "bounds": [
+          598,
+          395,
+          598,
+          395
+        ]
+      },
+      {
+        "scene_alpha": [
+          5007,
+          0.833333
+        ],
+        "changed_pixels": 1,
+        "bounds": [
+          598,
+          395,
+          598,
+          395
+        ]
+      },
+      {
+        "scene_alpha": [
+          5007,
+          1.0
+        ],
+        "changed_pixels": 0,
+        "bounds": null
+      }
+    ],
+    "lifetime_only_pairs": "Scenes 5001 and 5025 are pixel-identical to old preview; those pairs do not establish visible improvement",
+    "all_non_framebuffer_guest_bytes_equal": true,
+    "qualified_types": "Supported US type-2 pool billboard particles and actor sprites",
+    "remaining": "Texture/local-quad animation retains authored cadence; other particle types and full-game coverage unqualified"
+  },
+  "validation": {
+    "focused_suites": 9,
+    "focused_failures": 0,
+    "original_guest_renderer_save_exact": true,
+    "original_hashes": {
+      "jfg.flash": "924760151a1e41b433f1dd0ed0aca5569d9810845fc39ae1821434772a8147b3",
+      "rdram.bin": "1e41ca3e56cfad119ab838acc560c19ff6cc9be4b81a4f2303a92e6bd6de81ae",
+      "rdram.bin.rt64": "8103b94fab58363d8f832bd671e705ddf9cfbf1ae3caeb01b432eb377268ba68"
+    },
+    "identical_reference_native_clock_boundary": true,
+    "overload_coalesced": [
+      [
+        69592992,
+        [
+          3901,
+          3083002008,
+          3072016520,
+          3083769320,
+          15,
+          783520
+        ]
+      ],
+      [
+        79606012,
+        [
+          4499,
+          3552362222,
+          3551530760,
+          3553097800,
+          2,
+          783520
+        ]
+      ]
+    ],
+    "pause": {
+      "vi": 4104,
+      "ack_seconds": 0.014999999955762178,
+      "paused_seconds": 1.25,
+      "resume_seconds": 0.0,
+      "owned_pid": 11088,
+      "hidden": true
+    },
+    "phase_after_pause": {
+      "samples": 988,
+      "repeated_phases": 0,
+      "backward_phases": 0,
+      "phase_step_counts": {
+        "0.5000": 984,
+        "2.5000": 3
+      },
+      "present_interval_ms": {
+        "median": 8.343,
+        "p99": 11.391,
+        "maximum": 29.51
+      },
+      "expected_phase_step": 0.5,
+      "uneven_phase_steps": 3
+    },
+    "all_runs_muted": true,
+    "hidden_owned_windows": true,
+    "copied_save_only": true,
+    "functional_checks_passed": true,
+    "performance_acceptance": false,
+    "phase_limit": "988 post-pause samples have zero repeats/rewinds but three skipped phase steps; uniform high-load cadence is not established"
+  },
+  "rejected_experiment": {
+    "ordinary_instruction_quantum": 512,
+    "before_bins": [
+      {
+        "vi": [
+          4000,
+          4500
+        ],
+        "output": 119.44353926661428,
+        "scenes": 29.47152523529299,
+        "interval_ms": {
+          "n": 997,
+          "median": 8.338,
+          "p99": 9.088,
+          "max": 21.955
+        },
+        "update_ms": {
+          "n": 246,
+          "median": 33.452,
+          "p99": 45.893,
+          "max": 57.057
+        },
+        "vi_deltas": {
+          "2": 240,
+          "3": 6
+        }
+      },
+      {
+        "vi": [
+          4500,
+          4800
+        ],
+        "output": 119.91905463811926,
+        "scenes": 29.779898568466283,
+        "interval_ms": {
+          "n": 600,
+          "median": 8.335,
+          "p99": 8.613,
+          "max": 8.745
+        },
+        "update_ms": {
+          "n": 149,
+          "median": 33.419,
+          "p99": 35.822,
+          "max": 37.257
+        },
+        "vi_deltas": {
+          "2": 149
+        }
+      },
+      {
+        "vi": [
+          4800,
+          5400
+        ],
+        "output": 119.92751269839796,
+        "scenes": 29.832218216989176,
+        "interval_ms": {
+          "n": 1202,
+          "median": 8.337,
+          "p99": 8.565,
+          "max": 9.037
+        },
+        "update_ms": {
+          "n": 299,
+          "median": 33.412,
+          "p99": 35.861,
+          "max": 36.681
+        },
+        "vi_deltas": {
+          "2": 299
+        }
+      },
+      {
+        "vi": [
+          5400,
+          5800
+        ],
+        "output": 118.08588039475795,
+        "scenes": 27.30829762623373,
+        "interval_ms": {
+          "n": 787,
+          "median": 8.338,
+          "p99": 13.807,
+          "max": 22.64
+        },
+        "update_ms": {
+          "n": 182,
+          "median": 33.775999999999996,
+          "p99": 57.813,
+          "max": 63.093
+        },
+        "vi_deltas": {
+          "2": 150,
+          "3": 31,
+          "4": 1
+        }
+      }
+    ],
+    "after_bins": [
+      {
+        "vi": [
+          4000,
+          4500
+        ],
+        "output": 119.4288137121545,
+        "scenes": 29.37756963802997,
+        "interval_ms": {
+          "n": 996,
+          "median": 8.337,
+          "p99": 9.142,
+          "max": 23.524
+        },
+        "update_ms": {
+          "n": 245,
+          "median": 33.437,
+          "p99": 46.838,
+          "max": 53.771
+        },
+        "vi_deltas": {
+          "2": 239,
+          "3": 6
+        }
+      },
+      {
+        "vi": [
+          4500,
+          4800
+        ],
+        "output": 113.28516424258315,
+        "scenes": 23.493232654876646,
+        "interval_ms": {
+          "n": 569,
+          "median": 8.342,
+          "p99": 24.978,
+          "max": 34.883
+        },
+        "update_ms": {
+          "n": 118,
+          "median": 40.0525,
+          "p99": 70.994,
+          "max": 74.201
+        },
+        "vi_deltas": {
+          "2": 62,
+          "3": 50,
+          "4": 5,
+          "5": 1
+        }
+      },
+      {
+        "vi": [
+          4800,
+          5400
+        ],
+        "output": 112.42734944678747,
+        "scenes": 24.783984589158482,
+        "interval_ms": {
+          "n": 1125,
+          "median": 8.344,
+          "p99": 25.405,
+          "max": 40.559
+        },
+        "update_ms": {
+          "n": 248,
+          "median": 35.7445,
+          "p99": 64.344,
+          "max": 82.367
+        },
+        "vi_deltas": {
+          "2": 155,
+          "3": 86,
+          "4": 6,
+          "5": 1
+        }
+      },
+      {
+        "vi": [
+          5400,
+          5800
+        ],
+        "output": 118.16024056166998,
+        "scenes": 28.00502532957197,
+        "interval_ms": {
+          "n": 789,
+          "median": 8.341,
+          "p99": 10.399,
+          "max": 29.629
+        },
+        "update_ms": {
+          "n": 187,
+          "median": 33.616,
+          "p99": 54.292,
+          "max": 67.775
+        },
+        "vi_deltas": {
+          "2": 164,
+          "3": 22,
+          "4": 1
+        }
+      }
+    ],
+    "decision": "No demonstrated performance benefit; restored 128"
+  },
+  "private_evidence_directory": "D:/JFG-private/high-refresh-20261011/combat-20261013",
+  "public_release": false,
+  "delivery": {
+    "source_commit": "a93faa5ef61b86536327ffa83d48fc95835a21ff",
+    "runtime_sha256": "e7e3af29fd9aeec9e037da93a27d0e50272ba7bbb6b4ac77eb5f6536dd2d6fc5",
+    "performance_accepted": true,
+    "delivered": true,
+    "manifest_verified": 14,
+    "launcher_init_passed": true,
+    "muted_tests": true,
+    "owner_profile_preserved": true,
+    "owner_live_validation_pending": true,
+    "public_release": false,
+    "delivered_at_utc": "2026-10-13T13:34:19.487993+00:00",
+    "package_name": "high-refresh-combat-spans-20261013"
+  },
+  "implementation_commit": "83cd8af0bad951d27939adadb74f374840d1303d",
+  "candidate_retained_on_D": true,
+  "newer_qualification": "combat-native-spans.json"
+}

@@ -1,0 +1,1064 @@
+{
+  "schema": 1,
+  "issue": "RENDER-003",
+  "status": "Semantic character/camera interpolation tested and delivered locally; owner visual acceptance pending; jitter and coverage limits remain open",
+  "source_parent": "8fdf97a68f9f46454c3aee944deafaf5d275e432",
+  "candidate_runtime_sha256": "71f59d66fc20e62f85cc3c2c280e72a85b02aee61e0de5a87adf45fe80f906b4",
+  "implementation": "Actor lifetime / instance / model / camera / joint / logical vertex history. World-space character vertex endpoints followed by the same interpolated camera phase.",
+  "unit_tests": {
+    "count": 7,
+    "log_sha256": "76332eeb0034755348c840c3764ad42ef2810925fefc23dcc8d6001d2b28f661",
+    "scope": [
+      "actor retirement and reuse",
+      "level/camera changes",
+      "invalid guest memory",
+      "cadence gaps and cuts",
+      "ambiguous UV clones",
+      "coherent actor fallback",
+      "coincident vertices across different joints and a moving camera",
+      "F3DDKR texture behavior",
+      "original timing and native event batching"
+    ]
+  },
+  "route_qualification": {
+    "runtime_revision": "v3 before bounded-reader/fallback hardening",
+    "cases": [
+      {
+        "case": "new-idle",
+        "runtime_sha256": "382416501b7685c5a8135626785b350e31141d4288ab6094eb4682c49dd54ec2",
+        "muted": true,
+        "hidden": true,
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 119.90838520269308,
+            "scenes": 29.87728354939467,
+            "interval_ms": {
+              "n": 1802,
+              "median": 8.337,
+              "p99": 8.638,
+              "max": 9.489
+            },
+            "update_ms": {
+              "n": 449,
+              "median": 33.452,
+              "p99": 34.488,
+              "max": 34.848
+            },
+            "vi_deltas": {
+              "2": 449
+            }
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 119.77378325556522,
+            "scenes": 29.793728584821846,
+            "interval_ms": {
+              "n": 800,
+              "median": 8.339,
+              "p99": 8.715,
+              "max": 11.922
+            },
+            "update_ms": {
+              "n": 199,
+              "median": 33.461,
+              "p99": 34.179,
+              "max": 34.514
+            },
+            "vi_deltas": {
+              "2": 199
+            }
+          },
+          {
+            "vi": [
+              4113,
+              4275
+            ],
+            "output": 119.92608999490685,
+            "scenes": 29.61138024565601,
+            "interval_ms": {
+              "n": 324,
+              "median": 8.3355,
+              "p99": 8.645,
+              "max": 8.889
+            },
+            "update_ms": {
+              "n": 80,
+              "median": 33.465999999999994,
+              "p99": 33.856,
+              "max": 34.403
+            },
+            "vi_deltas": {
+              "2": 80
+            }
+          }
+        ],
+        "drops": 0,
+        "audio_device_underruns": 0,
+        "observed_input_effect": {
+          "yaw_changed": false,
+          "moved": false,
+          "first": {
+            "vi": 4011,
+            "yaw": 32768,
+            "xyz": [
+              19.0,
+              -101.98999786376953,
+              199.0
+            ],
+            "camera_angles": [
+              0,
+              5349
+            ]
+          },
+          "last": {
+            "vi": 4349,
+            "yaw": 32768,
+            "xyz": [
+              19.0,
+              -101.98999786376953,
+              199.0
+            ],
+            "camera_angles": [
+              0,
+              5349
+            ]
+          }
+        }
+      },
+      {
+        "case": "new-move",
+        "runtime_sha256": "382416501b7685c5a8135626785b350e31141d4288ab6094eb4682c49dd54ec2",
+        "muted": true,
+        "hidden": true,
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 119.9034149064484,
+            "scenes": 29.859474926786095,
+            "interval_ms": {
+              "n": 1803,
+              "median": 8.34,
+              "p99": 8.667,
+              "max": 16.072
+            },
+            "update_ms": {
+              "n": 449,
+              "median": 33.44,
+              "p99": 34.681,
+              "max": 34.997
+            },
+            "vi_deltas": {
+              "2": 449
+            }
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 119.92078358599582,
+            "scenes": 29.56950828147842,
+            "interval_ms": {
+              "n": 803,
+              "median": 8.339,
+              "p99": 8.743,
+              "max": 8.896
+            },
+            "update_ms": {
+              "n": 198,
+              "median": 33.444,
+              "p99": 34.783,
+              "max": 52.361
+            },
+            "vi_deltas": {
+              "2": 196,
+              "3": 2
+            }
+          },
+          {
+            "vi": [
+              4113,
+              4275
+            ],
+            "output": 119.91925436872506,
+            "scenes": 29.609692436722238,
+            "interval_ms": {
+              "n": 324,
+              "median": 8.338,
+              "p99": 8.602,
+              "max": 8.896
+            },
+            "update_ms": {
+              "n": 80,
+              "median": 33.4405,
+              "p99": 33.969,
+              "max": 34.704
+            },
+            "vi_deltas": {
+              "2": 80
+            }
+          }
+        ],
+        "drops": 0,
+        "audio_device_underruns": 0,
+        "observed_input_effect": {
+          "yaw_changed": false,
+          "moved": true,
+          "first": {
+            "vi": 4011,
+            "yaw": 32768,
+            "xyz": [
+              19.0,
+              14.069043159484863,
+              613.375
+            ],
+            "camera_angles": [
+              0,
+              5349
+            ]
+          },
+          "last": {
+            "vi": 4147,
+            "yaw": 32768,
+            "xyz": [
+              19.0,
+              4.482735633850098,
+              1165.875
+            ],
+            "camera_angles": [
+              0,
+              5349
+            ]
+          }
+        }
+      },
+      {
+        "case": "new-camera",
+        "runtime_sha256": "382416501b7685c5a8135626785b350e31141d4288ab6094eb4682c49dd54ec2",
+        "muted": true,
+        "hidden": true,
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 119.90379749699159,
+            "scenes": 29.87614044181422,
+            "interval_ms": {
+              "n": 1802,
+              "median": 8.338,
+              "p99": 8.617,
+              "max": 11.782
+            },
+            "update_ms": {
+              "n": 449,
+              "median": 33.429,
+              "p99": 36.87,
+              "max": 37.304
+            },
+            "vi_deltas": {
+              "2": 449
+            }
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 119.93590840669862,
+            "scenes": 29.79681120216358,
+            "interval_ms": {
+              "n": 801,
+              "median": 8.337,
+              "p99": 8.561,
+              "max": 9.111
+            },
+            "update_ms": {
+              "n": 199,
+              "median": 33.364,
+              "p99": 36.971,
+              "max": 37.867
+            },
+            "vi_deltas": {
+              "2": 199
+            }
+          },
+          {
+            "vi": [
+              4113,
+              4275
+            ],
+            "output": 119.93221416403162,
+            "scenes": 29.70457316756201,
+            "interval_ms": {
+              "n": 323,
+              "median": 8.342,
+              "p99": 8.546,
+              "max": 8.762
+            },
+            "update_ms": {
+              "n": 80,
+              "median": 33.329499999999996,
+              "p99": 36.791,
+              "max": 37.009
+            },
+            "vi_deltas": {
+              "2": 80
+            }
+          }
+        ],
+        "drops": 0,
+        "audio_device_underruns": 0,
+        "observed_input_effect": {
+          "yaw_changed": true,
+          "moved": false,
+          "first": {
+            "vi": 4011,
+            "yaw": 29648,
+            "xyz": [
+              19.0,
+              -101.98999786376953,
+              199.0
+            ],
+            "camera_angles": [
+              3120,
+              5351
+            ]
+          },
+          "last": {
+            "vi": 4348,
+            "yaw": 25568,
+            "xyz": [
+              19.0,
+              -101.98999786376953,
+              199.0
+            ],
+            "camera_angles": [
+              7200,
+              5351
+            ]
+          }
+        }
+      },
+      {
+        "case": "new-combined",
+        "runtime_sha256": "382416501b7685c5a8135626785b350e31141d4288ab6094eb4682c49dd54ec2",
+        "muted": true,
+        "hidden": true,
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 119.87843980272879,
+            "scenes": 29.86982212620712,
+            "interval_ms": {
+              "n": 1802,
+              "median": 8.337,
+              "p99": 8.635,
+              "max": 14.721
+            },
+            "update_ms": {
+              "n": 449,
+              "median": 33.417,
+              "p99": 36.54,
+              "max": 37.202
+            },
+            "vi_deltas": {
+              "2": 449
+            }
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 119.518186335426,
+            "scenes": 27.48918285714798,
+            "interval_ms": {
+              "n": 800,
+              "median": 8.338,
+              "p99": 8.857,
+              "max": 19.903
+            },
+            "update_ms": {
+              "n": 184,
+              "median": 33.5255,
+              "p99": 52.863,
+              "max": 52.987
+            },
+            "vi_deltas": {
+              "2": 153,
+              "3": 31
+            }
+          },
+          {
+            "vi": [
+              4113,
+              4275
+            ],
+            "output": 119.64433206408465,
+            "scenes": 26.090664313040264,
+            "interval_ms": {
+              "n": 321,
+              "median": 8.34,
+              "p99": 8.697,
+              "max": 11.389
+            },
+            "update_ms": {
+              "n": 70,
+              "median": 33.54,
+              "p99": 52.863,
+              "max": 52.876
+            },
+            "vi_deltas": {
+              "3": 19,
+              "2": 51
+            }
+          }
+        ],
+        "drops": 0,
+        "audio_device_underruns": 0,
+        "observed_input_effect": {
+          "yaw_changed": true,
+          "moved": true,
+          "first": {
+            "vi": 4010,
+            "yaw": 30272,
+            "xyz": [
+              -32.23698425292969,
+              12.452897071838379,
+              609.2376708984375
+            ],
+            "camera_angles": [
+              2496,
+              5349
+            ]
+          },
+          "last": {
+            "vi": 4349,
+            "yaw": 25568,
+            "xyz": [
+              -257.8971252441406,
+              -46.208248138427734,
+              1152.154052734375
+            ],
+            "camera_angles": [
+              7200,
+              5349
+            ]
+          }
+        }
+      },
+      {
+        "case": "old-combined",
+        "runtime_sha256": "a14d9d77fc98ef6be1999a3ea9492d60467a4b107e376c66d431fbfd70231259",
+        "muted": true,
+        "hidden": true,
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 119.65562061492746,
+            "scenes": 29.86402093168562,
+            "interval_ms": {
+              "n": 1799,
+              "median": 8.339,
+              "p99": 9.05,
+              "max": 9.956
+            },
+            "update_ms": {
+              "n": 449,
+              "median": 33.412,
+              "p99": 33.972,
+              "max": 34.085
+            },
+            "vi_deltas": {
+              "2": 449
+            }
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 119.64295659512658,
+            "scenes": 27.471343860612503,
+            "interval_ms": {
+              "n": 797,
+              "median": 8.339,
+              "p99": 9.086,
+              "max": 11.159
+            },
+            "update_ms": {
+              "n": 183,
+              "median": 33.579,
+              "p99": 52.293,
+              "max": 52.612
+            },
+            "vi_deltas": {
+              "2": 152,
+              "3": 31
+            }
+          },
+          {
+            "vi": [
+              4113,
+              4275
+            ],
+            "output": 119.55997487389754,
+            "scenes": 26.651139909970972,
+            "interval_ms": {
+              "n": 323,
+              "median": 8.338,
+              "p99": 9.078,
+              "max": 11.159
+            },
+            "update_ms": {
+              "n": 72,
+              "median": 33.611000000000004,
+              "p99": 52.293,
+              "max": 52.612
+            },
+            "vi_deltas": {
+              "3": 16,
+              "2": 56
+            }
+          }
+        ],
+        "drops": 0,
+        "audio_device_underruns": 0,
+        "observed_input_effect": {
+          "yaw_changed": true,
+          "moved": true,
+          "first": {
+            "vi": 4011,
+            "yaw": 30080,
+            "xyz": [
+              -42.373661041259766,
+              8.611374855041504,
+              648.5771484375
+            ],
+            "camera_angles": [
+              2688,
+              5349
+            ]
+          },
+          "last": {
+            "vi": 4348,
+            "yaw": 25568,
+            "xyz": [
+              -257.8971252441406,
+              -46.208248138427734,
+              1152.154052734375
+            ],
+            "camera_angles": [
+              7200,
+              5349
+            ]
+          }
+        }
+      },
+      {
+        "case": "new-combined-360",
+        "runtime_sha256": "382416501b7685c5a8135626785b350e31141d4288ab6094eb4682c49dd54ec2",
+        "muted": true,
+        "hidden": true,
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 343.24219409877384,
+            "scenes": 29.850037797859667,
+            "interval_ms": {
+              "n": 5163,
+              "median": 2.778,
+              "p99": 5.817,
+              "max": 29.783
+            },
+            "update_ms": {
+              "n": 449,
+              "median": 33.447,
+              "p99": 34.38,
+              "max": 35.479
+            },
+            "vi_deltas": {
+              "2": 449
+            }
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 350.1156956191605,
+            "scenes": 27.439474217690094,
+            "interval_ms": {
+              "n": 2335,
+              "median": 2.777,
+              "p99": 3.976,
+              "max": 41.512
+            },
+            "update_ms": {
+              "n": 183,
+              "median": 33.541,
+              "p99": 52.368,
+              "max": 54.184
+            },
+            "vi_deltas": {
+              "2": 152,
+              "3": 31
+            }
+          },
+          {
+            "vi": [
+              4113,
+              4275
+            ],
+            "output": 345.7271620972874,
+            "scenes": 26.422635639297532,
+            "interval_ms": {
+              "n": 929,
+              "median": 2.777,
+              "p99": 4.267,
+              "max": 41.512
+            },
+            "update_ms": {
+              "n": 71,
+              "median": 33.778,
+              "p99": 52.368,
+              "max": 53.115
+            },
+            "vi_deltas": {
+              "3": 17,
+              "2": 54
+            }
+          }
+        ],
+        "drops": 0,
+        "audio_device_underruns": 0,
+        "observed_input_effect": {
+          "yaw_changed": true,
+          "moved": true,
+          "first": {
+            "vi": 4011,
+            "yaw": 30128,
+            "xyz": [
+              -38.23209762573242,
+              11.537659645080566,
+              632.86376953125
+            ],
+            "camera_angles": [
+              2640,
+              5349
+            ]
+          },
+          "last": {
+            "vi": 4348,
+            "yaw": 25568,
+            "xyz": [
+              -257.8971252441406,
+              -46.208248138427734,
+              1152.154052734375
+            ],
+            "camera_angles": [
+              7200,
+              5349
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "visual": {
+    "benchmark": false,
+    "same_guest_and_rt64_memory": true,
+    "runs": [
+      {
+        "case": "old",
+        "runtime_sha256": "a14d9d77fc98ef6be1999a3ea9492d60467a4b107e376c66d431fbfd70231259",
+        "captured_groups": [
+          {
+            "present": 2920,
+            "frames": 6,
+            "unique_images": 1,
+            "body_changes": [
+              {
+                "from": "2920-0.ppm",
+                "to": "2920-1.ppm",
+                "body_pixels_changed_above_16": 0
+              },
+              {
+                "from": "2920-1.ppm",
+                "to": "2920-2.ppm",
+                "body_pixels_changed_above_16": 0
+              },
+              {
+                "from": "2920-2.ppm",
+                "to": "2920-3.ppm",
+                "body_pixels_changed_above_16": 0
+              },
+              {
+                "from": "2920-3.ppm",
+                "to": "2920-4.ppm",
+                "body_pixels_changed_above_16": 0
+              },
+              {
+                "from": "2920-4.ppm",
+                "to": "2920-5.ppm",
+                "body_pixels_changed_above_16": 0
+              }
+            ],
+            "dark_blue_body_pixels_changed_above_16": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "present": 2923,
+            "frames": 6,
+            "unique_images": 6,
+            "body_changes": [
+              {
+                "from": "2923-0.ppm",
+                "to": "2923-1.ppm",
+                "body_pixels_changed_above_16": 320
+              },
+              {
+                "from": "2923-1.ppm",
+                "to": "2923-2.ppm",
+                "body_pixels_changed_above_16": 329
+              },
+              {
+                "from": "2923-2.ppm",
+                "to": "2923-3.ppm",
+                "body_pixels_changed_above_16": 314
+              },
+              {
+                "from": "2923-3.ppm",
+                "to": "2923-4.ppm",
+                "body_pixels_changed_above_16": 295
+              },
+              {
+                "from": "2923-4.ppm",
+                "to": "2923-5.ppm",
+                "body_pixels_changed_above_16": 268
+              }
+            ],
+            "dark_blue_body_pixels_changed_above_16": [
+              47,
+              55,
+              48,
+              52,
+              42
+            ]
+          }
+        ]
+      },
+      {
+        "case": "new",
+        "runtime_sha256": "71f59d66fc20e62f85cc3c2c280e72a85b02aee61e0de5a87adf45fe80f906b4",
+        "captured_groups": [
+          {
+            "present": 2921,
+            "frames": 6,
+            "unique_images": 6,
+            "body_changes": [
+              {
+                "from": "2921-0.ppm",
+                "to": "2921-1.ppm",
+                "body_pixels_changed_above_16": 1448
+              },
+              {
+                "from": "2921-1.ppm",
+                "to": "2921-2.ppm",
+                "body_pixels_changed_above_16": 1413
+              },
+              {
+                "from": "2921-2.ppm",
+                "to": "2921-3.ppm",
+                "body_pixels_changed_above_16": 1364
+              },
+              {
+                "from": "2921-3.ppm",
+                "to": "2921-4.ppm",
+                "body_pixels_changed_above_16": 1324
+              },
+              {
+                "from": "2921-4.ppm",
+                "to": "2921-5.ppm",
+                "body_pixels_changed_above_16": 1289
+              }
+            ],
+            "dark_blue_body_pixels_changed_above_16": [
+              427,
+              434,
+              441,
+              439,
+              433
+            ]
+          },
+          {
+            "present": 2923,
+            "frames": 2,
+            "unique_images": 2,
+            "body_changes": [
+              {
+                "from": "2923-0.ppm",
+                "to": "2923-1.ppm",
+                "body_pixels_changed_above_16": 1138
+              }
+            ],
+            "dark_blue_body_pixels_changed_above_16": [
+              677
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "storage_relocation": {
+    "directories": 16,
+    "files": 6612,
+    "bytes": 8036767841,
+    "sha256_verified": true,
+    "old_paths_preserved_by_junction": true,
+    "guard_ledger_moved": false
+  },
+  "limits": [
+    "Original-mode reported character seams and delayed lighting are not resolved.",
+    "No local skeleton quaternion hierarchy or per-render input/camera simulation.",
+    "Unsupported geometry/effect paths use the existing conservative matcher.",
+    "Hidden present-return measurements do not qualify physical scanout or owner visual acceptance.",
+    "Both old/new combined-motion routes hit the existing 31-update three-VI recovery episode.",
+    "360 cap is a target, not a steady-360 guarantee; v3 combined case averaged about 350 with a 41.5 ms outlier.",
+    "Full game, camera cuts, effect/lifetime transitions and long-session audio remain unqualified."
+  ],
+  "private_artifact_ids": [
+    "semantic-interpolation-v1",
+    "semantic-route-qualification",
+    "semantic-visual-output",
+    "semantic-active-visual"
+  ],
+  "public_release": false,
+  "source_commit": "01a35a13539a89e8842b8491eb37565d42b03de8",
+  "runtime_sha256": "71f59d66fc20e62f85cc3c2c280e72a85b02aee61e0de5a87adf45fe80f906b4",
+  "final_qualification": {
+    "normal_play": [
+      {
+        "case": "play-120-vsync",
+        "runtime_sha256": "71f59d66fc20e62f85cc3c2c280e72a85b02aee61e0de5a87adf45fe80f906b4",
+        "muted": true,
+        "hidden": true,
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 119.92766314366969,
+            "scenes": 29.84895828797544,
+            "interval_ms": {
+              "n": 1804,
+              "median": 8.337,
+              "p99": 8.629,
+              "max": 14.006
+            },
+            "update_ms": {
+              "n": 449,
+              "median": 33.435,
+              "p99": 34.594,
+              "max": 35.575
+            },
+            "vi_deltas": {
+              "2": 449
+            }
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 119.8658763930465,
+            "scenes": 27.488039323217432,
+            "interval_ms": {
+              "n": 798,
+              "median": 8.337,
+              "p99": 8.637,
+              "max": 10.2
+            },
+            "update_ms": {
+              "n": 183,
+              "median": 33.548,
+              "p99": 51.996,
+              "max": 52.621
+            },
+            "vi_deltas": {
+              "2": 152,
+              "3": 31
+            }
+          },
+          {
+            "vi": [
+              4113,
+              4275
+            ],
+            "output": 119.79106380711434,
+            "scenes": 26.089464816886867,
+            "interval_ms": {
+              "n": 326,
+              "median": 8.341,
+              "p99": 8.663,
+              "max": 10.2
+            },
+            "update_ms": {
+              "n": 71,
+              "median": 33.695,
+              "p99": 52.232,
+              "max": 52.621
+            },
+            "vi_deltas": {
+              "3": 19,
+              "2": 52
+            }
+          }
+        ],
+        "drops": 0,
+        "audio_events": {
+          "audio-queue": 2252,
+          "audio-start": 1,
+          "audio-anchor-drain-begin": 1,
+          "audio-anchor-drain-end": 1
+        }
+      },
+      {
+        "case": "play-360",
+        "runtime_sha256": "71f59d66fc20e62f85cc3c2c280e72a85b02aee61e0de5a87adf45fe80f906b4",
+        "muted": true,
+        "hidden": true,
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 340.5033373249295,
+            "scenes": 29.848886852575816,
+            "interval_ms": {
+              "n": 5122,
+              "median": 2.779,
+              "p99": 6.468,
+              "max": 28.767
+            },
+            "update_ms": {
+              "n": 449,
+              "median": 33.431,
+              "p99": 34.452,
+              "max": 34.834
+            },
+            "vi_deltas": {
+              "2": 449
+            }
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 345.3809756120239,
+            "scenes": 27.444515213634556,
+            "interval_ms": {
+              "n": 2303,
+              "median": 2.778,
+              "p99": 4.228,
+              "max": 42.52
+            },
+            "update_ms": {
+              "n": 183,
+              "median": 33.555,
+              "p99": 52.077,
+              "max": 52.359
+            },
+            "vi_deltas": {
+              "2": 152,
+              "3": 31
+            }
+          },
+          {
+            "vi": [
+              4113,
+              4275
+            ],
+            "output": 335.32244435997643,
+            "scenes": 24.057349760925458,
+            "interval_ms": {
+              "n": 906,
+              "median": 2.778,
+              "p99": 4.47,
+              "max": 42.52
+            },
+            "update_ms": {
+              "n": 65,
+              "median": 35.643,
+              "p99": 52.112,
+              "max": 52.359
+            },
+            "vi_deltas": {
+              "3": 30,
+              "2": 35
+            }
+          }
+        ],
+        "drops": 0,
+        "audio_events": {
+          "audio-queue": 2253,
+          "audio-start": 1,
+          "audio-anchor-drain-begin": 1,
+          "audio-anchor-drain-end": 1
+        }
+      }
+    ],
+    "original_clock_reference": {
+      "exact_retained_memory": true,
+      "hashes": {
+        "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619",
+        "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+        "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf"
+      }
+    },
+    "screenshot_readback_enabled_during_normal_play": false
+  },
+  "local_delivery": {
+    "source_commit": "01a35a13539a89e8842b8491eb37565d42b03de8",
+    "runtime_sha256": "71f59d66fc20e62f85cc3c2c280e72a85b02aee61e0de5a87adf45fe80f906b4",
+    "manifest_verified": 14,
+    "launcher_init_passed": true,
+    "muted_tests": true,
+    "owner_profile_preserved": true,
+    "owner_live_validation_pending": true,
+    "public_release": false,
+    "delivered_at_utc": "2026-10-13T00:27:42.204025+00:00",
+    "package_name": "high-refresh-semantic-20261013",
+    "desktop_shortcut_updated": true,
+    "package_drive": "D:"
+  }
+}

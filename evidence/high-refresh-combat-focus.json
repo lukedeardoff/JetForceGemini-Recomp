@@ -1,0 +1,255 @@
+{
+  "schema": 1,
+  "date_utc": "2026-10-15",
+  "status": "captured stale overlay cache corrected and qualified; local preview installed, broader live review pending",
+  "source_parent": "e51b0af2c89d8ad3052c7aedf51b040c06a6a5a5",
+  "desktop_runtime_sha256": "1b0bdd0fbfe25eacbf3ed0417c1607a70eed49d4198a6add62f3fba12900f0db",
+  "matrix_qualification_runtime_sha256": "ad17e4c3357f85ee46b65c12a1e3672d203955bbb48bba29181ac6d87fc3bba0",
+  "diagnostic_runtime_sha256": "bbed817e723524dc1bee0118150bcda8ccd2c6745bb4acf53701e998aa0e51b3",
+  "private_artifacts": {
+    "shared-matrix-live-review.json": {
+      "sha256": "83c79587ce32822a98c5f936bec56e434af357225611c45d4c04df0bb229f4fc",
+      "bytes": 32692
+    },
+    "shared-matrix-full-original-review.json": {
+      "sha256": "73dd4731df10154903c2c506669c37af23a2da8086422a7218c5c4666fc1dbb1",
+      "bytes": 3982
+    },
+    "shared-matrix-remaining-holds.json": {
+      "sha256": "2be188e238e6b74c4ddfae5eaef1590257c86fd77793d6123ad1ecd2acd38987",
+      "bytes": 8582
+    },
+    "shared360-abba-review.json": {
+      "sha256": "244ea5453ed092869a0488603f193a72a2d40188bcf6a3ba57f9850e013d0f5d",
+      "bytes": 15113
+    },
+    "extended-native-comparison.json": {
+      "sha256": "f60cf365ea10b09665e942ccc22655c1c9471f2f417f40f8da5e8e07bda58c47",
+      "bytes": 11529
+    },
+    "span-length-potential.json": {
+      "sha256": "7bdc66a7b2c1ce3f328cb3f633e3d972c5cda8a7b3f643b98918b0f5d6d8731f",
+      "bytes": 300782
+    },
+    "360-slow-run-cost-review.json": {
+      "sha256": "98d73376f4f60da98de6036b31bc9983d39e2fc7626de02b2aa62f10505581b4",
+      "bytes": 26914
+    },
+    "camera-supplement-replay-review.json": {
+      "sha256": "fc69596de3742e34b720a325ae15b737b2216b172198b59d22fc2d890d3bf201",
+      "bytes": 10977
+    },
+    "camera-operand-review.json": {
+      "sha256": "bbb52f0d9aca3eda22c78eb30feb6a156015f5db08c31e7afd86906aa542fedd",
+      "bytes": 36034
+    },
+    "remaining-camera-motion-review.json": {
+      "sha256": "22eef16f1e0204b71c14e0160cf87350a7f4920f54ac88eccc2a7a965a665c46",
+      "bytes": 6812
+    },
+    "camera-zoom-replay-review.json": {
+      "sha256": "0121468df30ce594f926e5f50411962ff8967e4517389260316aad5bcd815529",
+      "bytes": 10784
+    },
+    "camera-zoom-full-original-review.json": {
+      "sha256": "89688f6612c5d0f469efe9ff275e791c4a0eadf26726f1e7c764c53cb9b7fc53",
+      "bytes": 3966
+    },
+    "transport-timing-review.json": {
+      "sha256": "2a9fe556e8308bc3a6d671f55f9ac9d2c7372604727f6b641c9a3e227c3f94a3",
+      "bytes": 3140
+    },
+    "single-policy-cost-review.json": {
+      "sha256": "aa8921c894a6f46221fab43eb8527eceed6243e109eef8385fa8b826e2687600",
+      "bytes": 21336
+    },
+    "beam-phase-reference-review.json": {
+      "sha256": "d494f2434934d868cacd746441ce1558fd34d3ba83714b325bb647a1a4ea6707",
+      "bytes": 5158
+    },
+    "overlay-cold-guest-pause-review.json": {
+      "sha256": "f94a5217dc6d7965f4d413862962905c81c88ece1571e39ad35991af2a8224d2",
+      "bytes": 16088
+    },
+    "overlay-cold-native120-review.json": {
+      "sha256": "70a31022e44ef88c79a7773be2ad1da2a5240bc42b7f0a41ef93bb3aff634d44",
+      "bytes": 4359
+    },
+    "overlay-cold-native360-review.json": {
+      "sha256": "6808243a9de26b3d24d187adf152c78971ebb4b8abcfda2acfcbb3e61ab658c0",
+      "bytes": 4433
+    },
+    "path-cache-after-return-review.json": {
+      "sha256": "942090b126cb8ea2a17ae701e2d2e8ee0a7fc79495b135dda8cd6e7eea316022",
+      "bytes": 15823
+    },
+    "path-cache-multiple-return-review.json": {
+      "sha256": "470af8a434bfd5911d092c06d72fe195dc69f24a15ad1fbb1831f27f009e960f",
+      "bytes": 22952
+    }
+  },
+  "verified_scope": [
+    "Compiled semantic-history oracle preserves matching including conflicts and NaN poisoning.",
+    "Dense recorded-clock comparisons preserve guest RAM, save and instruction progression.",
+    "Original 17000-retrace comparison preserves every guest byte and reference result.",
+    "Equal finite cross-slot matrices recover camera matching without changed old anchors or lost vertex matches in bounded same-input captures.",
+    "Muted native 120/360 and pause checks are bounded; completion alone is not a performance pass."
+  ],
+  "remaining": [
+    "Combat source cadence still reaches the mid-to-high 20s; damage/full-route timing remains open.",
+    "One 360 normal-Play run collapses to about 11 updates/s with audio underruns; monitored ABBA did not reproduce that collapse.",
+    "Captured stale path-cache write corrected in targeted/extended tests; broader live stability remains unverified and earlier distinct exceptions are not all assigned this cause.",
+    "A small number of unanchored camera holds remain; exact owner late-room and physical-display acceptance are pending.",
+    "Clipped ground-shadow/mask cadence has no qualified fix.",
+    "Unlimited starvation/pacing remains open; rejected scene-age scheduling is absent."
+  ],
+  "unchanged_policy": {
+    "native_span_limit": 16,
+    "host_clock_poll_instructions": 128,
+    "original_simulation_timing": true,
+    "gpu_resource_waits": true
+  },
+  "guard": {
+    "investigation": "high-refresh-rendering-20261011",
+    "enabled": true,
+    "counters_reset": false,
+    "same_recovery_attempt": true
+  },
+  "delivery": {
+    "changed": true,
+    "timestamp_utc": "2026-10-15T00:46:41.735837+00:00",
+    "runtime_sha256": "ae65a40c6fe437d0baedb17a2a70346320976ea7e2c3f2fd532ad43ab27b9fa7",
+    "source_commit": "38847126b4ba47b7904e9d931e08e9ba13669ba2",
+    "scope": "Qualified lifetime correction plus optional formatter; no all-jitter-fixed or stable-30 claim."
+  },
+  "camera_supplement_qualification": {
+    "runtime_sha256": "914cc5d6185d6e2be7e3a9b1b970745c5d03b635859418064773eef9d05d2bbe",
+    "source_parent": "2c2fb8c1a073794a25158b85899fddd9b08c832a",
+    "comparison": {
+      "120": {
+        "gained_vertices": 9378,
+        "gained_scenes": 3,
+        "lost_vertices": 0,
+        "changed_anchors": 0,
+        "held_scenes": 11,
+        "additional_restored_vis": [
+          7733,
+          8560
+        ]
+      },
+      "360": {
+        "gained_vertices": 36463,
+        "gained_scenes": 43,
+        "lost_vertices": 0,
+        "changed_anchors": 0,
+        "held_scenes": 6,
+        "additional_restored_vis": [
+          6540,
+          10273,
+          13179
+        ]
+      }
+    },
+    "original_reference_equal": true,
+    "desktop_delivery": false,
+    "owner_visual_acceptance": false
+  },
+  "overlay_identity_qualification": {
+    "source_parent": "02dfe270d914dd50d43e2c5f2c0f92cf6d48eedb",
+    "runtime_sha256": "47021ec1c1bbef17ab08499fe29cc15a2928539d79a814b023fa61230a3856d0",
+    "dense_and_original_exact": true,
+    "original_vi": 17000,
+    "profiled_busy_inventory_median_ms_before": 0.656,
+    "profiled_busy_inventory_median_ms_after": 0.526,
+    "native_stable_30": false,
+    "desktop_delivery": false,
+    "artifacts": {
+      "inventory-verified360-review.json": {
+        "sha256": "c43b058e2920e916857b0afe5ca354f00fb08fa6dd30c5acd3f09fed20808b87",
+        "bytes": 7676
+      },
+      "inventory-rate-label-correction.json": {
+        "sha256": "c770e970a80c82122d1ed7ade134aa4b3452bcc9a13c281c230e97478c69ddd5",
+        "bytes": 1340
+      },
+      "shadow-overflow-source-evidence.json": {
+        "sha256": "015861e4f6ae6be00fec5cf83c77635836263ef99225f1ced0c37a49cad1003c",
+        "bytes": 735
+      },
+      "sync-stage-probe-normalized/costs.json": {
+        "sha256": "4e70b4a38cf2be7c122468df41884065c27e6312973d5c70886efb86c5d35b1f",
+        "bytes": 8467
+      },
+      "sync-stage-probe-normalized/restored.json": {
+        "sha256": "389b7f9b5405f32e14bfa6c26d82104dd78f4ad4832318fd5a4078976213b575",
+        "bytes": 111
+      },
+      "filtered-register-observer/fixture-result.json": {
+        "sha256": "6e26af41ca254a2659621d777fbcfbf3c6aaa81248335df181fbe4dcc86dd1c9",
+        "bytes": 1007
+      },
+      "filtered-register-native-120/register-watch-result.json": {
+        "sha256": "13f271e899d1f962233b94eb7f78e0a0b0a776799d78c88668e566459f264f9f",
+        "bytes": 152
+      }
+    }
+  },
+  "overlay_lifetime_qualification": {
+    "timestamp_utc": "2026-10-15T00:26:37.930728+00:00",
+    "runtime_sha256": "243d77a1f4e6de2a821e70a8fc5635a90ee3a08ee2e0203dca03e6752144d8b0",
+    "source_sha256": "9e0efc4873acc1e263408259ffefa60b9e11f956fa836912cc396edad73c8f5c",
+    "original_physical_ram_save_instruction_records_equal": true,
+    "original_update_records": 4754,
+    "renderer_changed_bytes": 98,
+    "renderer_change": "Exact beam scroll/reset model predicts all changed bytes; other renderer bytes equal.",
+    "beam_scroll_calls": 4176,
+    "old_phase": 280,
+    "new_phase": 56,
+    "native_runs": [
+      {
+        "case": "overlay-cold-native120",
+        "runtime_sha256": "243d77a1f4e6de2a821e70a8fc5635a90ee3a08ee2e0203dca03e6752144d8b0",
+        "vi_retraces": 17012,
+        "audio_underruns": 0,
+        "invalid_accesses": 0
+      },
+      {
+        "case": "overlay-cold-native360",
+        "runtime_sha256": "243d77a1f4e6de2a821e70a8fc5635a90ee3a08ee2e0203dca03e6752144d8b0",
+        "vi_retraces": 17007,
+        "audio_underruns": 0,
+        "invalid_accesses": 0
+      }
+    ],
+    "guest_pause_resume_cycles": 2,
+    "ownership_watch_invalid_writes_after_fix": 0,
+    "private_observers_removed": true
+  },
+  "native_coverage_correction": {
+    "date_utc": "2026-10-15T00:58:38.559232+00:00",
+    "native_level": 21,
+    "death_restart_pc": "0x80046378",
+    "death_restart_vi": 7155,
+    "largest_respawn_interval_ms": 1139.504,
+    "owner_nonfatal_loss_interval_ms": 104.659,
+    "new_native_nonfatal_loss_interval_ms": 48.616,
+    "matched_damage_comparison": false,
+    "full_owner_route": false,
+    "late_cave_fixture": {
+      "level": 26,
+      "visible": "exit marker and cave terrain",
+      "scenes": [
+        3501,
+        3505
+      ],
+      "distinct_images": 8,
+      "bridge_crates_visible": false,
+      "physical_display_verified": false
+    },
+    "evidence": [
+      "transition-call-native-review.json",
+      "health-window-cadence-review.json",
+      "lifetime-late-cave-visible-review.json"
+    ]
+  }
+}

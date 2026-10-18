@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "date": "2026-10-11",
+  "status": "local candidate verified in bounded replay; owner confirmation pending",
+  "baseline_commit": "a1f01d6c15861bff807a484e316ff654f9033ad8",
+  "affected_runtime_sha256": "b34887ed7da310b11d52d33a1382f83b4c6e521985386d3061226fe6c43d408e",
+  "candidate_runtime_sha256": "59d828e38c409ce87c2b082d29786d63a72dc901c4b2f298abae9f5a3e07619f",
+  "cause": "Independent per-batch match/fallback decisions split a shared current transform across interpolation and the endpoint.",
+  "remedy": "Use one unambiguous previous matrix for every batch sharing the same current matrix, or hold all members on conflict/unsafe geometry.",
+  "regression": {
+    "before_exit": 3221226505,
+    "after_exit": 0
+  },
+  "focused_tests": [
+    "jfg.interpolation_history",
+    "jfg.rt64_interpolation",
+    "jfg.rt64_shell",
+    "jfg.rt64_f3ddkr_texture",
+    "jfg.rt64_depth_bounds"
+  ],
+  "clean_replays": [
+    {
+      "mode": "original",
+      "fps": 60,
+      "vsync": true,
+      "exit_code": 0,
+      "seconds": 76.71799999999348,
+      "muted": true,
+      "matching_baseline": {
+        "rdram.bin": true,
+        "rdram.bin.rt64": true,
+        "jfg.flash": true
+      },
+      "original_image_identical": true
+    },
+    {
+      "mode": "custom",
+      "fps": 60,
+      "vsync": true,
+      "exit_code": 0,
+      "seconds": 76.78200000000652,
+      "muted": true,
+      "matching_baseline": {
+        "rdram.bin": true,
+        "rdram.bin.rt64": true,
+        "jfg.flash": true
+      },
+      "walk_window": {
+        "vi": [
+          4000,
+          4200
+        ],
+        "presentation_fps": 59.98892465782951,
+        "effective_targets": {
+          "60": 200
+        },
+        "intermediate_moving_renders": 111,
+        "median_ms": 16.666,
+        "p95_ms": 16.756
+      }
+    },
+    {
+      "mode": "custom",
+      "fps": 360,
+      "vsync": false,
+      "exit_code": 0,
+      "seconds": 76.70299999997951,
+      "muted": true,
+      "matching_baseline": {
+        "rdram.bin": true,
+        "rdram.bin.rt64": true,
+        "jfg.flash": true
+      },
+      "walk_window": {
+        "vi": [
+          4000,
+          4200
+        ],
+        "presentation_fps": 355.19871710229546,
+        "effective_targets": {
+          "360": 1190
+        },
+        "intermediate_moving_renders": 1102,
+        "median_ms": 2.777,
+        "p95_ms": 2.885
+      }
+    },
+    {
+      "mode": "unlimited",
+      "fps": 360,
+      "vsync": false,
+      "exit_code": 0,
+      "seconds": 78.09399999998277,
+      "muted": true,
+      "matching_baseline": {
+        "rdram.bin": true,
+        "rdram.bin.rt64": true,
+        "jfg.flash": true
+      },
+      "walk_window": {
+        "vi": [
+          4000,
+          4200
+        ],
+        "presentation_fps": 1246.6005739328257,
+        "effective_targets": {
+          "0": 4319
+        },
+        "intermediate_moving_renders": 4231,
+        "median_ms": 0.559,
+        "p95_ms": 2.109
+      }
+    }
+  ],
+  "visual_review": {
+    "scene": "Goldwood tutorial room to first bridge and Magnus dialogue",
+    "original_vs_custom": "Cyan cracks reproduced in Custom; absent in Original in this route",
+    "candidate": "Cracks removed at reviewed bridge approach and crossing captures",
+    "present_ids": [
+      2880,
+      2940
+    ],
+    "guest_state": "Guest RDRAM, renderer snapshot and save match the Original baseline",
+    "reference": "Separate muted Ares64 walk; appearance reference only, not frame-aligned image parity"
+  },
+  "limits": [
+    "Original-mode joint report remains open; not reproduced as the large terrain cracks in this route",
+    "Lighting report remains open; original-game reference also darkens Juno on the bridge, but no global lighting parity or owner acceptance is claimed",
+    "Changed vertex positions themselves are not interpolated; semantic actor identity and other characters/scenes remain unqualified",
+    "Performance is a short bridge-walk sample, not a sustained benchmark"
+  ],
+  "muted_tests": true,
+  "released": false,
+  "delivery": {
+    "runtime_source_commit": "dbc4c91f487a5a1b064ed55a49d60fa40dc536e7",
+    "package": "high-refresh-coherent-preview-20261011",
+    "desktop_shortcut": "JFG - High Refresh Preview",
+    "same_preview_profile_arguments": true,
+    "manifest_verified_files": 14,
+    "isolated_frontend_resolution_verified": true,
+    "launcher_binary_unchanged": true,
+    "owner_visual_confirmation_pending": true
+  },
+  "lighting_followup": {
+    "owner_clarification": "Returning toward the starting area, Juno stays dark after the bridge, then eventually lightens later than expected and inconsistently.",
+    "outward_replay": {
+      "vi": 10000,
+      "modes": [
+        "Original/VSync",
+        "Custom 360/VSync"
+      ],
+      "native_final_guest_renderer_save_identical": true,
+      "visual_result": "Juno returns to brighter lighting during and after the Magnus dialogue."
+    },
+    "return_replay": {
+      "vi": 6000,
+      "modes": [
+        "Original/VSync",
+        "Custom 360/VSync"
+      ],
+      "inputs": {
+        "forward_vi": [
+          4000,
+          4180
+        ],
+        "backward_vi": [
+          4240,
+          4500
+        ],
+        "idle_until_vi": 6000
+      },
+      "native_final_guest_renderer_save_identical": true,
+      "visual_result": "Dark at the bridge lip, bright on the starting-side approach and during the subsequent idle period in both modes.",
+      "reviewed_native_capture_ids": [
+        3090,
+        3120,
+        3150,
+        3180
+      ],
+      "reviewed_reference_frames": [
+        4320,
+        4350,
+        4380,
+        4410
+      ]
+    },
+    "original_game_reference": "Muted Ares64 shows the same visible dark-bridge/bright-approach pattern on the scripted return route. This is a spatial/appearance comparison, not frame-aligned timing or pixel parity.",
+    "status": "No additional inconsistent delay reproduced; owner report remains open, not fixed or dismissed.",
+    "lighting_code_changed": false,
+    "all_tests_muted": true,
+    "temporary_instrumentation_removed": true,
+    "private_evidence": [
+      "lighting-exit",
+      "lighting-exit-emulator",
+      "lighting-return",
+      "lighting-return-emulator"
+    ]
+  }
+}

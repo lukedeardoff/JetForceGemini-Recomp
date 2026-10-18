@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-10-16T22:13:59.075972+00:00",
+  "source_baseline": "2da9c32b550b0b5b2a620ae173bbde73c2811358",
+  "method": "gh issue list --state open and gh issue view including comments; source/evidence comparison; support ZIP inspection; focused UI/setup tests",
+  "open_issue_numbers": [
+    15,
+    14,
+    13,
+    4
+  ],
+  "release_ready": false,
+  "remote_mutations": false,
+  "results": [
+    {
+      "number": 15,
+      "status": "open source-confirmed Linux build blocker",
+      "record": "github-linux-native-build.md"
+    },
+    {
+      "number": 14,
+      "status": "reported startup access violation; current fix unverified; Windows release blocker",
+      "record": "github-mouse-look-startup.md"
+    },
+    {
+      "number": 13,
+      "status": "requested inversion toggle implemented and test-verified; live reporter/release pending",
+      "ui_assertions": 790,
+      "record": "github-controller-vertical-inversion.md"
+    },
+    {
+      "number": 4,
+      "status": "partial fixes; firmware/old-WSL remain open; legacy source setup",
+      "setup_assertions": 15,
+      "record": "github-windows-source-setup.md"
+    }
+  ],
+  "runtime_sha256": "313a60a9b51a0aa17e5a1a9ec5c59e3cbec0de46edf9d8db22ab477057e53e95",
+  "limits": [
+    "No new game replay or Linux build in this launcher review.",
+    "No issue closed, comment posted, tag pushed or release published.",
+    "Owner live acceptance of the local game is preserved; it does not close unrelated reports or establish universal no-dips performance."
+  ],
+  "reviewed_candidate_commit": "628d1ff40ff14ce44a6921e89e594050b290b766"
+}

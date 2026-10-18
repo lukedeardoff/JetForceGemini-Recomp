@@ -1,0 +1,679 @@
+{
+  "schema": 1,
+  "review": "1.2.0 release qualification; exact bodies only; credential/ROM/archive checks remain active",
+  "bodies": [
+    {
+      "git_blob": "f4765bee58991ce081160b787ce3c07af23a003e",
+      "sha256": "0cc44acd8b3d8ffacad6a46f73c0a2ba67adeba7a82a8173782badd74236ca63",
+      "bytes": 3295097,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "26f5b178bb1942104b18fcd13cf1eaf648694aef",
+      "sha256": "c029630da890be6e83488fb74a013ac10ddeef528eb869202dfbda153b171776",
+      "bytes": 110842,
+      "path": "docs/images/modern-controls-keyboard.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Project launcher/settings screenshot; no extracted game assets"
+    },
+    {
+      "git_blob": "2b80500051f1fdcc88edacd4582aaf5c16552ca6",
+      "sha256": "99336c0e51270017a714e60d4d0fedd0639774563f6e892d5fe7545fce1a5503",
+      "bytes": 124936,
+      "path": "docs/images/modern-controls-xbox.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Project launcher/settings screenshot; no extracted game assets"
+    },
+    {
+      "git_blob": "e5975558f8f16f8cc272787ac40ecbcf82e791a4",
+      "sha256": "111909ba60ed287785d6816386b6d6e1c15af9b1b42b41d80351661bb9680a28",
+      "bytes": 51762,
+      "path": "docs/images/startup-screen.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Project launcher/settings screenshot; no extracted game assets"
+    },
+    {
+      "git_blob": "d3169e72cc44ab667f14565401f6205ea4774448",
+      "sha256": "7268204d05ab240abfa725f631f5ae35a892bd5a5e90b423d915dcc52a9deac7",
+      "bytes": 26469,
+      "path": "docs/images/video-settings-native.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Project launcher/settings screenshot; no extracted game assets"
+    },
+    {
+      "git_blob": "28e9033bb4d1f653981b72d28cb75a5e073388f7",
+      "sha256": "dd27ccea2536da17d4203e198c38d2cc8cc7b97aefa455bec29b2798d416550e",
+      "bytes": 45349,
+      "path": "docs/images/video-settings-rmlui.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Project launcher/settings screenshot; no extracted game assets"
+    },
+    {
+      "git_blob": "2b93f04410f94a973da8f1367a4a8b465b10a65d",
+      "sha256": "0e957d345f5556eb2b2aa5927e4af452e834ca26d0af76aeb4301e533263c20e",
+      "bytes": 2896,
+      "path": "evidence/high-refresh-draw-key.json",
+      "exceptions": [
+        "contains a spaced hexadecimal payload"
+      ],
+      "reason": "Decimal overlay section identifiers, not payload bytes"
+    },
+    {
+      "git_blob": "ac82615fa4777fea1832a25e1dd43601430cc45c",
+      "sha256": "cb05d184b74bfabe0211ac0d187c0843111f0aeeb5d78a8b6be7c05899cf5813",
+      "bytes": 29773,
+      "path": "evidence/high-refresh-native-rom.json",
+      "exceptions": [
+        "contains a spaced hexadecimal payload"
+      ],
+      "reason": "Decimal overlay section identifiers, not payload bytes"
+    },
+    {
+      "git_blob": "7c57409c622dba5d1864620f6b77e2fef6f78abe",
+      "sha256": "0491710f6530139d77244827cefd3c6e5a1e5b045e9c54017f8fb5238c4aac4a",
+      "bytes": 175064,
+      "path": "launcher/ui/assets/controls-art/chips.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "3661bd8371444082996b29dfc97ab1fc47d516c8",
+      "sha256": "6b900ef8f49fac2b60ebc6096f338a141c3340a083cb797a1be3c07392f90a9b",
+      "bytes": 6291500,
+      "path": "launcher/ui/assets/controls-art/chips.tga",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "45d817803e581773312beed9f6e1c28e1f808b70",
+      "sha256": "3d451f3ad577a55c4889ee054c3b093c213e8da0d8bef936509ee85ce32d9db6",
+      "bytes": 105574,
+      "path": "launcher/ui/assets/controls-art/dualsense.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "6a03f0fb057b2d08c09373333a64e2a754a08a06",
+      "sha256": "f7aaa2264f9d5444b648f0b78dce3c7fb8a5a61e9e685af6794e43b522a36d6c",
+      "bytes": 2260044,
+      "path": "launcher/ui/assets/controls-art/dualsense.tga",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "de1ce82a695fc69420d6b41be43682f9b57f3f66",
+      "sha256": "88680cbb34290dad763a919c21811ae2062010021ef4f82409a6252bd1cee601",
+      "bytes": 91797,
+      "path": "launcher/ui/assets/controls-art/generic.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "ed4e1e6ac01fe57c75729634d69d2a60d8de1a8e",
+      "sha256": "7023b746633ef5fee1bfe36996e9563e20dec5871311da3366ef1247508fa056",
+      "bytes": 2458924,
+      "path": "launcher/ui/assets/controls-art/generic.tga",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "200787f2f309d2352fbfb124bf5a935a48c7234e",
+      "sha256": "592695b13613f33446e5d185c9b1da93bba90d4d38c3b46ca9c02704f3af0c26",
+      "bytes": 87226,
+      "path": "launcher/ui/assets/controls-art/highlights.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "9d4432d8b56c5cc4119d5f0bac5c98fc4b88bf0c",
+      "sha256": "55bdd5e70bd8ef39f205f7c42ab5c6dc6096eba1912df48117899be9e56f89cf",
+      "bytes": 2629676,
+      "path": "launcher/ui/assets/controls-art/highlights.tga",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "4d9aa6bca793a8400fc5124ea289f3fb5a7c4eab",
+      "sha256": "54eb0435dcb76c8d08c447632c25cc1d0da0aa1adeb8624f04ff79b06e3898f8",
+      "bytes": 101302,
+      "path": "launcher/ui/assets/controls-art/mouse.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "c8412312591208b39661c92cc373cabfe3b2651b",
+      "sha256": "6a68e87398bd3a9f5a376746ad07dbf36682d1c27876556a308753441b6c3043",
+      "bytes": 5789260,
+      "path": "launcher/ui/assets/controls-art/mouse.tga",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "40c501495f99173d47f4f51ca4cb3b1f9276a9df",
+      "sha256": "41de3b4ccb786c8864536c86ea5d43f76ad99821ce71544e3039fd0e63227281",
+      "bytes": 3788,
+      "path": "launcher/ui/assets/controls-art/toolbar-pad.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "62db0ab3d001b2c5ede116aac4eeb00ab979fdac",
+      "sha256": "d847273fbc14e1520c3a89397457f11d7a5bc947691cdb15537b5f403397fb7a",
+      "bytes": 16172,
+      "path": "launcher/ui/assets/controls-art/toolbar-pad.tga",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "1e9698a9b91f8123bbd7ddef98d0ba2dfd65f1da",
+      "sha256": "0b77ea6cff4eadd46d42f129bc0d6af37e8956fa4a3c5e89a4efd913a94b5aad",
+      "bytes": 32449,
+      "path": "launcher/ui/assets/controls-art/ui-details.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "b6e705afbefe02b9fc4866d4fe3aabfb14d150ae",
+      "sha256": "473fab8e357acd2affd922b947372785e577eb1e54e39619418bb864d21be3e6",
+      "bytes": 491564,
+      "path": "launcher/ui/assets/controls-art/ui-details.tga",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "1b0f9b8d78140ce1d9f4d7940d8b6e202bc0cbdf",
+      "sha256": "459813fbd507abc527b44cc2b34ec4bfa6c8eb9cc584e613a5b93a6495871bde",
+      "bytes": 91797,
+      "path": "launcher/ui/assets/controls-art/xbox.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Owner-provided editable controls prototype rasterization"
+    },
+    {
+      "git_blob": "da7cc18f0c78ee3c255df0451bb62cc79b0e66ce",
+      "sha256": "4f48e2984ed9d40081861715980ab10b091f1e5a436ee1ac553284cf3813199f",
+      "bytes": 9311,
+      "path": "scripts/native_timing_spans.py",
+      "exceptions": [
+        "contains a spaced hexadecimal payload"
+      ],
+      "reason": "MIPS opcode identifiers, not instruction bytes"
+    },
+    {
+      "git_blob": "7fa2763dbb965f5b3f96de3687f3c8f428bd96a7",
+      "sha256": "0c0f77109cc83b8cd69fc48ce11be6288ec4c715633165ec6f9369855a763cbc",
+      "bytes": 2325,
+      "path": "tests/test_native_collision.py",
+      "exceptions": [
+        "contains a generated-recompilation marker"
+      ],
+      "reason": "Handwritten synthetic compiler fixture, not generated game code"
+    },
+    {
+      "git_blob": "9b008237e1b194c8ac1753a29e3326e91a718f2b",
+      "sha256": "8a1691d3f69878de7cdb398e43a1ef630019bb588293b471ab81d6c5ee9a5add",
+      "bytes": 13081,
+      "path": "tests/test_native_timing_spans.py",
+      "exceptions": [
+        "contains repeated opaque payload chunks"
+      ],
+      "reason": "IEEE floating-point boundary constants in a synthetic arithmetic fixture"
+    },
+    {
+      "git_blob": "409db1b75d5ed30b82aac7faf1111da491e5c6c1",
+      "sha256": "3f15011b3f59439230d04ce79e25bd6df9ac0cdc4172e6a118a0a1502f3aaa85",
+      "bytes": 3295028,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "7d9ab829677291f85406052dd431dcd901a71c3a",
+      "sha256": "b3adfbd64b22c1d22478072f18a5dc41b45cb704ff273b3324fefb80db3ee6d7",
+      "bytes": 3294744,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "9bb41a22ac89ace01327ad96e95687f809a289c1",
+      "sha256": "91df192755d06e581dbdb98844017948dc6780288235d9d38d1257db4818886e",
+      "bytes": 3294093,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "82169571200f4617753186909e48bae19f2a5ec3",
+      "sha256": "03745a63c2658f156c56c8f4ce545847f5947e85dcac7c43e7dd10e5ecd43231",
+      "bytes": 3293274,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "59bc4b4f73218f3551cd3b91bcf3e68c6c369df7",
+      "sha256": "86ca901644e97ab39c74f0ad26d9b87e088c3e89c96be1c09ee5bf319c637a3f",
+      "bytes": 3293054,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "f46826fe2f71545cb8ba66cdc4e0aefd24a58b6f",
+      "sha256": "3622fed2a9e2d0f0136df42f13cce6f62bb2ff7752aa0e72bb2d7c9198c07e12",
+      "bytes": 2389,
+      "path": "evidence/high-refresh-draw-key.json",
+      "exceptions": [
+        "contains a spaced hexadecimal payload"
+      ],
+      "reason": "Decimal overlay section identifiers, not payload bytes"
+    },
+    {
+      "git_blob": "cb74bfd4d7d3768ba06239006d273db17d4bcd48",
+      "sha256": "008f7538e7e8d3152ab06894655cc074e7dd71090e4fde26418abdca9d120db9",
+      "bytes": 3292717,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "0a8b5b38d57c12826c8e286b4e9171f1ebc5867f",
+      "sha256": "c3162b727eedf5ab4d80d642bf16f6b25b29078f8c80c97279e6bf6ce4c58c95",
+      "bytes": 3292431,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "acc6b5b1445f00caa7d43baaa97354929284f9cd",
+      "sha256": "3a0f706cd839bddc64a8d23cbfadeca9baa76999a161d0719f0f83abd91879e9",
+      "bytes": 29299,
+      "path": "evidence/high-refresh-native-rom.json",
+      "exceptions": [
+        "contains a spaced hexadecimal payload"
+      ],
+      "reason": "Decimal overlay section identifiers, not payload bytes"
+    },
+    {
+      "git_blob": "0c4eed46dcbb27ade49adabbaa9cb977c0363ca4",
+      "sha256": "c5f9b3dfd5dd61692de5710cc1598fb6c7670e81791c5df20d5d7c475f598c06",
+      "bytes": 3292003,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "63d0a4151a8e126529d390888674a87f4382b1ed",
+      "sha256": "bbeb358fab635982f28eb30eaa5bbe9abaec33f8ae14b09a33ab16117ae85ccd",
+      "bytes": 3291746,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "5dca6218b680cfc0ef32a93f18c71361aa370ee1",
+      "sha256": "0d9bb7a6f90ed780ce47d61dcca51ea10b38fe97871275842526606fe9d3de32",
+      "bytes": 3291315,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "b89b5d42aa75ba703fadbef1c97caf3c7e2c3452",
+      "sha256": "35f63187795ec1193cebde7b0580b074b7fbe57b893f98a340e6c0a809e48b9f",
+      "bytes": 3290670,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "9c2b8e4a63ec9bf23bb03beae41edae4e6d5db46",
+      "sha256": "bff88ce26ce79608ad2716a608ee6a499d6e11461a3a778300d67465a0918328",
+      "bytes": 3289879,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "e01d2c2ea527e86606c38208edb7be3ee0e812b5",
+      "sha256": "e4aa3a56595504ad69b3e25c87889f306d1ef8a9029aa985d3b3f198b013394f",
+      "bytes": 3289192,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "85ccf7aa5a3696f667734e353102f462ffa80ade",
+      "sha256": "7bbbf1485957e85af4b64f6e7518a4032e05988edb64bf3e5adcac72ab50b4a1",
+      "bytes": 3288870,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "62236fde23cdd96b7ad3680484c2dcb23100e2f6",
+      "sha256": "49184df2372f37c403c869ceb80e3ecb792aeadec77b825a8b4897b12c4734cc",
+      "bytes": 3288499,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "c9e6aae31a11672374e8bd49b598c8a7ec737a7f",
+      "sha256": "5d8944f6f57de1306c4c2633028381ecf690528d29299641e3649d577dded9a6",
+      "bytes": 3287897,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "ecf32fa3bb7b4aeb31214bbd69daef97b92333f5",
+      "sha256": "5d1fbdba841acb0dcfd922f33bbff4693c215b5ee8dac9d2996648f0477eaa49",
+      "bytes": 3287364,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "6654cf52f4fec7dd2a8816430ebf7031201f53d2",
+      "sha256": "abefc94629e3d0d2c2565285c3eb0fccb9ffd3d2b940557ee0050a2b4ab577ad",
+      "bytes": 3286368,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "c6e12d88b6ae4616847179751e778902bf2c45b3",
+      "sha256": "6d86014afa785384cad6920561b654c6f1967d6f56f741398aa9f853719de3be",
+      "bytes": 3285415,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "f8f0d82fe6b5132d5090d7a6f6bf16bdceb9a8be",
+      "sha256": "b88cf44837852a20d1092b5d8b7463d94c7320e169e117c64f9046caf44ec73b",
+      "bytes": 3284826,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "0cbb9fc036ceece9d42728ff86563ce811a7132e",
+      "sha256": "6970c3ee00f6a6ec065e3014d60dc10ccb8648018c705b1c0f0f143402e3c3f4",
+      "bytes": 3284250,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "72d839670f9e9a1b176d09abcb70792bfbf23fca",
+      "sha256": "06b07b25b08d08dd26401f6dd2340d2d93469c3714cbb0d24e5d1e698a59c51a",
+      "bytes": 3282282,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "148666c728bdfb858d75586486f4b22d709b2383",
+      "sha256": "fc801426f5ce9c44af9aa89acc2e7b15b3539be7cd7c2fa95a214ec3d11c0c0c",
+      "bytes": 9158,
+      "path": "scripts/native_timing_spans.py",
+      "exceptions": [
+        "contains a spaced hexadecimal payload"
+      ],
+      "reason": "MIPS opcode identifiers, not instruction bytes"
+    },
+    {
+      "git_blob": "5c020cd0cea9e80c34b5d25f064d99527752b4a5",
+      "sha256": "45c90a621ad7dc1710b60fd85897063f057bd9ddce729ef815ae1dea6f8a338d",
+      "bytes": 3280919,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "77275287dd8b038e3c7bef8c4dc9a120e59ac0d8",
+      "sha256": "4013b3eb2c27d0ec8bf5c0fbc644448139ed5cccd9a8bac150253feac1351f35",
+      "bytes": 3277834,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "1adef6d0dabeff04637e6bc3a86310fe5147acf4",
+      "sha256": "f0bbb5d728c1d951b554c6550d535561f3bc9bdb37490b1832fce0870548d1f2",
+      "bytes": 8425,
+      "path": "scripts/native_timing_spans.py",
+      "exceptions": [
+        "contains a spaced hexadecimal payload"
+      ],
+      "reason": "MIPS opcode identifiers, not instruction bytes"
+    },
+    {
+      "git_blob": "764f801a41722ee13fffd097a362e70ab7d05969",
+      "sha256": "15600381f181365367d8c8bb0ae3bc21141db5d52b3c355d6bcba96324a2ab99",
+      "bytes": 3276513,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "a952fbd58463f613ac38462cd5e520ceaf583965",
+      "sha256": "da866b91f2b21faa0039677a7753fe0d883d75e350af5fe909202523fb53728c",
+      "bytes": 3275375,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "a256572e08fb9a33631a511290585cafd2f4d6c7",
+      "sha256": "7fefed6d523234a5d01c04451cf11236e59f74a5b9ef915ac47130d121ff4e84",
+      "bytes": 3274413,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "62919189b3d96ad46fbf6e80aa29eeaade5e6930",
+      "sha256": "01ce3b9888886dcf543386f517ef05d003700ac27bf409ee4d0f100904384818",
+      "bytes": 3273170,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "424d83f573143d7c4cff42597b9e2b0ce88ff43a",
+      "sha256": "dedb6a290b9ae16ba3e18c06bdf7a006db2fe540250b8af2d044a7dd53d3c105",
+      "bytes": 3272426,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "586c83c993245aec37bfdfac06c4b9690c7024f8",
+      "sha256": "3efaa7f08f519c79f9177ce2161305d02112c3ffc27766a7f58bbdcb900e69af",
+      "bytes": 3271450,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "6c7da55aa77d836700d455556dcbd0a9ba3d236a",
+      "sha256": "4d5d5bafc436de99cedcba0fe8a9c732307a53ba08e1692d71718f700554631b",
+      "bytes": 3270772,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "29118cd5a8128bfffe58696388718aa967e6f44d",
+      "sha256": "8b0495b774fb8cf15ee9bff35ffe3b0c4cc078f9b6d1f8626869a901e9d45696",
+      "bytes": 1483450,
+      "path": "docs/features/high-refresh-rendering.md",
+      "exceptions": [
+        "size"
+      ],
+      "reason": "Historical feature note with repeated text-encoding corruption; current copy repaired, history preserved"
+    },
+    {
+      "git_blob": "c8818d726ba735dd5e9031b1e7644378689692f9",
+      "sha256": "41ae6567d9619259c423756b987d698864d472e115667778ec0ac4fd82496d29",
+      "bytes": 44997,
+      "path": "docs/images/video-settings-rmlui.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Project launcher/settings screenshot; no extracted game assets"
+    },
+    {
+      "git_blob": "b06effb0676ef12e729b9287fb557527c4d4671a",
+      "sha256": "742091d37e42283e8641f242d9a4ea2ce0aa5bdd5ee3a13fbf4851b54e60526f",
+      "bytes": 44577,
+      "path": "docs/images/video-settings-rmlui.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Project launcher/settings screenshot; no extracted game assets"
+    },
+    {
+      "git_blob": "d4dc77e4e77ba71c03b057eed3840f85d2c831f1",
+      "sha256": "7925189c683719071580a3d3c29f91195a3ffa7a74e3ca14d7f359fe9537d6c3",
+      "bytes": 40182,
+      "path": "docs/images/video-settings-rmlui.png",
+      "exceptions": [
+        "binary",
+        "size"
+      ],
+      "reason": "Project launcher/settings screenshot; no extracted game assets"
+    }
+  ]
+}

@@ -31,8 +31,13 @@ template <typename Value>
     const std::string_view line,
     const bool has_connection,
     const bool has_pc,
+    const bool precise_stick,
+    const bool has_actions,
+    const bool has_menu,
+    const bool has_pause_menu,
+    const bool has_options,
     InputReplayEvent& output) noexcept {
-    std::array<std::string_view, 9U> fields{};
+    std::array<std::string_view, 12U> fields{};
     std::size_t field = 0U;
     std::size_t start = 0U;
     for (std::size_t index = 0U; index <= line.size(); ++index) {
@@ -45,7 +50,7 @@ template <typename Value>
         fields[field++] = line.substr(start, index - start);
         start = index + 1U;
     }
-    const std::size_t expected_fields = has_pc ? 9U : has_connection ? 6U : 5U;
+    const std::size_t expected_fields = has_menu ? 12U : has_actions ? 10U : has_pc ? 9U : has_connection ? 6U : 5U;
     if (field != expected_fields) {
         return false;
     }
@@ -69,12 +74,26 @@ template <typename Value>
         return false;
     }
     unsigned mode=0;int look_x=0,look_y=0;
-    if(has_pc && (!parse_integer(fields[6],mode) || mode>4 ||
+    if(has_pc && (!parse_integer(fields[6],mode) || mode>(precise_stick?5U:4U) ||
        !parse_integer(fields[7],look_x) || !parse_integer(fields[8],look_y) ||
        look_x < -32768 || look_x>32767 || look_y < -32768 || look_y>32767 ||
        ((mode==0 || !connected) && (look_x || look_y || mode)) ||
-       (mode!=3 && (look_x < -127 || look_x>127 || look_y < -127 || look_y>127))))
+       (mode==5 && (look_x < -18432 || look_x>18432 || look_y < -18432 || look_y>18432)) ||
+       (mode!=3 && mode!=5 && (look_x < -127 || look_x>127 || look_y < -127 || look_y>127))))
       return false;
+    unsigned modern_flags=0;
+    if(has_actions && (!parse_integer(fields[9],modern_flags) ||
+        (modern_flags!=0 && ((modern_flags&0x80U)==0 || (modern_flags&~0x87U)!=0)) ||
+        (!connected && modern_flags!=0)))return false;
+    unsigned menu_kind=0,menu_target=0;
+    if(has_menu && (!parse_integer(fields[10],menu_kind) || !parse_integer(fields[11],menu_target) ||
+        ((menu_kind==0)!=(menu_target==0)) ||
+        (menu_kind!=0 && (((menu_kind<2 || menu_kind>(has_pause_menu?5U:4U)) && !(has_options && menu_kind==8)) ||
+          menu_target>(menu_kind==2?3U:menu_kind==3?6U:menu_kind==5?9U:menu_kind==8?8U:1U))) ||
+        (!connected && menu_kind!=0)))return false;
+    output.sample.menu_kind=static_cast<std::uint8_t>(menu_kind);
+    output.sample.menu_target=static_cast<std::uint8_t>(menu_target);
+    output.sample.modern_flags=static_cast<std::uint8_t>(modern_flags);
     output.sample.pc_mode=static_cast<std::uint8_t>(mode);
     output.sample.look_x=static_cast<std::int16_t>(look_x);
     output.sample.look_y=static_cast<std::int16_t>(look_y);
@@ -110,7 +129,12 @@ InputReplayError DeterministicInputReplay::load(
     if (!line.empty() && line.back() == '\r') {
         line.pop_back();
     }
-    const bool has_pc = line == kInputReplayHeaderV3;
+    const bool has_options = line == kInputReplayHeaderV8;
+    const bool has_pause_menu = has_options || line == kInputReplayHeaderV7;
+    const bool has_menu = has_pause_menu || line == kInputReplayHeaderV6;
+    const bool has_actions = has_menu || line == kInputReplayHeaderV5;
+    const bool precise_stick = has_actions || line == kInputReplayHeaderV4;
+    const bool has_pc = precise_stick || line == kInputReplayHeaderV3;
     const bool has_connection = has_pc || line == kInputReplayHeader;
     if (!has_connection && line != kInputReplayHeaderV1) {
         return InputReplayError::invalid_header;
@@ -124,7 +148,7 @@ InputReplayError DeterministicInputReplay::load(
             return InputReplayError::invalid_record;
         }
         InputReplayEvent event;
-        if (!parse_record(line, has_connection, has_pc, event)) {
+        if (!parse_record(line, has_connection, has_pc, precise_stick, has_actions, has_menu, has_pause_menu, has_options, event)) {
             return InputReplayError::invalid_record;
         }
         if (!parsed.empty() && event.first_retrace < parsed.back().end_retrace) {

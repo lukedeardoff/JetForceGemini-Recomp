@@ -74,7 +74,7 @@ class BuildPrivateGeneratedRootTests(unittest.TestCase):
         )
         lookup = generated_root.make_lookup(authoritative, continuations)
         self.assertIn(
-            "{7u, UINT32_C(0x00000120), fn_007_0001}", lookup
+            "{7u, UINT32_C(0x00000120), fn_007_0001, UINT32_C(0x00000120)}", lookup
         )
 
     def test_continuation_reuses_an_existing_recompiler_label(self) -> None:
@@ -280,8 +280,8 @@ class BuildPrivateGeneratedRootTests(unittest.TestCase):
                     "authoritative_bodies": 1,
                     "callable_wrappers": 1,
                     "alternate_entry_thunks": 0,
-                    "table_support_members": 11,
-                    "baseline_members": 13,
+                    "table_support_members": 12,
+                    "baseline_members": 14,
                     "indirect_decision_sites": 0,
                     "indirect_decision_emissions": 0,
                 },
@@ -334,7 +334,7 @@ class BuildPrivateGeneratedRootTests(unittest.TestCase):
             self.assertEqual(manifest_bytes, generated_root.canonical_bytes(manifest))
             self.assertEqual(manifest["version"], 6)
             self.assertEqual(manifest["alternate_entry_thunk_sources"], [])
-            self.assertEqual(len(manifest["table_support_sources"]), 11)
+            self.assertEqual(len(manifest["table_support_sources"]), 12)
             self.assertEqual(
                 manifest["normalizer_revision_sha256"],
                 hashlib.sha256(generated_root.NORMALIZER_PATH.read_bytes()).hexdigest(),
@@ -643,6 +643,7 @@ class BuildPrivateGeneratedRootTests(unittest.TestCase):
                     "-I",
                     str(arguments.output / "include"),
                     str(arguments.output / "support" / "lookup_table.c"),
+                    str(arguments.output / "support" / "lookup_function.c"),
                     str(arguments.output / "support" / "section_count.c"),
                     str(arguments.output / "support" / "section_initializer.c"),
                     str(arguments.output / "support" / "lifecycle_table.c"),

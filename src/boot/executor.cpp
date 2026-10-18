@@ -1,6 +1,8 @@
 #include "jfg/boot/executor.hpp"
 
 #include <utility>
+#include <algorithm>
+#include <stdexcept>
 
 namespace jfg::boot {
 
@@ -14,6 +16,27 @@ struct ExecutorShutdown final {};
 thread_local int t_self = kSchedulerParticipant;
 
 } // namespace
+
+void BatonExecutor::enable_timing(bool enabled) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!participants_.empty()) throw std::logic_error("timing must be configured before spawn");
+    timing_enabled_ = enabled;
+}
+BatonExecutor::Timing BatonExecutor::timing() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return timing_;
+}
+void BatonExecutor::publish_timing() {
+    if (timing_enabled_) handoff_started_ = std::chrono::steady_clock::now();
+}
+void BatonExecutor::receive_timing() {
+    if (!timing_enabled_) return;
+    const auto elapsed = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::steady_clock::now() - handoff_started_).count());
+    ++timing_.wakes;
+    timing_.wake_ns += elapsed;
+    timing_.max_wake_ns = (std::max)(timing_.max_wake_ns, elapsed);
+}
 
 BatonExecutor::~BatonExecutor() {
     shutdown();
@@ -35,10 +58,7 @@ int BatonExecutor::spawn(Body body) {
 
 void BatonExecutor::participant_main(const int id, Body body) {
     t_self = id;
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        participants_[static_cast<std::size_t>(id)].ready->wait(lock, [&]() { return holder_ == id; });
-    }
+    wait_until_holder(id);
     try {
         if (shutting_down_) {
             throw ExecutorShutdown{};
@@ -50,6 +70,7 @@ void BatonExecutor::participant_main(const int id, Body body) {
     {
         std::unique_lock<std::mutex> lock(mutex_);
         participants_[static_cast<std::size_t>(id)].finished = true;
+        publish_timing();
         holder_ = kSchedulerParticipant;
     }
     cv_.notify_one();
@@ -75,6 +96,7 @@ void BatonExecutor::hand_off(const int to) {
     std::condition_variable *ready = nullptr;
     {
         std::unique_lock<std::mutex> lock(mutex_);
+        publish_timing();
         holder_ = to;
         ready = to == kSchedulerParticipant ? &cv_
             : participants_[static_cast<std::size_t>(to)].ready.get();
@@ -89,6 +111,7 @@ void BatonExecutor::wait_until_holder(const int self) {
     auto &ready = self == kSchedulerParticipant ? cv_
         : *participants_[static_cast<std::size_t>(self)].ready;
     ready.wait(lock, [&]() { return holder_ == self; });
+    receive_timing();
 }
 
 void BatonExecutor::shutdown() {

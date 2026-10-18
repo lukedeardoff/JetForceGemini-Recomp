@@ -21,4 +21,4 @@ history, or arbitrary artifacts. Publication remains an owner decision.
 Automated work follows [AGENTS.md](../../AGENTS.md) and the production guard.
 
 Earlier private-feasibility and publication decisions are retained in
-[Git history](../history.md).
+[Git history](../README.md#historical-material).

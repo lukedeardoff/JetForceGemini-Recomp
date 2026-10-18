@@ -1,6 +1,6 @@
 # Getting started
 
-Play the Windows x64 v1.1.0 release using your own supported North American
+Play the Windows x64 v1.2.0 release using your own supported North American
 Jet Force Gemini ROM. The release is prebuilt; no Git, Python, Visual Studio,
 WSL, or first-run compilation is needed.
 
@@ -15,8 +15,8 @@ WSL, or first-run compilation is needed.
 
 ## Install and play
 
-1. Download **JFG-1.1.0-windows-x64.zip** from
-   [v1.1.0](https://github.com/TK22-26/JetForceGemini-Recomp/releases/tag/v1.1.0).
+1. Download **JFG-1.2.0-windows-x64.zip** from
+   [v1.2.0](https://github.com/TK22-26/JetForceGemini-Recomp/releases/tag/v1.2.0).
 2. Extract the complete ZIP, keeping its program, libraries, and license files
    together. Open `JFG-Launcher.exe`.
 3. Use **Select ROM…** to import your supported ROM. The launcher checks the
@@ -30,7 +30,7 @@ are included in the release.
 
 ## Update from v1.0 or the installer beta
 
-Extract v1.1.0 into a new folder and open its launcher. Your existing profile,
+Extract v1.2.0 into a new folder and open its launcher. Your existing profile,
 saves, and settings are reused. A valid previously selected ROM is imported
 automatically; if its original file is missing, use **Select ROM…** again.
 Old build tools are no longer prerequisites for the released package.

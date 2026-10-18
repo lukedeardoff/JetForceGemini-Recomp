@@ -24,4 +24,4 @@ inputs, and focused state before relying on their measurements.
 Paired instruction/device observations do not establish a common raw clock
 or a causal gameplay fix. The recorded selected-state frontier remains in the
 [boundary record](phase9-execution-frontier-1909.md). Detailed qualification
-and rejected cases remain in [Git history](../history.md).
+and rejected cases remain in [Git history](../README.md#historical-material).

@@ -5,6 +5,7 @@
 #include "jfg/boot/executor.hpp"
 
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -130,9 +131,29 @@ void test_never_started_participant_shuts_down() {
     // Destructor shutdown() must not hang joining the never-resumed thread.
 }
 
+void test_diagnostic_wake_boundaries() {
+    for (bool enabled : {false, true}) {
+        BatonExecutor ex;
+        ex.enable_timing(enabled);
+        const int id = ex.spawn([](BatonExecutor& body, int) {
+            for (int i=0;i<20;++i) body.yield_to_scheduler();
+        });
+        for (int i=0;i<20;++i) check(!ex.resume(id), "timed body yielded");
+        check(ex.resume(id), "timed body finished");
+        const auto timing=ex.timing();
+        check(timing.wakes==(enabled?42U:0U), "both sides of each transfer measured once");
+        check(timing.max_wake_ns<=timing.wake_ns, "maximum is part of total");
+        if (!enabled) check(timing.wake_ns==0 && timing.max_wake_ns==0, "ordinary transport stays unmeasured");
+        bool rejected=false;
+        try { ex.enable_timing(!enabled); } catch (const std::logic_error&) { rejected=true; }
+        check(rejected, "no timing reconfiguration during active transport");
+    }
+}
+
 } // namespace
 
 int main() {
+    test_diagnostic_wake_boundaries();
     test_deterministic_interleaving();
     test_single_runner_no_overlap();
     test_shutdown_unwinds_parked_participant();

@@ -5,6 +5,7 @@ encodes hardware operation classes, architectural register handling and hook ABI
 """
 from pathlib import Path
 import json
+import hashlib
 import re
 import tomllib
 
@@ -92,7 +93,7 @@ def prepare_raw(directory: Path) -> int:
     return transfers
 
 
-def finish(root: Path, sites: int, paired: int) -> None:
+def finish(root: Path, sites: int, paired: int, *, native_spans: bool = False) -> None:
     if sites <= 0 or paired <= 0:
         raise ValueError("Original timing requires instruction hooks and paired-register recovery")
     header = root / "funcs.h"
@@ -101,3 +102,30 @@ def finish(root: Path, sites: int, paired: int) -> None:
     (root / "jfg_original_timing_fast.h").write_bytes((Path(__file__).resolve().parents[1] / "include/jfg/boot/original_timing_fast.h").read_bytes())
     (root / "jfg_original_timing.h").write_text("#pragma once\n#define JFG_ORIGINAL_TIMING_GENERATION 1\n")
     (root / "original-timing.json").write_text(json.dumps({"schema":1,"instruction_sites":sites,"paired_transfers":paired,"architecture":"original-os-cache-device-clock","game_data":"generated locally from the supplied ROM"},indent=2)+"\n")
+    if native_spans:
+        finish_native_spans(root)
+
+
+def finish_native_spans(root: Path) -> dict:
+    """Apply the internal span experiment to a fresh, completed timing root."""
+    if __package__:
+        from . import native_timing_spans
+    else:
+        import native_timing_spans
+    record_path = root / "original-timing.json"
+    record = json.loads(record_path.read_text())
+    if "native_spans" in record:
+        raise ValueError("Native span generation already applied")
+    counts = native_timing_spans.rewrite_tree(root)
+    record["native_spans"] = {**counts, "schema": 1,
+        "generator_sha256": hashlib.sha256(Path(native_timing_spans.__file__).read_bytes()).hexdigest(),
+        "default_enabled": False}
+    if __package__:
+        from . import native_mmio_access
+    else:
+        import native_mmio_access
+    record["native_mmio_mask"] = native_mmio_access.rewrite_tree(root)
+    record_path.write_text(json.dumps(record, indent=2)+"\n")
+    header = root / "jfg_original_timing.h"
+    header.write_text(header.read_text()+"#define JFG_NATIVE_TIMING_SPAN_GENERATION 1\n")
+    return record["native_spans"]

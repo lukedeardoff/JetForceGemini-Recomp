@@ -245,7 +245,7 @@ internal sealed class NativeLiveTools {
           var mods = MapMods.Load(directory, map == null ? null : map.Live);
           Stop();
           mods.WarpTo(directory, map, address, ++nonce, Paused);
-          notice = "Exit warp requested. Normal exit requirements still apply.";
+          notice = "Room transition requested. Normal exit requirements still apply.";
           noticeUntil = NavigationExplorer.Clock + 5000;
         }
         else if (command == "jump")

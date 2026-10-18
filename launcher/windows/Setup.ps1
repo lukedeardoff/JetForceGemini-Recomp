@@ -114,7 +114,73 @@ function Install-Package([string]$Id, [string]$Override = '') {
     Refresh-SetupPath
 }
 
+function Get-VirtualizationFirmwareState {
+    try {
+        $computer = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop
+        # An already running hypervisor is usable even when a VM hides the CPU flag.
+        if ($computer.HypervisorPresent) { return 'enabled' }
+        $processors = @(Get-CimInstance -ClassName Win32_Processor -ErrorAction Stop)
+        $known = @($processors | Where-Object { $null -ne $_.VirtualizationFirmwareEnabled })
+        if (@($known | Where-Object { -not $_.VirtualizationFirmwareEnabled }).Count -gt 0) { return 'disabled' }
+        if ($known.Count -gt 0) { return 'enabled' }
+    } catch { }
+    return 'unknown'
+}
+
+function Assert-WslVirtualization {
+    if ((Get-VirtualizationFirmwareState) -eq 'disabled') {
+        throw 'Hardware virtualization is disabled in firmware. Enable Intel VT-x or AMD SVM in BIOS/UEFI before installing WSL. Restarting Windows alone will not fix this. The prebuilt game package does not require WSL.'
+    }
+}
+
+function Get-WslOnlineDistributions {
+    $wsl = Join-Path $env:WINDIR 'System32\wsl.exe'
+    if (-not (Test-Path -LiteralPath $wsl -PathType Leaf)) {
+        return [pscustomobject]@{ ExitCode = -1; Lines = @() }
+    }
+    return Invoke-SetupProbe $wsl @('--list', '--online')
+}
+
+function Test-RequestedDistribution($Probe) {
+    $text = ($Probe.Lines -join "`n").Replace([string][char]0, '')
+    $name = [regex]::Escape($script:Distro)
+    return ($Probe.ExitCode -eq 0 -and $text -match ('(?m)^\s*\*?\s*' + $name + '(?:\s|$)'))
+}
+
+function Invoke-WslDistributionInstall {
+    $process = Start-Process -FilePath "$env:WINDIR\System32\wsl.exe" `
+        -ArgumentList "--install -d $script:Distro --no-launch --web-download" `
+        -Verb RunAs -WindowStyle Hidden -Wait -PassThru
+    return $process.ExitCode
+}
+
+function Ensure-Ubuntu {
+    if (Test-Ubuntu) { return }
+    Assert-WslVirtualization
+    if (-not (Test-RequestedDistribution (Get-WslOnlineDistributions))) {
+        Write-Output 'Installing or updating Microsoft WSL to support Ubuntu 24.04...'
+        Install-Package 'Microsoft.WSL'
+        if (-not (Test-RequestedDistribution (Get-WslOnlineDistributions))) {
+            throw 'WSL does not list Ubuntu-24.04 after its update. Run wsl --update, then wsl --list --online. Check network access and Windows updates before retrying. No distribution was installed; existing distributions are preserved.'
+        }
+    }
+    Write-Output 'Installing WSL and Ubuntu 24.04. Approve the Windows prompt if shown.'
+    $installExit = Invoke-WslDistributionInstall
+    Write-Output ('JFG-SUPPORT setup_exit=0x{0:x8}' -f $installExit)
+    if ($installExit -in @(3010, 1641)) {
+        Write-Output 'JFG-RESTART: The installer requested a Windows restart. Reopen the launcher afterward.'
+        exit 3010
+    }
+    if ($installExit -ne 0) {
+        throw "WSL installation failed ($installExit). See setup.log and check wsl --status. This is not a confirmed restart requirement."
+    }
+    if (-not (Test-Ubuntu)) {
+        throw 'WSL returned success but Ubuntu-24.04 is not registered. Check wsl --status and Windows feature requirements; restart only if Windows requested it, then retry. See setup.log.'
+    }
+}
+
 function Ensure-BuildTools {
+    if (-not (Test-Ubuntu)) { Assert-WslVirtualization }
     if (-not (Find-Git)) { Install-Package 'Git.Git' }
     if (-not (Find-Python)) { Install-Package 'Python.Python.3.12' }
     if (-not (Find-VisualStudio)) {
@@ -139,18 +205,7 @@ function Ensure-BuildTools {
     if (-not (Find-Git) -or -not (Find-Python) -or -not (Find-VisualStudio)) {
         throw 'Build tools are incomplete. Restart Windows after any installer, then reopen the launcher.'
     }
-    if (-not (Test-Ubuntu)) {
-        Write-Output 'Installing WSL and Ubuntu 24.04. Approve the Windows prompt; a restart may be required.'
-        $process = Start-Process -FilePath "$env:WINDIR\System32\wsl.exe" `
-            -ArgumentList '--install -d Ubuntu-24.04 --no-launch --web-download' `
-            -Verb RunAs -WindowStyle Hidden -Wait -PassThru
-        Write-Output ('JFG-SUPPORT setup_exit=0x{0:x8}' -f $process.ExitCode)
-        if ($process.ExitCode -in @(3010, 1641) -or -not (Test-Ubuntu)) {
-            Write-Output 'JFG-RESTART: Restart Windows, reopen the launcher and continue setup. WSL needs virtualization enabled.'
-            exit 3010
-        }
-        if ($process.ExitCode -ne 0) { throw 'WSL setup failed. See the setup guide for Windows and virtualization requirements.' }
-    }
+    Ensure-Ubuntu
     if (-not (Test-LinuxPackages)) {
         Write-Output 'Installing the Ubuntu build packages...'
         $wsl = "$env:WINDIR\System32\wsl.exe"

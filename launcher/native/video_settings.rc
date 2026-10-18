@@ -1,0 +1,31 @@
+#include <windows.h>
+#include <commctrl.h>
+#include "video_settings_resource.h"
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+IDD_JFG_VIDEO DIALOGEX 0, 0, 328, 316
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_CONTROLPARENT
+CAPTION "Video Settings"
+FONT 9, "Segoe UI"
+BEGIN
+    GROUPBOX "Display", -1, 10, 8, 308, 99
+    LTEXT "&Window mode:", -1, 20, 26, 98, 12
+    COMBOBOX IDC_VIDEO_WINDOW_MODE, 123, 23, 182, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "Window &size:", -1, 20, 50, 98, 12
+    COMBOBOX IDC_VIDEO_WINDOW_SIZE, 123, 47, 182, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "Aspect ratio follows the original game setting.", -1, 20, 70, 282, 12
+    CONTROL "&Pause when inactive", IDC_VIDEO_PAUSE, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 20, 88, 282, 12
+    GROUPBOX "Rendering", -1, 10, 115, 308, 139
+    CONTROL "&VSync (synchronize with display)", IDC_VIDEO_VSYNC, "Button", BS_AUTOCHECKBOX | WS_TABSTOP, 20, 132, 284, 12
+    LTEXT "&Frame-rate mode:", -1, 20, 157, 99, 12
+    COMBOBOX IDC_VIDEO_FRAME_MODE, 123, 154, 182, 80, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT "&Custom FPS:", IDC_VIDEO_FPS_LABEL, 20, 184, 73, 12
+    EDITTEXT IDC_VIDEO_FPS_EDIT, 247, 180, 58, 16, ES_NUMBER | ES_AUTOHSCROLL | WS_TABSTOP
+    CONTROL "Custom frame rate", IDC_VIDEO_FPS_SLIDER, "msctls_trackbar32", TBS_AUTOTICKS | WS_TABSTOP, 93, 178, 148, 24
+    LTEXT "Custom range: 60-1000 FPS. VSync limits output to display refresh. Unlimited with VSync off removes the FPS cap.", -1, 20, 207, 282, 25
+    LTEXT "Custom and Unlimited use experimental smooth rendering.", -1, 20, 237, 285, 12
+    LTEXT "Rendering changes apply the next time you start the game.", IDC_VIDEO_MESSAGE, 12, 261, 304, 25
+    DEFPUSHBUTTON "OK", IDOK, 133, 292, 56, 16
+    PUSHBUTTON "Cancel", IDCANCEL, 195, 292, 56, 16
+    PUSHBUTTON "&Apply", IDC_VIDEO_APPLY, 257, 292, 61, 16
+END

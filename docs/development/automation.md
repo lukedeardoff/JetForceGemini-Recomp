@@ -2,8 +2,9 @@
 
 The local supervisor in `scripts/autonomy/` owns durable jobs, prerequisites,
 leases, heartbeats, attempts, and sealed results. Its mutable state belongs in
-ignored `tools/private/autonomy/`. Read [AGENTS.md](../../AGENTS.md) before running
-automated project work.
+ignored `tools/private/autonomy/`; the operational ledger is in the original
+checkout ([location](../planning/autonomy-progress-guard.md#production-ledger)).
+Read [AGENTS.md](../../AGENTS.md) before running automated project work.
 
 ## Mandatory guard
 
@@ -17,9 +18,9 @@ or run directly after a denial. Preserve original failures, evidence, and user
 changes. Stop and report exhaustion. A resumed conversation does not reset the
 ledger. Guard-disabled tests use isolated fixture ledgers only.
 
-[Trusted continuations](../planning/autonomy-guard-continuation.md) attach a
-fresh job to an eligible completed attempt while the same investigation still
-has allowance. They do not reopen shelved investigations or erase charges.
+[Trusted continuations](../planning/autonomy-progress-guard.md#trusted-continuations)
+attach a fresh job to an eligible completed attempt while the same investigation
+still has allowance. They do not reopen shelved investigations or erase charges.
 
 ## Execution model
 
@@ -54,7 +55,7 @@ before reduction and keep mutable results outside tracked source.
 Existing adapters cover source baselines, candidate feedback, bounded observation,
 and several repair/research transitions. The complete self-directed repair loop
 and full-game parity remain unaccepted. See the [delivery plan](../planning/autonomous-full-scope-execution.md)
-and [runtime summary](runtime-research.md).
+and [project status](../status.md).
 
 ## Maintenance and verification
 
@@ -66,3 +67,7 @@ Relevant tests are `tests/test_autonomy_*.py`. The progress-guard acceptance
 recipe is retained in its [contract](../planning/autonomy-progress-guard.md).
 All agent-launched validation still runs through the supervisor; test fixtures
 must not mutate the production ledger.
+
+### Private investigation storage
+
+Owner instruction (2026-10-12): keep new large experiment output, replay captures and private evidence on D:, under `D:/JFG-private/<investigation>`. Preserve source and the existing production guard ledger locations. Relocating retained evidence requires verified copies and stable references; high-refresh history uses directory junctions and per-file SHA-256 manifests. A storage move never creates a new investigation budget or replaces the operational ledger.

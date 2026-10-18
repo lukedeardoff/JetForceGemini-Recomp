@@ -18,6 +18,7 @@ class AsyncDiagnosticFile final : public std::ostream {
   }
   void finish() noexcept { (void)sync(); writer_.finish(); }
   bool failed() const noexcept {return writer_.failed()||writer_.dropped()!=0U;}
+  std::uint64_t dropped() const noexcept {return writer_.dropped();}
  protected:
   int sync() override {
    const auto count=pptr()-pbase();
@@ -50,6 +51,8 @@ public:
   if(open_||!buffer_.start(path,mode)){setstate(std::ios::failbit);return;}open_=true;clear();
  }
  bool is_open() const noexcept{return open_;}
+ bool failed() const noexcept{return buffer_.failed();}
+ std::uint64_t dropped() const noexcept{return buffer_.dropped();}
  explicit operator bool() const noexcept{return open_&&!buffer_.failed()&&good();}
  bool operator!() const noexcept{return !static_cast<bool>(*this);}
  void finish() noexcept {if(open_){buffer_.finish();open_=false;}}

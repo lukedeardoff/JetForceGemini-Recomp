@@ -17,4 +17,4 @@ Tests and recorded experiments cover these boundaries. The SI repair did not
 prove full runtime parity; subsequent differences required independent diagnosis.
 See the later [comparison boundary](phase9-execution-frontier-1909.md) and
 [OS timing contract](phase9-os-clock-qualification.md). Detailed trial evidence
-remains in [Git history](../history.md).
+remains in [Git history](../README.md#historical-material).

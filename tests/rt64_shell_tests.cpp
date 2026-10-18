@@ -81,6 +81,16 @@ int main() {
         jfg::Rt64MemoryLayout::big_endian,
     };
 
+    configuration.experimental_refresh_rate = 59U;
+    require(jfg::validate_rt64_shell_configuration(configuration) ==
+        jfg::Rt64ShellError::invalid_refresh_rate);
+    configuration.experimental_refresh_rate = 1001U;
+    require(jfg::validate_rt64_shell_configuration(configuration) ==
+        jfg::Rt64ShellError::invalid_refresh_rate);
+    configuration.experimental_refresh_rate = 360U;
+    require(jfg::validate_rt64_shell_configuration(configuration) ==
+        jfg::Rt64ShellError::none);
+    configuration.experimental_refresh_rate = 0U;
     require(jfg::validate_rt64_shell_configuration(configuration) ==
         jfg::Rt64ShellError::none);
     configuration.native_window = nullptr;

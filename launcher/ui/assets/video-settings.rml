@@ -1,0 +1,26 @@
+<rml>
+<head><title>Video Settings</title><link type="text/rcss" href="video-settings.rcss"/></head>
+<body>
+<div id="video-shell">
+ <div id="video-content">
+  <div id="video-error"/>
+  <div class="section">
+   <div class="section-heading"><span>DISPLAY</span><span class="hint">Applies when saved</span></div>
+   <div class="row"><span class="field-label">Window mode</span><div class="segments"><button id="video-windowed"><span>Windowed</span></button><button id="video-fullscreen"><span>Borderless fullscreen</span></button></div></div>
+   <div class="row"><div class="field-label"><span>Window size</span><span id="video-size-hint" class="small">Windowed mode only</span></div><select id="video-size"><option value="0">Keep current size</option><option value="1">1280 x 720</option><option value="3">1600 x 900</option><option value="2">1920 x 1080</option><option value="4">2560 x 1440</option></select></div>
+   <div class="row"><div class="description"><span>Pause when inactive</span><span class="small">Pause the game when you click away from the window.</span></div><button id="video-pause" class="switch" aria-label="Pause when inactive"><span class="knob"/></button></div>
+  </div>
+  <div class="section rendering">
+   <div class="section-heading"><span>RENDERING</span><span id="video-restart" class="chip">Applies next game launch</span></div>
+   <div class="row"><div class="description"><span>VSync</span><span class="small">Synchronize with your display to stop tearing.<br/>Caps output at its refresh rate.</span></div><button id="video-vsync" class="switch" aria-label="VSync"><span class="knob"/></button></div>
+   <div class="rate-row"><div class="row"><span class="field-label">Frame rate</span><div class="segments"><button id="video-original"><span>Original</span></button><button id="video-custom"><span>Custom </span><span class="exp">EXP</span></button><button id="video-unlimited"><span>Unlimited </span><span class="exp">EXP</span></button></div></div><div id="video-fps-hint" class="rate-hint"/></div>
+   <div id="video-custom-controls">
+    <div class="row"><label for="video-fps" class="field-label">Frame-rate cap</label><input id="video-slider" type="range" min="60" max="1000" step="1" value="60"/><input id="video-fps" type="text" maxlength="4" value="60"/><span class="fps-unit">FPS</span></div>
+    <div class="quick-row"><button id="video-preset-60"><span>60</span></button><button id="video-preset-120"><span>120</span></button><button id="video-preset-144"><span>144</span></button><button id="video-preset-165"><span>165</span></button><button id="video-preset-240"><span>240</span></button><button id="video-preset-360"><span>360</span></button></div>
+    <div id="video-range" class="range-hint">Range 60 to 1000 FPS</div>
+   </div>
+  </div>
+ </div>
+ <div class="footer"><button id="video-cancel"><span>Cancel</span></button><button id="video-apply" class="primary"><span>Apply</span></button></div>
+</div>
+</body></rml>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -7,6 +8,7 @@
 #include <span>
 
 namespace jfg {
+struct PresentationSceneIdentity;
 
 inline constexpr char kPinnedRt64Revision[] =
     "5473732a822a4423b5696e7cb18fecc425a59875";
@@ -16,6 +18,7 @@ inline constexpr std::size_t kRt64RequiredHeaderBytes = 0x40U;
 enum class Rt64ShellError {
     none,
     invalid_window,
+    invalid_refresh_rate,
     invalid_memory,
     setup_dynamic_libraries_missing,
     setup_invalid_graphics_api,
@@ -69,6 +72,9 @@ struct Rt64ShellConfiguration {
     bool cpu_writeback = false;
     // Return intensity masks to the guest for its CPU postprocessing.
     bool cpu_mask_writeback = false;
+    unsigned experimental_refresh_rate = 0U;
+    bool unlimited_presentation = false;
+    bool vsync = true;
 };
 
 struct Rt64RdramRange {
@@ -90,6 +96,9 @@ struct Rt64GraphicsTask {
     std::uint32_t ucode_address = 0U;
     std::uint32_t ucode_data_address = 0U;
     std::uint32_t command_address = 0U;
+    // Immutable guest submission time, independent of renderer output rate.
+    std::uint64_t vi_tick = 0U;
+    std::shared_ptr<const PresentationSceneIdentity> presentation_scene{};
 };
 
 struct Rt64FramebufferInfo {
@@ -126,6 +135,17 @@ struct Rt64FrameView {
     }
 };
 
+// Cumulative GPU durations from already fenced framebuffer submissions.
+// Excludes host submission, presentation and queue delay before the first marker.
+// Includes any GPU-side dependency waits between the two markers.
+struct Rt64FramebufferGpuTiming {
+    std::uint64_t submissions = 0;
+    std::uint64_t total_nanoseconds = 0;
+    std::uint64_t last_nanoseconds = 0;
+    std::uint64_t maximum_nanoseconds = 0;
+    bool failed = false;
+};
+
 struct Rt64GraphicsDiagnostics {
     std::size_t matrix_commands = 0U;
     std::size_t vertex_batches = 0U;
@@ -146,6 +166,10 @@ struct Rt64GraphicsDiagnostics {
     std::uint64_t loaded_vertices_low = 0U;
     std::uint16_t loaded_vertices_high = 0U;
     std::uint64_t full_sync_microseconds = 0U;
+    std::uint64_t history_prepare_microseconds = 0U;
+    std::uint64_t rdp_sync_microseconds = 0U;
+    std::array<std::uint64_t,5> history_stage_microseconds{};
+
     std::uint64_t rdram_check_microseconds = 0U;
     std::size_t display_list_branches = 0U;
     std::uint32_t last_display_list_address = 0U;
@@ -218,6 +242,12 @@ public:
     [[nodiscard]] std::size_t last_command_count() const noexcept;
     [[nodiscard]] Rt64GraphicsDiagnostics last_graphics_diagnostics()
         const noexcept;
+    // Internal profiling only; configure before guest submissions begin.
+    [[nodiscard]] bool enable_framebuffer_gpu_timing() noexcept;
+    // Read on the same submit owner; does not wait or issue GPU work.
+    [[nodiscard]] Rt64FramebufferGpuTiming framebuffer_gpu_timing() const noexcept;
+    // Completed regular-workload timestamps; snapshot synchronized with its worker.
+    [[nodiscard]] Rt64FramebufferGpuTiming workload_gpu_timing() const noexcept;
     [[nodiscard]] Rt64FramebufferInfo last_framebuffer() const noexcept;
     [[nodiscard]] Rt64FrameView last_presented_frame() const noexcept;
 

@@ -12,19 +12,22 @@ endif()
 
 project(
     jfg_recomp
-    VERSION 1.1.0
+    VERSION 1.2.1
     DESCRIPTION "ROM-free host scaffolding for a Jet Force Gemini native recompilation"
     LANGUAGES C CXX
 )
 
 option(JFG_BUILD_TESTS "Build the ROM-free unit tests" ON)
 option(JFG_BUILD_SYNTHETIC_GENERATED_TESTS "Build ROM-free generated-code link tests" ON)
+option(JFG_EXPERIMENTAL_NATIVE_PLAY_TIMING "Use elapsed host time for native play in the private preview" OFF)
 option(JFG_WARNINGS_AS_ERRORS "Treat handwritten-code warnings as errors" ON)
 option(JFG_ENABLE_GENERATED_CODE "Build locally generated CPU code from a private root" OFF)
 option(JFG_BUILD_G2_PRODUCERS "Build private G2 evidence producers" OFF)
 option(JFG_BUILD_PHASE5_CAPTURE
     "Build the private Phase 5 boundary-capture producer" OFF)
 option(JFG_BUILD_PHASE6_NATIVE_BOOT "Build the private Phase 6 native M2 runner" OFF)
+option(JFG_EXPERIMENTAL_NATIVE_PLAY_TIMING "Use qualified native elapsed timing in a private interactive preview" OFF)
+option(JFG_EXPERIMENTAL_NATIVE_COLLISION "Build qualified private native collision helpers" OFF)
 option(JFG_ENABLE_RT64 "Build the pinned RT64 renderer shell" OFF)
 option(JFG_BUILD_PHASE7_RT64_RUNNER
     "Build the private-input Phase 7 RT64 captured-task runner" OFF)
@@ -99,9 +102,9 @@ if(WIN32)
     set(jfg_application_icon "${CMAKE_CURRENT_BINARY_DIR}/jfg-application-icon.rc")
     file(WRITE "${jfg_application_icon}"
         "1 ICON \"${CMAKE_CURRENT_SOURCE_DIR}/launcher/ui/assets/app.ico\"\n")
-    add_executable(jfg-frontend WIN32 src/app/frontend_win32.cpp "${jfg_application_icon}")
+    add_executable(jfg-frontend WIN32 src/app/frontend_win32.cpp src/app/video_settings_dialog.cpp launcher/native/video_settings.rc "${jfg_application_icon}")
     target_compile_features(jfg-frontend PRIVATE cxx_std_20)
-    target_link_libraries(jfg-frontend PRIVATE user32 gdi32 shell32 ole32 comdlg32 dxgi)
+    target_link_libraries(jfg-frontend PRIVATE user32 gdi32 shell32 ole32 comdlg32 comctl32 dxgi)
     target_compile_definitions(jfg-frontend PRIVATE UNICODE _UNICODE)
     jfg_set_project_warnings(jfg-frontend)
     add_executable(jfg-support-capture src/app/support_capture.cpp)
@@ -269,7 +272,10 @@ if(JFG_ENABLE_RT64)
         "${jfg_rt64_root}/src/render")
 
     include(cmake/rt64_vi_presentation.cmake)
+    include(cmake/rt64_gpu_timing.cmake)
+    include(cmake/rt64_draw_call_key.cmake)
     include(cmake/rt64_depth_bounds.cmake)
+    include(cmake/rt64_interpolation.cmake)
 
     # The pinned Plume D3D12 backend assumes every CopyTextureRegion
     # destination is a texture when configuring programmable sample
@@ -338,6 +344,7 @@ if(JFG_ENABLE_RT64)
 
     add_library(jfg_rt64_renderer STATIC
         src/renderer/rt64_f3ddkr.cpp
+        src/renderer/floating_environment.cpp
         src/renderer/rt64_callbacks.cpp
         src/renderer/rt64_shell.cpp
     )
@@ -530,10 +537,39 @@ if(JFG_ENABLE_GENERATED_CODE)
             set(jfg_phase6_sanitizer_id "none")
             set(jfg_phase6_build_suffix "")
         endif()
+        if(JFG_EXPERIMENTAL_NATIVE_PLAY_TIMING)
+            if(NOT JFG_BUILD_PHASE8_LIVE)
+                message(FATAL_ERROR "Experimental native play timing requires the live runtime")
+            endif()
+            target_compile_definitions(jfg-native-boot PRIVATE JFG_EXPERIMENTAL_NATIVE_PLAY_TIMING=1)
+            string(APPEND jfg_phase6_build_suffix "-NativeTimingPreview")
+        endif()
         target_compile_definitions(jfg-native-boot PRIVATE
             "JFG_PHASE6_BUILD_IDENTITY=\"${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}-$<CONFIG>${jfg_phase6_build_suffix}\""
             "JFG_PHASE6_SANITIZER_ID=\"${jfg_phase6_sanitizer_id}\"")
         target_link_libraries(jfg-native-boot PRIVATE jfg_boot jfg_runtime jfg_generated_link)
+        if(JFG_EXPERIMENTAL_NATIVE_COLLISION)
+            if(NOT WIN32 OR NOT MSVC OR NOT JFG_BUILD_PHASE8_LIVE OR
+               NOT JFG_EXPERIMENTAL_NATIVE_PLAY_TIMING)
+                message(FATAL_ERROR "Native collision requires the MSVC Windows native timing preview")
+            endif()
+            set(jfg_native_collision_body "${CMAKE_CURRENT_BINARY_DIR}/phase6-private/native-collision.inc")
+            add_custom_command(OUTPUT "${jfg_native_collision_body}"
+                COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/prepare_native_collision.py"
+                    --generated-root "${JFG_GENERATED_ROOT}" --output "${jfg_native_collision_body}"
+                DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/scripts/prepare_native_collision.py"
+                    "${JFG_GENERATED_ROOT}/baseline/fn_003_0168_recomp.c"
+                    "${JFG_GENERATED_ROOT}/baseline/fn_003_0167_recomp.c"
+                    "${JFG_GENERATED_ROOT}/baseline/fn_003_0054_recomp.c"
+                VERBATIM)
+            set_source_files_properties("${jfg_native_collision_body}" PROPERTIES HEADER_FILE_ONLY TRUE)
+            target_sources(jfg-native-boot PRIVATE src/boot/native_collision.cpp "${jfg_native_collision_body}")
+            target_compile_definitions(jfg-native-boot PRIVATE JFG_NATIVE_COLLISION_ENABLED=1
+                "JFG_NATIVE_COLLISION_BODY=\"${jfg_native_collision_body}\"")
+            # MSVC emits this generated-code warning during deferred code generation.
+            set_property(SOURCE src/boot/native_collision.cpp APPEND PROPERTY COMPILE_OPTIONS /wd4702)
+        endif()
+
         if(JFG_BUILD_PHASE8_LIVE)
             jfg_resolve_private_root(jfg_phase8_private_audio_adapter_root
                 "${JFG_PHASE8_PRIVATE_AUDIO_ADAPTER_ROOT}"

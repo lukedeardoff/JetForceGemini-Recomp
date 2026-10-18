@@ -1,0 +1,654 @@
+{
+  "schema": 1,
+  "status": "qualified native collision and expanded diagnostics delivered locally; no-dip and live visual acceptance remain open",
+  "runtime_sha256": "34ce90c9a11bba75a9ae47f3ae3d8a40d635b20357bf8c52391f4bd015a6bff1",
+  "runtime_source_files": {
+    "CMakeLists.txt": "337acd6afbbe4ea3ff463e9ddc7d352c579ff1818dedf91fb7aec71f7e25f2a1",
+    "src/boot/native_boot.cpp": "d2b89ca616673ad58fc7c328d4cbe7aaaba3d9beba8fc8eec34383d30ccac3eb",
+    "src/boot/native_collision.cpp": "2a2155c6e09570e6966194cb96b6c77ef27cb98148f2f2aee7a3187470610824",
+    "include/jfg/boot/native_collision.hpp": "57d276d7aa2a7ead924d269c54ce7b3a2ecdf5c9c881ad2978bae8420ea10e09",
+    "scripts/prepare_native_collision.py": "be0408ddbfdd04ce10d026e1984b5aeb0010f77904fc2b94db2ce939cacf55ec"
+  },
+  "private_reference_cases": 50000,
+  "rejected_admission_cases": 18,
+  "cancellation_cleanup": true,
+  "earlier_live_shadow_calls": 256,
+  "build_feature_default": false,
+  "experimental_play_default_when_compiled": true,
+  "exact_recorded_and_original": [
+    {
+      "case": "collision-final-recorded",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true,
+        "cycles_off": true
+      }
+    },
+    {
+      "case": "collision-final-original",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "probe": true,
+        "hashes": true,
+        "cycles_off": true
+      }
+    }
+  ],
+  "integrated_repeated_120": [
+    {
+      "case": "collision-integrated-prefix120-off-a",
+      "enabled": false,
+      "runtime_sha256": "1a75d8ebbe938138835f4e47634ed58c8a83bffd5f70133e9a6e3b87a24e72a8",
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 20.467,
+            "p95": 24.611,
+            "max": 27.89,
+            "mean": 20.993302083333333
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 33387180.0,
+            "p95": 38574560,
+            "max": 48252020,
+            "mean": 32719433.708333332
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 18.4155,
+            "p95": 23.407,
+            "max": 27.89,
+            "mean": 18.841790243902437
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 25786990.0,
+            "p95": 36993380,
+            "max": 48252020,
+            "mean": 27329754.162601627
+          },
+          "vi_deltas": {
+            "2": 1229
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      }
+    },
+    {
+      "case": "collision-integrated-prefix120-on-a",
+      "enabled": true,
+      "runtime_sha256": "1a75d8ebbe938138835f4e47634ed58c8a83bffd5f70133e9a6e3b87a24e72a8",
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 19.796,
+            "p95": 23.66,
+            "max": 26.387,
+            "mean": 20.076229166666668
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 30550290.0,
+            "p95": 35626900,
+            "max": 40961720,
+            "mean": 29836421.208333332
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 17.9975,
+            "p95": 21.924,
+            "max": 26.387,
+            "mean": 18.22798536585366
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 24425830.0,
+            "p95": 34205700,
+            "max": 40961720,
+            "mean": 25498752.276422765
+          },
+          "vi_deltas": {
+            "2": 1229
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      }
+    },
+    {
+      "case": "collision-integrated-prefix120-on-b",
+      "enabled": true,
+      "runtime_sha256": "1a75d8ebbe938138835f4e47634ed58c8a83bffd5f70133e9a6e3b87a24e72a8",
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 19.713,
+            "p95": 23.191,
+            "max": 26.998,
+            "mean": 19.86728125
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 30161740.0,
+            "p95": 35359760,
+            "max": 45961000,
+            "mean": 29518398.416666668
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 17.8565,
+            "p95": 21.354,
+            "max": 26.998,
+            "mean": 18.070137398373983
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 24241150.0,
+            "p95": 33539560,
+            "max": 45961000,
+            "mean": 25166336
+          },
+          "vi_deltas": {
+            "2": 1229
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      }
+    },
+    {
+      "case": "collision-integrated-prefix120-off-b",
+      "enabled": false,
+      "runtime_sha256": "1a75d8ebbe938138835f4e47634ed58c8a83bffd5f70133e9a6e3b87a24e72a8",
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 20.7975,
+            "p95": 24.982,
+            "max": 33.595,
+            "mean": 21.0231875
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 33114530.0,
+            "p95": 38529340,
+            "max": 52002240,
+            "mean": 33243017.5
+          },
+          "vi_deltas": {
+            "2": 478,
+            "3": 1
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 17.917,
+            "p95": 23.617,
+            "max": 33.595,
+            "mean": 18.62259268292683
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 27746080.0,
+            "p95": 37149940,
+            "max": 52002240,
+            "mean": 28899802.94308943
+          },
+          "vi_deltas": {
+            "2": 1228,
+            "3": 1
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      }
+    }
+  ],
+  "final_native": [
+    {
+      "case": "collision-final-prefix120-off-a",
+      "enabled": false,
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 20.349,
+            "p95": 24.367,
+            "max": 30.057,
+            "mean": 20.822089583333334
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 32972220.0,
+            "p95": 38758480,
+            "max": 44307620,
+            "mean": 32661510.625
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 18.377499999999998,
+            "p95": 23.109,
+            "max": 30.057,
+            "mean": 18.793135772357722
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 26267690.0,
+            "p95": 36775640,
+            "max": 44307620,
+            "mean": 27469322.910569105
+          },
+          "vi_deltas": {
+            "2": 1229
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      },
+      "helper_counts": {
+        "calls": 0,
+        "native": 0,
+        "edges": 0,
+        "fallback": 0,
+        "expired": 0,
+        "invalid": 0,
+        "refreshes": 0
+      }
+    },
+    {
+      "case": "collision-final-prefix120-on-a",
+      "enabled": true,
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 19.8925,
+            "p95": 24.233,
+            "max": 29.012,
+            "mean": 20.239872916666666
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 30738390.0,
+            "p95": 35968900,
+            "max": 41698540,
+            "mean": 30194400.208333332
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 17.9735,
+            "p95": 22.112,
+            "max": 29.012,
+            "mean": 18.32051300813008
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 24922110.0,
+            "p95": 34267640,
+            "max": 41698540,
+            "mean": 25755273.284552846
+          },
+          "vi_deltas": {
+            "2": 1229
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      },
+      "helper_counts": {
+        "calls": 107941,
+        "native": 901818,
+        "edges": 531672,
+        "fallback": 33,
+        "expired": 33,
+        "invalid": 0,
+        "refreshes": 107941
+      }
+    },
+    {
+      "case": "collision-final-prefix360-on-a",
+      "enabled": true,
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 19.930999999999997,
+            "p95": 23.883,
+            "max": 27.077,
+            "mean": 20.194591666666668
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 30780190.0,
+            "p95": 35276540,
+            "max": 46062080,
+            "mean": 30102736.291666668
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 17.884,
+            "p95": 21.765,
+            "max": 27.077,
+            "mean": 18.26508617886179
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 24636730.0,
+            "p95": 33984540,
+            "max": 46062080,
+            "mean": 25579528.227642275
+          },
+          "vi_deltas": {
+            "2": 1229
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      },
+      "helper_counts": {
+        "calls": 107941,
+        "native": 901845,
+        "edges": 531681,
+        "fallback": 28,
+        "expired": 28,
+        "invalid": 0,
+        "refreshes": 107941
+      }
+    }
+  ],
+  "final_profile": [
+    {
+      "case": "collision-final-profile-recorded",
+      "updates": 279,
+      "collision_native_nodes": 0,
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      },
+      "trace_bytes": 29598390
+    },
+    {
+      "case": "collision-final-profile-native",
+      "updates": 233,
+      "collision_native_nodes": 611725,
+      "correspondence": null,
+      "trace_bytes": 27534969
+    }
+  ],
+  "default_play": {
+    "passed": true,
+    "runtime_sha256": "34ce90c9a11bba75a9ae47f3ae3d8a40d635b20357bf8c52391f4bd015a6bff1",
+    "all_inputs_consumed": true,
+    "default_collision_enabled": true,
+    "collision_native_nodes": 2124488,
+    "clock_refreshes": 261586,
+    "vi_intervals": {
+      "2": 6700,
+      "64": 1,
+      "3": 1
+    },
+    "muted": true,
+    "hidden": true,
+    "checks": {
+      "unsupported_accesses": 0,
+      "audio_device_underruns": 0,
+      "audio_device_overruns": 0
+    },
+    "visual_acceptance": false
+  },
+  "cadence": [
+    {
+      "case": "collision-final-play-route",
+      "updates": 6703,
+      "active_ms": {
+        "n": 6703,
+        "median": 13.99,
+        "p95": 21.272,
+        "p99": 23.41,
+        "maximum": 811.905
+      },
+      "vi_intervals": {
+        "2": 6700,
+        "64": 1,
+        "3": 1
+      },
+      "missed_update_intervals": 2,
+      "gaps": [
+        {
+          "vi": 6588,
+          "delta_vi": 64,
+          "wall_between_returns_ms": 1077.749,
+          "active_ms": 811.905,
+          "known_wait_ms": 264.957,
+          "cold_overlays": true,
+          "previous_cold_overlays": false,
+          "transition_kinds": [],
+          "prior_transition_kinds": []
+        },
+        {
+          "vi": 6591,
+          "delta_vi": 3,
+          "wall_between_returns_ms": 42.812,
+          "active_ms": 18.049,
+          "known_wait_ms": 24.755,
+          "cold_overlays": true,
+          "previous_cold_overlays": true,
+          "transition_kinds": [],
+          "prior_transition_kinds": []
+        }
+      ]
+    },
+    {
+      "case": "collision-final-prefix120-on-a",
+      "updates": 1480,
+      "active_ms": {
+        "n": 1480,
+        "median": 17.5925,
+        "p95": 21.791,
+        "p99": 24.59,
+        "maximum": 29.012
+      },
+      "vi_intervals": {
+        "2": 1479
+      },
+      "missed_update_intervals": 0,
+      "gaps": []
+    },
+    {
+      "case": "collision-final-prefix120-off-a",
+      "updates": 1480,
+      "active_ms": {
+        "n": 1480,
+        "median": 18.008499999999998,
+        "p95": 22.904,
+        "p99": 24.917,
+        "maximum": 30.057
+      },
+      "vi_intervals": {
+        "2": 1479
+      },
+      "missed_update_intervals": 0,
+      "gaps": []
+    },
+    {
+      "case": "collision-final-prefix360-on-a",
+      "updates": 1480,
+      "active_ms": {
+        "n": 1480,
+        "median": 17.4835,
+        "p95": 21.554,
+        "p99": 24.351,
+        "maximum": 27.077
+      },
+      "vi_intervals": {
+        "2": 1479
+      },
+      "missed_update_intervals": 0,
+      "gaps": []
+    }
+  ],
+  "limits": [
+    "No universal no-20-FPS guarantee; every recorded missed interval remains in the cadence report.",
+    "Cold-overlay activity alone does not prove a loading cause; explicit transition calls provide stronger evidence.",
+    "Real-time paths can diverge after a common verified recorded prefix.",
+    "Hidden replay does not verify full-route visuals or physical monitor scanout.",
+    "Full per-function profiling adds substantial observer cost and is disabled during ordinary play.",
+    "Native elapsed execution intentionally omits original instruction accounting; Original and recorded fallback remain exact in tested captures."
+  ],
+  "private_evidence": [
+    "native-bsp-shadow-recorded-footprint",
+    "native-bsp-full-budget-benchmark",
+    "native-collision-integrated-fixture",
+    "native-collision-integrated-prefix120",
+    "native-collision-transition-build",
+    "native-collision-final-recorded",
+    "native-collision-final-prefix120",
+    "native-collision-final-prefix360",
+    "native-collision-final-profile",
+    "native-collision-final-play",
+    "native-collision-final-qualification"
+  ],
+  "runtime_source_commit": "8f94f148ec367e4a221679a40255f12e6353af07",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T06:09:12.457845+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 40,
+    "manifest_verified": 14,
+    "launcher_sha256": "60b2696f1447101809053922a1aa5b24efc94c197875a63ad22b3fb9c4dc045c",
+    "launcher_setup_runtime_protocol_passed": true
+  },
+  "expanded_capture_check": {
+    "runtime_sha256": "34ce90c9a11bba75a9ae47f3ae3d8a40d635b20357bf8c52391f4bd015a6bff1",
+    "case": "collision-final-expanded-capture-on-a",
+    "costs": {
+      "combat": {
+        "active_ms": {
+          "n": 480,
+          "median": 20.3925,
+          "p95": 24.25,
+          "max": 27.242,
+          "mean": 20.732339583333335
+        },
+        "thread_cycles": {
+          "n": 480,
+          "median": 31429040.0,
+          "p95": 36185120,
+          "max": 41242540,
+          "mean": 30942275.833333332
+        },
+        "vi_deltas": {
+          "2": 479
+        }
+      },
+      "extended": {
+        "active_ms": {
+          "n": 1230,
+          "median": 18.4365,
+          "p95": 23.019,
+          "max": 27.242,
+          "mean": 18.820833333333333
+        },
+        "thread_cycles": {
+          "n": 1230,
+          "median": 25065560.0,
+          "p95": 34875260,
+          "max": 41242540,
+          "mean": 26241743.723577235
+        },
+        "vi_deltas": {
+          "2": 1229
+        }
+      }
+    },
+    "checks": {
+      "unsupported_accesses": 0,
+      "audio_underruns_after_release": 0,
+      "audio_overruns_after_release": 0
+    },
+    "flags": "Actor, interpolation, poll and progress streams enabled; replay inputs substitute for live-input recording.",
+    "limits": "A bounded capture-mode overhead check; full per-function profiler stays off."
+  },
+  "final_cadence_tests": 10,
+  "copied_profile_migration": {
+    "passed": true,
+    "profiles": [
+      {
+        "profile": 0,
+        "stale_runtime_record_replaced": true,
+        "source_profile_untouched": true,
+        "save_controls_video_performance_preserved": true
+      },
+      {
+        "profile": 1,
+        "stale_runtime_record_replaced": true,
+        "source_profile_untouched": true,
+        "save_controls_video_performance_preserved": true
+      }
+    ],
+    "runtime_sha256": "34ce90c9a11bba75a9ae47f3ae3d8a40d635b20357bf8c52391f4bd015a6bff1"
+  }
+}

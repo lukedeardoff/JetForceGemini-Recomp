@@ -1233,6 +1233,49 @@ inline bool gameplay_active(const Memory &m, std::uint32_t player) {
          m.u32(0x801045B8U) == 0U && m.u32(0x800F6DBCU) == 0U;
 }
 
+// PC view ownership must honor the character's own input locks before its
+// update publishes 0x800F6DBC. Pickups/dialogue and scripted actor control can
+// leave the general gameplay/camera flags clear at the outer player boundary.
+inline bool pc_gameplay_active(const Memory &m, std::uint32_t player) {
+  if(!gameplay_active(m,player) || scripted_camera_active(m,player))return false;
+  const auto control=m.u32(player+0x68U);
+  if(!m.valid(control,0x5F0U) || m.u32(control+0xFCU)!=0U)return false;
+  // Shared by Vela, Juno and Lupus before their native read-input call.
+  for(auto offset:{0x56BU,0x577U,0x1F9U,0x1FAU,0x186U,0x198U,0x5EEU,0x10DU,0x19FU})
+    if(m.u8(control+offset)!=0U)return false;
+  return true;
+}
+
+// Boss combat keeps a fixed camera and uses its own player update. +0xFC is
+// the boss-control actor selected by controlPlayer, not a general input lock.
+// Keep ordinary camera/locomotion ownership separate from playable actions.
+inline bool pc_boss_gameplay_active(const Memory &m, std::uint32_t player) {
+  if(!gameplay_active(m,player) || scripted_camera_active(m,player))return false;
+  const auto control=m.u32(player+0x68U);
+  if(!m.valid(control,0x5F0U) || (m.u8(control+1U)&3U)>=3U)return false;
+  const auto boss=m.u32(control+0xFCU);
+  if((boss&3U)!=0U || !m.valid(boss,0x40U))return false;
+  // Pin the resident dispatcher, including its argument loads and delay
+  // slots. Overlay load/unload relocates the JAL destinations, so their raw
+  // ROM targets are not stable live-memory signatures.
+  if(m.u32(0x80032FD8U)!=0x8E0D00FCU || m.u32(0x80032FE0U)!=0x11A0001EU)
+    return false;
+  for(auto call:{0x8003301CU,0x80033034U,0x8003304CU}) {
+    if(m.u32(call-8U)!=0x8FA40090U || m.u32(call-4U)!=0x8FA50094U ||
+       (m.u32(call)&0xFC000000U)!=0x0C000000U || m.u32(call+4U)!=0U)
+      return false;
+  }
+  const auto movement=m.u8(control+0x568U);
+  // 0x20 is active combat, 0x23 is its jump; 0x2A is the boss death handler.
+  if(movement!=0x20U && movement!=0x23U)return false;
+  for(auto offset:{0x56BU,0x577U,0x1F9U,0x1FAU,0x186U,0x198U,0x5EEU,0x10DU,0x19FU,0x18EU})
+    if(m.u8(control+offset)!=0U)return false;
+  return true;
+}
+inline bool pc_actions_active(const Memory &m, std::uint32_t player) {
+  return pc_gameplay_active(m,player) || pc_boss_gameplay_active(m,player);
+}
+
 inline bool transition_confirmation(const Memory &m) {
   // Supported US ROM: mainChangeLevel sets this prompt flag and pause mode;
   // its update routine consumes A/Start before beginning the level load.
@@ -1290,11 +1333,25 @@ public:
     try {
       if (level != m.u32(0x800FB114U) || !gameplay_active(m, player) ||
           scripted_camera_active(m, player)) return false;
+      // Queue the same contact as exitControl, then let controlPlayer perform
+      // the normal transition (spawn selection, region prompts and game flags).
+      // An exit actor's origin lies ON its directional plane; position alone
+      // does not satisfy the guest's strict negative-side contact test.
+      const auto control=m.u32(player+0x68U), properties=m.u32(player+0x4CU);
+      if(m.u8(0x800FD7BDU)!=0U || !m.valid(control,0x198U) ||
+         !m.valid(properties,8U) || m.s16(properties+6U)<0x100 ||
+         m.u32(control+0xF4U)!=0U ||
+         m.u32(0x800257F4U)!=0xACF000F4U ||
+         m.u32(0x800257F8U)!=0xA0EC0196U ||
+         m.u32(0x80032B94U)!=0x8E0200F4U ||
+         m.u32(0x80032DACU)!=0xAE0000F4U)return false;
       bool present = false;
       for (const auto &actor : list) if (actor.address == player) present = true;
       if (!present) return false;
       for (const auto &exit : exits(m, list)) {
         if (exit.address != address) continue;
+        if(exit_condition(m,exit,npc_facts(m,inventory(m,player),player),player)!=Fact::met)
+          return false;
         const auto p = exit.position;
         if (!std::isfinite(p.x) || !std::isfinite(p.y) || !std::isfinite(p.z) ||
             std::abs(p.x)>1000000 || std::abs(p.y)>1000000 || std::abs(p.z)>1000000)
@@ -1307,6 +1364,10 @@ public:
           m.put16(player+12U+i*4U, static_cast<std::uint16_t>(bits>>16U));
           m.put16(player+14U+i*4U, static_cast<std::uint16_t>(bits));
         }
+        m.put16(control+0xF4U,static_cast<std::uint16_t>(address>>16U));
+        m.put16(control+0xF6U,static_cast<std::uint16_t>(address));
+        // The original writes a single signed byte (-120); preserve +0x197.
+        m.put16(control+0x196U,static_cast<std::uint16_t>(0x8800U|m.u8(control+0x197U)));
         return true;
       }
     } catch (const std::runtime_error &) { ++invalid; }

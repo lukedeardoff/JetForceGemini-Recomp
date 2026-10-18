@@ -449,6 +449,7 @@ namespace JfgLauncher
                 Check(!start.UseShellExecute && start.CreateNoWindow, "launch uses shell or console");
                 Check(!start.EnvironmentVariables.ContainsKey("JFG_PHASE9_INPUT_RECORD"), "diagnostic environment inherited");
                 Check(start.EnvironmentVariables["JFG_MASTER_VOLUME_CONFIG"] == AudioPreferences.FileName(directory), "audio preferences not forwarded");
+                Check(start.EnvironmentVariables["JFG_VIDEO_CONFIG"] == Path.Combine(directory,"video.ini"), "video preferences not forwarded");
                 AudioPreferences audio = AudioPreferences.Load(directory);
                 Check(audio.Volume == 100 && !audio.Muted, "default audio settings changed");
                 audio.Volume = 37; audio.Muted = true; audio.Save(directory);
@@ -496,6 +497,40 @@ namespace JfgLauncher
                 Reject(delegate { FrontendBridge.ApplyReplayOptions(LocalSetup.StartInfo(game, wrongRom, directory), new[] {"--frontend-worker", "play", directory, "0", "--input-replay"}); }, "missing replay argument accepted");
                 Reject(delegate { FrontendBridge.ApplyReplayOptions(LocalSetup.StartInfo(game, wrongRom, directory), new[] {"--frontend-worker", "setup", directory, "0", "--input-replay", replayPath}); }, "setup received replay options");
 
+
+                Environment.SetEnvironmentVariable("JFG_GAMEPLAY_TRACE", "must-not-inherit");
+                Environment.SetEnvironmentVariable("JFG_RT64_INTERPOLATION_TRACE", "must-not-inherit");
+                var diagnosticStart = LocalSetup.StartInfo(game, wrongRom, directory);
+                Environment.SetEnvironmentVariable("JFG_GAMEPLAY_TRACE", null);
+                Environment.SetEnvironmentVariable("JFG_RT64_INTERPOLATION_TRACE", null);
+                Check(!diagnosticStart.EnvironmentVariables.ContainsKey("JFG_RT64_INTERPOLATION_TRACE"), "ordinary play inherited interpolation logging");
+                Check(!diagnosticStart.EnvironmentVariables.ContainsKey("JFG_GAMEPLAY_TRACE"), "ordinary play inherited gameplay logging");
+                string diagnosticArgs = diagnosticStart.Arguments;
+                string diagnosticRoot = Path.Combine(directory, "diagnostic captures");
+                FrontendBridge.ApplyReplayOptions(diagnosticStart, new[] {"--frontend-worker", "play", directory, "0", "--diagnostics", diagnosticRoot});
+                string diagnosticSession = Path.GetDirectoryName(diagnosticStart.EnvironmentVariables["JFG_GAMEPLAY_TRACE"]);
+                Check(Directory.Exists(diagnosticSession) && Path.GetDirectoryName(diagnosticSession) == diagnosticRoot, "capture folder missing");
+                Check(diagnosticStart.Arguments == diagnosticArgs && !diagnosticStart.EnvironmentVariables.ContainsKey("JFG_NAVIGATION_MOD") &&
+                    !diagnosticStart.EnvironmentVariables.ContainsKey("JFG_MOD_JUNO_DOUBLE_RUN") &&
+                    !diagnosticStart.EnvironmentVariables.ContainsKey("JFG_PHASE8_INPUT_REPLAY"), "logging changed gameplay");
+                Check(diagnosticStart.EnvironmentVariables["JFG_PHASE9_ACTOR_TRACE"] == "1" &&
+                    Path.GetDirectoryName(diagnosticStart.EnvironmentVariables["JFG_PHASE9_INPUT_RECORD"]) == diagnosticSession &&
+                    Path.GetDirectoryName(diagnosticStart.EnvironmentVariables["JFG_PHASE8_PROGRESS"]) == diagnosticSession &&
+                    Path.GetDirectoryName(diagnosticStart.EnvironmentVariables["JFG_PHASE95_NATIVE_POLL_TRACE"]) == diagnosticSession, "capture streams split");
+                Check(diagnosticStart.EnvironmentVariables["JFG_RT64_INTERPOLATION_TRACE"] == Path.Combine(diagnosticSession, "interpolation.tsv"), "capture missing interpolation stream");
+                Check(!diagnosticStart.EnvironmentVariables.ContainsKey("JFG_PHASE8_FRAME_CAPTURE"), "route timing capture enabled blocking GPU screenshots");
+                var conflictingTrace = LocalSetup.StartInfo(game, wrongRom, directory);
+                conflictingTrace.EnvironmentVariables["JFG_RT64_INTERPOLATION_TRACE"] = "existing.tsv";
+                Reject(delegate { FrontendBridge.ConfigureDiagnostics(conflictingTrace, diagnosticRoot); }, "duplicate interpolation capture accepted");
+                File.WriteAllText(Path.Combine(diagnosticSession, "sentinel.txt"), "retained");
+                string diagnosticSecond = FrontendBridge.ConfigureDiagnostics(LocalSetup.StartInfo(game, wrongRom, directory), diagnosticRoot);
+                Check(diagnosticSecond != diagnosticSession && File.ReadAllText(Path.Combine(diagnosticSession, "sentinel.txt")) == "retained", "repeat capture overwrote evidence");
+                Reject(delegate { FrontendBridge.ConfigureDiagnostics(diagnosticStart, diagnosticRoot); }, "duplicate capture accepted");
+                Reject(delegate { FrontendBridge.ConfigureDiagnostics(replayStart, diagnosticRoot); }, "replay mixed with capture");
+                Reject(delegate { FrontendBridge.ApplyReplayOptions(diagnosticStart, new[] {"--frontend-worker", "play", directory, "0", "--input-replay", replayPath}); }, "capture mixed with replay");
+                Reject(delegate { FrontendBridge.ApplyReplayOptions(diagnosticStart, new[] {"--frontend-worker", "play", directory, "0", "--progress-output", progressPath}); }, "capture progress overwritten");
+                Reject(delegate { FrontendBridge.ApplyReplayOptions(LocalSetup.StartInfo(game, wrongRom, directory), new[] {"--frontend-worker", "setup", directory, "0", "--diagnostics", diagnosticRoot}); }, "setup captured gameplay");
+
                 Check(start.WorkingDirectory == directory && start.Arguments.EndsWith(" --play"), "incorrect game launch plan");
                 Check(start.Arguments.Contains(LocalSetup.Quote(flash)), "save path not isolated");
                 Check(!LocalSetup.FriendlyError(new IOException("PRIVATE-PATH-CANARY")).Contains("PRIVATE-PATH-CANARY"), "exception discloses path");
@@ -513,7 +548,8 @@ namespace JfgLauncher
                     Check(child.ExitCode == 0, "echo process failed");
                 }
                 ControllerProfile controller = new ControllerProfile();
-                string repo = LocalSetup.FindSourceRoot(AppDomain.CurrentDomain.BaseDirectory);
+                string repo = LocalSetup.FindSourceRoot(AppDomain.CurrentDomain.BaseDirectory) ?? LocalSetup.FindSourceRoot(Directory.GetCurrentDirectory());
+                Check(repo != null, "Launcher tests need a source checkout");
                 Check(controller.Encode() == File.ReadAllText(Path.Combine(repo, "tests", "fixtures", "controller-default.ini")).Replace("\r\n", "\n"), "C# and native mapping schema differ");
                 controller.Device = 2; controller.Bindings[3] = 3; controller.Deadzone = 18000;
                 controller.Save(directory);
@@ -549,6 +585,20 @@ namespace JfgLauncher
                 Check(ControllerProfile.Load(portRoot,1).Device==-2 && ControllerProfile.Load(portRoot,0).Device==0,"disconnect changed the wrong player");
                 Check(ControllerProfile.Parse(new ControllerProfile{Device=-3}.Encode()).Device==-3,"keyboard profile rejected");
                 Reject(delegate { ControllerProfile.Parse(new ControllerProfile{Device=-4}.Encode()); },"invalid device sentinel accepted");
+                var sdlProfile=new ControllerProfile{Device=-4,DeviceKey="sdl:"+new string('a',64)};
+                sdlProfile.Bindings[2]=25;
+                Check(ControllerProfile.Parse(sdlProfile.Encode()).DeviceKey==sdlProfile.DeviceKey,"SDL identity round trip");
+                Check(ControllerProfile.Parse(sdlProfile.Encode()).Bindings[2]==25,"SDL bindings round trip");
+                Reject(delegate{ControllerProfile.Parse(sdlProfile.Encode().Replace("version=2","version=1"));},"SDL v2 accepted as v1");
+                Reject(delegate{ControllerProfile.Parse(sdlProfile.Encode().Replace("device=-4","device=-3"));},"SDL key on keyboard accepted");
+                Reject(delegate{ControllerProfile.Parse(sdlProfile.Encode()+"device_key="+sdlProfile.DeviceKey+"\n");},"duplicate SDL key accepted");
+                Reject(delegate{ControllerProfile.Parse(sdlProfile.Encode().Replace("sdl:","SDL:"));},"noncanonical SDL identity accepted");
+                sdlProfile.Save(portRoot,3);
+                Reject(delegate{sdlProfile.ValidateAssignment(portRoot,2);},"same SDL controller shared");
+                new ControllerProfile{Device=-4,DeviceKey="sdl:"+new string('b',64)}.ValidateAssignment(portRoot,2);
+                Check(true,"different SDL controllers conflict");
+                new ControllerProfile{Device=-2}.Save(portRoot,3);
+
 
                 string normalProfile = Path.Combine(directory, "profiles", "default");
                 Directory.CreateDirectory(normalProfile);
@@ -561,6 +611,7 @@ namespace JfgLauncher
                 Check(File.ReadAllText(Path.Combine(modProfile, "jfg.flash")) == "normal campaign", "mod did not copy initial progress");
                 Check(modStart.EnvironmentVariables["JFG_NAVIGATION_MOD"] == "1", "mod not enabled explicitly");
                 Check(modStart.EnvironmentVariables["JFG_MASTER_VOLUME_CONFIG"] == AudioPreferences.FileName(normalProfile), "mod must share normal volume settings");
+                Check(modStart.EnvironmentVariables["JFG_VIDEO_CONFIG"] == Path.Combine(normalProfile,"video.ini"), "mod must share video settings");
                 Check(modStart.EnvironmentVariables["JFG_MOD_OUTPUT"].StartsWith(Path.Combine(modProfile, "maps")), "map export outside mod profile");
                 Check(modStart.EnvironmentVariables["JFG_CONTROLLER_CONFIG"] == ControllerProfile.FileName(modProfile), "mod controller profile missing");
                 File.WriteAllText(Path.Combine(modProfile, "jfg.flash"), "mod progress");
@@ -776,7 +827,7 @@ namespace JfgLauncher
                     mapWindow.ShowInTaskbar = false; mapWindow.Show(); Application.DoEvents();
                     using (Bitmap preview = new Bitmap(mapWindow.Width, mapWindow.Height)) {
                         mapWindow.DrawToBitmap(preview, new Rectangle(Point.Empty, preview.Size));
-                        preview.Save(Path.Combine(repo, "build", "launcher", "map-preview.png"));
+                        preview.Save(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "map-preview.png"));
                     }
                     mapWindow.Close(); checks++;
                 }
@@ -812,6 +863,7 @@ namespace JfgLauncher
                 checks += BoxJumpTests.Run();
                 checks += AutonomousExplorerTests.Run();
                 checks += UnifiedNavigationTests.Run(directory);
+                checks += UpdateCheckerTests.Run();
                 Console.WriteLine("Launcher checks passed: " + checks);
                 return 0;
             }

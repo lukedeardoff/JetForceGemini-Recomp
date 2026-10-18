@@ -1,5 +1,15 @@
 #include "recomp.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+int32_t jfg_mmio_mask_read32(uint8_t*, void*, uint64_t);
+void jfg_mmio_mask_write32(uint8_t*, void*, uint64_t, uint32_t);
+#ifdef __cplusplus
+}
+#endif
+
+
 #if defined(JFG_NEGATIVE_EXTRA_REFERENCE)
 void jfg_negative_unexpected_reference(void);
 #endif
@@ -72,6 +82,8 @@ int jfg_generated_link_smoke(void) {
         jfg_minimal_runtime_initialize() == 0) {
         return 1;
     }
+    jfg_mmio_mask_write32(memory, &context, UINT64_C(0xffffffff80000000), 0x12345678U);
+    if (jfg_mmio_mask_read32(memory, &context, UINT64_C(0xffffffff80000000)) != 0x12345678) return 10;
     cop0_status_write(&context, UINT64_C(5));
     if (cop0_status_read(&context) != UINT64_C(5)) {
         return 2;

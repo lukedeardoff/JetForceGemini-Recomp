@@ -1,0 +1,52 @@
+{
+  "runtime_sha256": "9fc3233e51b0436f2675362bf9c803a81ee0a94a5a43cd1d9ee68612e2caa0f4",
+  "muted": true,
+  "cases": [
+    {
+      "mode": "original",
+      "enabled": true,
+      "seconds": 76.88999999998487,
+      "hashes": {
+        "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+        "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+        "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+      },
+      "log_rows": 3218,
+      "scene_total": 2056,
+      "queue_dropped": 0,
+      "active_median_ms": 16.974,
+      "active_p99_ms": 34.435,
+      "log_file": "frames-20261012-061142-23484-0.csv"
+    },
+    {
+      "mode": "custom",
+      "enabled": true,
+      "seconds": 76.8289999999979,
+      "hashes": {
+        "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+        "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+        "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+      },
+      "log_rows": 16132,
+      "scene_total": 2056,
+      "queue_dropped": 0,
+      "active_median_ms": 4.171,
+      "active_p99_ms": 5.342,
+      "log_file": "frames-20261012-061259-8000-0.csv"
+    },
+    {
+      "mode": "custom",
+      "enabled": false,
+      "seconds": 76.81200000000536,
+      "hashes": {
+        "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+        "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+        "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+      }
+    }
+  ],
+  "qualified": true,
+  "status": "instrumentation qualified; reported slowdown unresolved",
+  "physical_f8_tested": false,
+  "rotation_stress_tested": false
+}

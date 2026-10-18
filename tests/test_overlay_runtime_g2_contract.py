@@ -532,9 +532,8 @@ class OverlayRuntimeContractValidatorTests(unittest.TestCase):
     def test_changed_public_files_pass_repository_blob_hygiene(self) -> None:
         relative_paths = (
             "config/overlay-runtime-g2-contract.json",
-            "docs/feasibility/overlay-runtime-g2-contract.md",
-            "docs/feasibility/spike-a-b-cpu-overlays.md",
-            "docs/feasibility/spike-d-runtime-gaps.md",
+            "docs/feasibility/README.md",
+            "docs/development/architecture.md",
             "schemas/overlay-runtime-g2-contract.schema.json",
             "scripts/overlay_runtime_g2_models.py",
             "scripts/validate_overlay_runtime_g2_contract.py",

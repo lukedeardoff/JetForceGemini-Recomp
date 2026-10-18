@@ -18,6 +18,7 @@
 // and the message-queue HLE is a later brick.
 
 #include <condition_variable>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <mutex>
@@ -36,6 +37,14 @@ public:
     // only while it holds the baton; it calls yield_to_scheduler() to block
     // and returns when the thread is finished.
     using Body = std::function<void(BatonExecutor&, int)>;
+
+    struct Timing {
+        std::uint64_t wakes = 0, wake_ns = 0, max_wake_ns = 0;
+    };
+    // Diagnostic only; configured before participants exist. Measures baton
+    // publication-to-receipt latency, never time executing a guest slice.
+    void enable_timing(bool enabled);
+    [[nodiscard]] Timing timing();
 
     BatonExecutor() = default;
     ~BatonExecutor();
@@ -76,6 +85,11 @@ private:
     void hand_off(int to);            // set holder and wake the waiter
     void wait_until_holder(int self); // block until `self` holds the baton
 
+    void publish_timing();
+    void receive_timing();
+    bool timing_enabled_ = false;
+    Timing timing_{};
+    std::chrono::steady_clock::time_point handoff_started_{};
     std::mutex mutex_;
     std::condition_variable cv_;
     int holder_ = kSchedulerParticipant;

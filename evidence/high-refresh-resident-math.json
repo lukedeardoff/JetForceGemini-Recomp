@@ -1,0 +1,497 @@
+{
+  "schema": 1,
+  "status": "qualified component and detailed profiler delivered locally; no-20-FPS goal remains open",
+  "runtime_sha256": "3e898fc20e96d4c189e4645807f5a439bf01c0d84f684ea3bd1dc1f7d02186ec",
+  "runtime_source_files": {
+    "include/jfg/boot/native_resident_math.h": "4e19fd1cddb246c949fd0feab7919a35246048dbb7d6c8da9bbb8ad9dceb09ea",
+    "src/boot/native_boot.cpp": "a3a9d0a756f8a58632e99199c7a2ddac3bcfd4046b6848ec200b755e868237b0",
+    "tests/native_resident_math_reference.cpp": "a6e322f50730bd3ec6051a872a5614970d551f0f351fa3279621db92c4450db4",
+    "scripts/validate_native_resident_math.py": "848f6f7dc4f2a773245459f28df3044e4ce4c3dd5d0a2b2dfdb95d1f94de74bc"
+  },
+  "private_reference_cases": 400000,
+  "controlled_recorded": [
+    {
+      "case": "four-math-recorded-off-a",
+      "enabled": false,
+      "costs": {
+        "active_ms": {
+          "n": 279,
+          "median": 26.564,
+          "p95": 44.229,
+          "max": 51.989,
+          "mean": 26.238250896057348
+        },
+        "thread_cycles": {
+          "n": 279,
+          "median": 39052600,
+          "p95": 49700580,
+          "max": 58448560,
+          "mean": 34966852.258064516
+        }
+      },
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      },
+      "helper_calls": {
+        "angle": 0,
+        "diff": 0,
+        "trig": 0
+      }
+    },
+    {
+      "case": "four-math-recorded-on-a",
+      "enabled": true,
+      "costs": {
+        "active_ms": {
+          "n": 279,
+          "median": 25.498,
+          "p95": 43.184,
+          "max": 49.759,
+          "mean": 25.527677419354838
+        },
+        "thread_cycles": {
+          "n": 279,
+          "median": 37643940,
+          "p95": 47962460,
+          "max": 54108580,
+          "mean": 34208076.70250896
+        }
+      },
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      },
+      "helper_calls": {
+        "angle": 480132,
+        "diff": 341453,
+        "trig": 252362
+      }
+    },
+    {
+      "case": "four-math-recorded-on-b",
+      "enabled": true,
+      "costs": {
+        "active_ms": {
+          "n": 279,
+          "median": 23.97,
+          "p95": 38.517,
+          "max": 50.505,
+          "mean": 24.271390681003584
+        },
+        "thread_cycles": {
+          "n": 279,
+          "median": 35731780,
+          "p95": 46137320,
+          "max": 55661260,
+          "mean": 32776238.06451613
+        }
+      },
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      },
+      "helper_calls": {
+        "angle": 480132,
+        "diff": 341453,
+        "trig": 252362
+      }
+    },
+    {
+      "case": "four-math-recorded-off-b",
+      "enabled": false,
+      "costs": {
+        "active_ms": {
+          "n": 279,
+          "median": 25.458,
+          "p95": 39.009,
+          "max": 51.488,
+          "mean": 25.226164874551973
+        },
+        "thread_cycles": {
+          "n": 279,
+          "median": 39767760,
+          "p95": 49531860,
+          "max": 52713220,
+          "mean": 34995067.59856631
+        }
+      },
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      },
+      "helper_calls": {
+        "angle": 0,
+        "diff": 0,
+        "trig": 0
+      }
+    }
+  ],
+  "shared_prefix": [
+    {
+      "case": "four-math-prefix120-off-a",
+      "enabled": false,
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 24.285,
+            "p95": 28.054,
+            "max": 31.341,
+            "mean": 24.213695833333333
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 36130970.0,
+            "p95": 43392200,
+            "max": 53301460,
+            "mean": 36283143.375
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 20.813,
+            "p95": 26.957,
+            "max": 36.057,
+            "mean": 21.261530081300812
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 31321690.0,
+            "p95": 41153240,
+            "max": 53301460,
+            "mean": 31931656.113821138
+          },
+          "vi_deltas": {
+            "2": 1228,
+            "3": 1
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      },
+      "audio_release_totals": {
+        "first": [
+          0,
+          2
+        ],
+        "last": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "case": "four-math-prefix120-on-a",
+      "enabled": true,
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 23.419,
+            "p95": 26.818,
+            "max": 30.081,
+            "mean": 23.251833333333334
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 34529080.0,
+            "p95": 40001080,
+            "max": 46869200,
+            "mean": 34226310.25
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1230,
+            "median": 19.7715,
+            "p95": 25.942,
+            "max": 31.929,
+            "mean": 20.62968455284553
+          },
+          "thread_cycles": {
+            "n": 1230,
+            "median": 28085610.0,
+            "p95": 38520600,
+            "max": 46869200,
+            "mean": 28981004.30894309
+          },
+          "vi_deltas": {
+            "2": 1229
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      },
+      "audio_release_totals": {
+        "first": [
+          0,
+          2
+        ],
+        "last": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "case": "four-math-prefix120-on-b",
+      "enabled": true,
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 479,
+            "median": 24.884,
+            "p95": 29.429,
+            "max": 39.128,
+            "mean": 24.99808350730689
+          },
+          "thread_cycles": {
+            "n": 479,
+            "median": 36850120,
+            "p95": 44050740,
+            "max": 57782040,
+            "mean": 37181741.00208768
+          },
+          "vi_deltas": {
+            "2": 476,
+            "3": 2
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1229,
+            "median": 21.487,
+            "p95": 27.774,
+            "max": 39.128,
+            "mean": 22.22400244100895
+          },
+          "thread_cycles": {
+            "n": 1229,
+            "median": 33180840,
+            "p95": 42158720,
+            "max": 58391940,
+            "mean": 33207547.908869
+          },
+          "vi_deltas": {
+            "2": 1226,
+            "3": 2
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      },
+      "audio_release_totals": {
+        "first": [
+          0,
+          1
+        ],
+        "last": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "case": "four-math-prefix120-off-b",
+      "enabled": false,
+      "costs": {
+        "combat": {
+          "active_ms": {
+            "n": 480,
+            "median": 23.869,
+            "p95": 27.205,
+            "max": 30.153,
+            "mean": 23.846591666666665
+          },
+          "thread_cycles": {
+            "n": 480,
+            "median": 35982200.0,
+            "p95": 41177940,
+            "max": 50293760,
+            "mean": 35949204.916666664
+          },
+          "vi_deltas": {
+            "2": 479
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1220,
+            "median": 22.916,
+            "p95": 30.882,
+            "max": 43.504,
+            "mean": 23.166459016393443
+          },
+          "thread_cycles": {
+            "n": 1220,
+            "median": 33702390.0,
+            "p95": 42920240,
+            "max": 58579280,
+            "mean": 32979092.704918034
+          },
+          "vi_deltas": {
+            "2": 1199,
+            "3": 20
+          }
+        }
+      },
+      "checks": {
+        "unsupported_accesses": 0,
+        "audio_underruns_after_release": 0,
+        "audio_overruns_after_release": 0
+      },
+      "audio_release_totals": {
+        "first": [
+          0,
+          1
+        ],
+        "last": [
+          0,
+          1
+        ]
+      }
+    }
+  ],
+  "shared_prefix_state_equal": true,
+  "final_recorded": [
+    {
+      "case": "resident-final-recorded-off",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true,
+        "cycles_off": true
+      }
+    },
+    {
+      "case": "resident-final-recorded-on",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true,
+        "cycles_off": true
+      }
+    },
+    {
+      "case": "resident-final-original",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "probe": true,
+        "hashes": true,
+        "cycles_off": true
+      }
+    }
+  ],
+  "final_native_and_profile": [
+    {
+      "case": "resident-final-profile-full",
+      "profile_updates": 279,
+      "active_ms": {
+        "n": 279,
+        "median": 35.356,
+        "p95": 43.318,
+        "max": 49.676
+      },
+      "vi_deltas": {
+        "2": 184,
+        "3": 94
+      },
+      "unsupported": 0,
+      "audio_underruns": null,
+      "audio_overruns": null,
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      }
+    },
+    {
+      "case": "resident-final-native120",
+      "profile_updates": 0,
+      "active_ms": {
+        "n": 1207,
+        "median": 24.14,
+        "p95": 35.226,
+        "max": 41.797
+      },
+      "vi_deltas": {
+        "2": 1120,
+        "3": 86
+      },
+      "unsupported": 0,
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "correspondence": null
+    },
+    {
+      "case": "resident-final-native360",
+      "profile_updates": 0,
+      "active_ms": {
+        "n": 1246,
+        "median": 24.802,
+        "p95": 29.876,
+        "max": 43.895
+      },
+      "vi_deltas": {
+        "2": 1237,
+        "3": 8
+      },
+      "unsupported": 0,
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "correspondence": null
+    }
+  ],
+  "limits": [
+    "The controlled median improvement is a component result, not a guarantee of 30 game updates/s.",
+    "Native runs can diverge after an identical recorded starting state.",
+    "Full profiling adds observer cost; never use it for normal FPS acceptance.",
+    "Hidden runs do not verify monitor scanout or all late-route visuals.",
+    "Original timing and unsupported/observed call states retain generated fallback."
+  ],
+  "private_evidence": [
+    "native-pure-dispatch-fixtures",
+    "native-pure-dispatch-recorded",
+    "native-pure-dispatch-native",
+    "native-trig-dispatch-fixtures",
+    "native-four-math-recorded",
+    "native-four-math-prefix-native",
+    "resident-math-source-build-fixed",
+    "resident-math-final-recorded",
+    "resident-math-final-native"
+  ],
+  "runtime_source_commit": "4a54d903853471bfd248cfd2da12ac97f14df1cb",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T02:46:16.590652+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 40,
+    "manifest_verified": 14,
+    "launcher_sha256": "60b2696f1447101809053922a1aa5b24efc94c197875a63ad22b3fb9c4dc045c",
+    "launcher_setup_runtime_protocol_passed": true
+  }
+}

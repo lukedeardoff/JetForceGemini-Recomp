@@ -7,9 +7,11 @@
 #include "frontend_build_info.hpp"
 #include "home_scene.hpp"
 #include "live_tools.hpp"
+#include "video_settings_ui.hpp"
 #include <iomanip>
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/Elements/ElementFormControlInput.h>
+#include <RmlUi/Core/Elements/ElementFormControlSelect.h>
 #include <RmlUi_Platform_Win32.h>
 #include <RmlUi_Renderer_DX11.h>
 #include <algorithm>
@@ -22,7 +24,9 @@
 #include <fstream>
 #include <jfg/audio/master_volume.hpp>
 #include <jfg/runtime/controller_ports.hpp>
+#include <jfg/runtime/sdl_controller_backend.hpp>
 #include <jfg/runtime/pc_input.hpp>
+#include <jfg/runtime/modern_controls.hpp>
 #include <memory>
 #include <shellapi.h>
 #include <sstream>
@@ -81,6 +85,56 @@ struct Ui : Rml::EventListener {
   std::function<void(const std::string &)> action;
   FrontendUiState state;
   jfg::ControllerPorts assignments;
+  jfg::ControllerCatalog controllerCatalog;
+  jfg::SdlControllerBackend sdlControllers;
+  std::function<std::vector<jfg::ControllerDeviceInfo>()> sdlDiscovery;
+  jfg::ControllerMapping resolvedMapping(const jfg::ControllerMapping& saved) {
+    auto resolved=saved;
+    if(saved.device==-4)resolved.device=controllerCatalog.reserve(saved.device_key);
+    return resolved;
+  }
+  std::string deviceName(int device) const {
+    if(const auto* info=controllerCatalog.get(device))return info->name;
+    return device>=0?(device<4?"Xbox / XInput ":"Controller ")+std::to_string(device+1):device==-3?"Mouse and keyboard":"No device";
+  }
+  ULONGLONG sdlLoadAttempt=0;
+  fs::path controllerSdkDirectory() {
+    if(!state.runtime.empty())return fs::path(state.runtime).parent_path();
+    // The separate mapping process has no frontend state. Read the runtime
+    // selected in its own profile, including Unicode paths.
+    auto value=read("frontend-runtime.txt");
+    while(!value.empty() && (value.back()=='\r' || value.back()=='\n'))value.pop_back();
+    const int count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,value.data(),static_cast<int>(value.size()),nullptr,0);
+    if(count<=0)return {};
+    std::wstring path(static_cast<std::size_t>(count),L'\0');
+    MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,value.data(),static_cast<int>(value.size()),path.data(),count);
+    return fs::path(path).parent_path();
+  }
+  void pollSdl() {
+    if(sdlDiscovery)controllerCatalog.update(sdlDiscovery());
+    else {
+      const auto now=GetTickCount64();
+      if(!sdlControllers.available() && now>=sdlLoadAttempt) {
+        sdlLoadAttempt=now+2000;sdlControllers.open(controllerSdkDirectory());
+      }
+      controllerCatalog.update(sdlControllers.poll());
+    }
+  }
+  DWORD readController(DWORD device,XINPUT_STATE* out) {
+    if(device<4)return controllerState(device,out);
+    *out={};const auto* info=controllerCatalog.get(static_cast<int>(device));
+    if(!info || !info->connected || info->session_only)return ERROR_DEVICE_NOT_CONNECTED;
+    const auto& pad=info->sample;
+    constexpr WORD masks[]={0x1000,0x2000,0x4000,0x8000,0x20,0,0x10,0x40,0x80,0x100,0x200,1,2,4,8};
+    for(std::size_t i=0;i<15;++i)if(pad.buttons[i])out->Gamepad.wButtons|=masks[i];
+    out->Gamepad.sThumbLX=static_cast<SHORT>(pad.axes[0]);
+    out->Gamepad.sThumbLY=static_cast<SHORT>(std::clamp(-pad.axes[1],-32768,32767));
+    out->Gamepad.sThumbRX=static_cast<SHORT>(pad.axes[2]);
+    out->Gamepad.sThumbRY=static_cast<SHORT>(std::clamp(-pad.axes[3],-32768,32767));
+    out->Gamepad.bLeftTrigger=static_cast<BYTE>(pad.axes[4]*255/32767);
+    out->Gamepad.bRightTrigger=static_cast<BYTE>(pad.axes[5]*255/32767);
+    return ERROR_SUCCESS;
+  }
   std::array<jfg::ControllerMapping, 4> mappings{};
   std::array<jfg::PcInputConfig,4> pcInput{};
   std::array<int, 4> devices{-2, -2, -2, -2};
@@ -92,7 +146,9 @@ struct Ui : Rml::EventListener {
   std::function<DWORD(DWORD, XINPUT_STATE *)> controllerState = XInputGetState;
   bool learnReleased = false;
   double learnDeadline = 0;
+  #include "modern_controls_ui.inl"
   void close() {
+    modernCapture=-1;modernPanel.clear();modernRetry.reset();modernNavReady=false;
     if(controllerWindow){PostMessageW(window,WM_CLOSE,0,0);return;}
     current.clear();
     doc->SetClass("panel-open", false);
@@ -122,17 +178,7 @@ struct Ui : Rml::EventListener {
     }
     return true;
   }
-  bool pcExperimental() {
-    return jfg::pc_experiments_enabled(read("experimental-controls.ini"));
-  }
   bool pcKeyboard() const { return mappings[player].device==-3 || (mappings[player].device==-1 && devices[player]==-3); }
-  std::string pcExperimentalHtml() {
-    const bool keyboard=pcKeyboard();
-    return "<div class=\"row\"><div class=\"grow\">"+
-      std::string(keyboard?"Experimental mouse look and movement":"Experimental dual-stick controls")+
-      "<div class=\"muted\">Opt in to modern controls. This switch applies to the whole profile.</div></div>"+
-      button("pc-experimental",pcExperimental()?"On":"Off")+"</div>";
-  }
   std::string pcFile() const { return player ? "pc-input-"+std::to_string(player+1)+".ini" : "pc-input.ini"; }
   void loadPcInput() {
     pcInput[static_cast<std::size_t>(player)]={};
@@ -154,43 +200,8 @@ struct Ui : Rml::EventListener {
     if(GetKeyNameTextW(static_cast<LONG>(scan<<16),text,64)>0)return u8(text);
     return "Key "+std::to_string(key);
   }
-  std::string pcInputHtml() {
-    auto &c=pcInput[static_cast<std::size_t>(player)];
-    const bool keyboard=pcKeyboard(), enabled=pcExperimental();
-    std::string html=pcExperimentalHtml();
-    if(!keyboard && !enabled)return html;
-    html+="<div class=\"row\">"+
-      button(keyboard?"pc-normal":"pc-pad-normal","Normal preset",!keyboard && !enabled)+
-      button(keyboard?"pc-expert":"pc-pad-expert","Expert preset",!keyboard && !enabled)+
-      button("pc-reset",keyboard?"Reset keyboard and mouse":"Reset aim settings",!keyboard && !enabled)+
-      (keyboard?button("controller-settings",controllerSettings?"Hide settings":"Settings",!enabled):std::string{})+"</div>";
-    if(enabled && controllerSettings) {
-      html+="<div class=\"row\">"+
-        button(keyboard?"pc-mouse":"pc-dual",keyboard?(c.mouse_aim?"Mouse look: on":"Mouse look: off"):(c.dual_stick?"Dual-stick aim: on":"Dual-stick aim: off"))+
-        button("pc-modern",c.modern?"Modern camera + movement: on":"Modern camera + movement: off")+"</div>";
-      html+="<p class=\"muted\">Match the preset to the game's Normal or Expert control scheme. Modern camera and aim movement currently support single-player.</p>";
-      const char* labels[]={"Mouse camera sensitivity","Aim stick sensitivity","Aim stick deadzone","Mouse aim sensitivity","Camera stick sensitivity","Mouse vertical scale","Stick vertical scale"};
-      const int values[]={c.mouse_sensitivity,c.aim_sensitivity,c.aim_deadzone,c.mouse_aim_sensitivity,c.camera_sensitivity,c.mouse_vertical_sensitivity,c.stick_vertical_sensitivity};
-      const int maxima[]={500,300,30000,500,300,300,300};
-      for(int i=0;i<7;++i) {
-        if(keyboard!=(i==0 || i==3 || i==5))continue;
-        html+="<div class=\"row\"><span>"+std::string(labels[i])+"</span><input class=\"volume\" type=\"range\" min=\""+std::to_string(i==2?0:10)+"\" max=\""+std::to_string(maxima[i])+"\" value=\""+std::to_string(values[i])+"\" data-action=\"pc-tune"+std::to_string(i)+"\"/><span id=\"pc-value"+std::to_string(i)+"\">"+std::to_string(values[i])+"</span></div>";
-      }
-      if(!keyboard)html+="<div class=\"row\"><span>Stick response</span>"+button("pc-curve",c.aim_curve==0?"Linear":c.aim_curve==1?"Precise":"Extra precise")+"<span class=\"muted\">Precise response slows small movements near the center.</span></div>";
-      html+="<div class=\"row\">"+button(keyboard?"pc-invert-mouse":"pc-invert-stick",keyboard?(c.mouse_invert_y?"Mouse Y: inverted":"Mouse Y: normal"):(c.aim_invert_y?"Aim stick Y: inverted":"Aim stick Y: normal"))+"</div>";
-    }
-    if(!keyboard)return html;
-    html+="<div class=\"label\">KEYBOARD AND MOUSE BINDINGS</div>";
-    if(!enabled)html+="<p class=\"muted\">Bindings are always active. Experimental controls add mouse look and modern movement.</p>";
-    const auto &shown=c;
-    const char* names[]={"A / confirm","B / weapon","Z / fire","Start","D-pad up","D-pad down","D-pad left","D-pad right","L","R / aim","C up / Normal jump","C down","C left","C right","Move forward","Move back","Move left","Move right","Full movement","Alternate A"};
-    for(std::size_t i=0;i<shown.keys.size();++i) {
-      html+="<div class=\"key-binding-row\"><span>"+std::string(names[i])+"</span>"+
-        button("pc-bind"+std::to_string(i),pcKeyName(shown.keys[i]))+
-        button("pc-unbind"+std::to_string(i),"Clear")+"</div>";
-    }
-    return html;
-  }
+  bool mappingAdvanced=false, mappingDiagram=false;
+  #include "controller_mapping_presentation.inl"
   std::string controllerFile(int p) {
     return p ? "controller-" + std::to_string(p + 1) + ".ini"
              : "controller.ini";
@@ -199,38 +210,33 @@ struct Ui : Rml::EventListener {
     for (int p = 0; p < 4; p++) {
       jfg::parse_controller_mapping(read(controllerFile(p).c_str()),
                                     mappings[p]);
-      assignments.configure(p, mappings[p]);
+      assignments.configure(p, resolvedMapping(mappings[p]));
     }
     devices=assignments.devices(connected);
+    loadModern();
   }
   bool saveController() {
     auto &m = mappings[player];
-    std::ostringstream s;
-    s << "version=1\ndevice=" << m.device << "\nstick=" << m.stick
-      << "\ndeadzone=" << m.deadzone << "\nthreshold=" << m.threshold
-      << "\ntrigger=" << m.trigger << "\ninvert_x=" << m.invert_x
-      << "\ninvert_y=" << m.invert_y << "\n";
-    for (int i = 0; i < 14; i++)
-      s << "map" << i << "=" << m.bindings[i] << "\n";
-    if (writeFile(controllerFile(player), s.str())) {
-      assignments.configure(player, m);
+    if (writeFile(controllerFile(player), jfg::serialize_controller_mapping(m))) {
+      assignments.configure(player, resolvedMapping(m));
       label("dialog-note", "Saved. Applied to the game immediately.");
       return true;
     }
     return false;
   }
   bool deviceAvailable(int d) const {
-    return jfg::controller_device_available(static_cast<std::size_t>(player),d,mappings,devices,connected);
+    return jfg::controller_device_available(static_cast<std::size_t>(player),d,assignments.mappings,devices,connected);
   }
   void discoverDevices() {
-    for(DWORD d=0;d<4;++d){XINPUT_STATE sample{};connected[d]=controllerState(d,&sample)==ERROR_SUCCESS;}
+    pollSdl();
+    for(DWORD d=0;d<jfg::kControllerDeviceCount;++d){XINPUT_STATE sample{};connected[d]=readController(d,&sample)==ERROR_SUCCESS;}
     devices=assignments.devices(connected);
   }
   void normalizePicker() {
     if(pickerType==-3 || pickerType==-1){pickerDevice=pickerType;return;}
     if(pickerDevice>=0 && deviceAvailable(pickerDevice))return;
     pickerDevice=-2;
-    for(int d=0;d<4;++d)if(deviceAvailable(d)){pickerDevice=d;break;}
+    for(int d=0;d<static_cast<int>(jfg::kControllerDeviceCount);++d)if(deviceAvailable(d)){pickerDevice=d;break;}
   }
   bool assignDevice(int d) {
     discoverDevices(); // Revalidate immediately before saving a selection.
@@ -239,21 +245,32 @@ struct Ui : Rml::EventListener {
       label("dialog-note","That device is disconnected or belongs to another player. Choose an available device.");
       return false;
     }
-    const int previous=mappings[player].device;
-    mappings[player].device=d;
-    if(!saveController()){mappings[player].device=previous;label("dialog-note","Could not save the device assignment.");return false;}
+    const auto previous=mappings[player];
+    mappings[player].device=d>=4?-4:d;
+    mappings[player].device_key=d>=4?controllerCatalog.get(d)->key:std::string{};
+    if(!saveController()){mappings[player]=previous;label("dialog-note","Could not save the device assignment.");return false;}
     devices=assignments.devices(connected);learning=keyLearning=-1;
-    devicePicker=false;controllerSettings=false;
+    devicePicker=false;controllerSettings=false;modernSelected=-100;modernNavReady=false;
+    if(pcKeyboard() && modernAdvanced){modernAdvanced=false;modernSettings=true;}
     modal("controllers");el("dialog-body")->SetScrollTop(0);return true;
   }
   std::string deviceSetupHtml() {
     const int configured=mappings[player].device,d=devices[player];
     const bool online=d==-3 || (d>=0 && connected[d]);
-    const std::string name=d==-3?"Mouse and keyboard":d>=0?"Controller "+std::to_string(d+1):"No device";
+    const std::string name=escape(deviceName(d));
     std::string html="<div class=\"input-device-card\"><div class=\"device-summary\"><div class=\"grow\"><div class=\"label\">INPUT DEVICE</div><div class=\"device-name\">"+name+
       "</div><div id=\"assignment\" class=\"muted\"></div></div><span class=\"connection-state "+std::string(online?"online":"offline")+"\">"+(online?"Connected":"Disconnected")+"</span>"+
       button("device-open",configured==-2?"+ Add device":"Change device")+
       button("device-remove","Remove",configured==-2)+"</div></div>";
+    if(const auto* info=controllerCatalog.get(d);info && info->session_only)
+      html+="<p class=\"muted\">This device has no persistent identity. Select it again after restarting or reconnecting.</p>";
+    if(devicePicker) {
+      bool unidentifiable=false;
+      for(int slot=4;slot<static_cast<int>(jfg::kControllerDeviceCount);++slot) {
+        const auto* info=controllerCatalog.get(slot);unidentifiable|=info->connected&&info->session_only;
+      }
+      if(unidentifiable)html+="<p class=\"muted\">A controller does not provide a stable device ID. Try a USB connection to assign it.</p>";
+    }
     if(!devicePicker)return html;
     normalizePicker();
     html+="<div id=\"device-picker\" class=\"device-picker\"><div class=\"label\">CHOOSE INPUT DEVICE</div><div class=\"device-row\"><span>Input type</span><select id=\"input-type\" data-action=\"input-type\">";
@@ -263,7 +280,7 @@ struct Ui : Rml::EventListener {
     if(pickerType==0){
       html+="<div class=\"device-row\"><span>Controller</span><select id=\"available-device\" data-action=\"device\""+std::string(available?"":" disabled=\"disabled\"")+">";
       if(!available)html+="<option value=\"-2\">No available controllers</option>";
-      for(int slot=0;slot<4;++slot)if(deviceAvailable(slot))html+="<option value=\""+std::to_string(slot)+"\""+(slot==pickerDevice?" selected=\"selected\"":"")+">Controller "+std::to_string(slot+1)+"</option>";
+      for(int slot=0;slot<static_cast<int>(jfg::kControllerDeviceCount);++slot)if(deviceAvailable(slot))html+="<option value=\""+std::to_string(slot)+"\""+(slot==pickerDevice?" selected=\"selected\"":"")+">"+escape(deviceName(slot))+"</option>";
       html+="</select>"+button("device-refresh","Refresh")+"</div><p class=\"muted\">Only connected controllers available to this player are listed. Remove a device from another player to move it here.</p>";
     } else if(pickerType==-3)html+="<p class=\"muted\">"+std::string(available?"Use keyboard keys, mouse buttons and mouse look.":"Mouse and keyboard belong to another player. Remove them there first.")+"</p>";
     else html+="<p class=\"muted\">Use the next free controller. Player 1 falls back to keyboard when no controller has been assigned.</p>";
@@ -334,15 +351,68 @@ struct Ui : Rml::EventListener {
   int volume = 100, player = 0;
   bool muted = false;
   double toastUntil = 0, decorationTick = -1;
-  std::array<bool, 4> connected{};
-  std::array<WORD, 4> buttons{};
-  std::array<bool, 4> activated{};
+  std::array<bool, jfg::kControllerDeviceCount> connected{};
+  std::array<WORD, jfg::kControllerDeviceCount> buttons{};
+  std::array<bool, jfg::kControllerDeviceCount> activated{};
   std::deque<std::string> notices;
   bool reducedMotion = false;
+  bool updatePending = false, updatePreview = false;
+  double updateDeadline = 0, updatePoll = 0;
+  std::string updateState, updateTag, updateMessage, availableUpdate;
+  void beginUpdateCheck() {
+    if (controllerWindow || updatePending) return;
+    if (updatePreview) {
+      // Explicit, process-local UI preview. Never writes an update result or
+      // changes installed-version metadata, and never requests a download.
+      updateState = "available"; updateTag = "v1.3.0"; availableUpdate = updateTag;
+      updateMessage = "Design preview: this is a sample update, not a GitHub result.";
+      label("update-current", std::string("You're on v") + jfg::frontend::version + ".");
+      label("update-version", availableUpdate);
+      doc->SetClass("has-update", true);
+      return;
+    }
+    updatePending = true; updateState = "checking"; updateMessage = "Checking GitHub for the latest stable release...";
+    updateDeadline = Rml::GetSystemInterface()->GetElapsedTime() + 30;
+    updatePoll = 0;
+    action("updates");
+  }
+  void pollUpdateCheck() {
+    if (!updatePending) return;
+    const double now = Rml::GetSystemInterface()->GetElapsedTime();
+    if (now < updatePoll) return;
+    updatePoll = now + .25;
+    std::istringstream response(read("frontend-update.txt"));
+    std::string result, tag, message;
+    std::getline(response, result); std::getline(response, tag); std::getline(response, message);
+    for (auto* line : {&result, &tag, &message})
+      if (!line->empty() && line->back() == '\r') line->pop_back();
+    if (result != "available" && result != "current" && result != "error") {
+      if (now < updateDeadline) return;
+      result = "error"; message = "The update check timed out. Try again later. You can keep playing offline.";
+    }
+    updatePending = false; updateState = result; updateTag = tag; updateMessage = message;
+    label("update-current", std::string("You're on v") + jfg::frontend::version + ".");
+    if (result == "available") availableUpdate = tag;
+    else if (result == "current") availableUpdate.clear();
+    label("update-version", availableUpdate);
+    doc->SetClass("has-update", !availableUpdate.empty());
+    if (current == "updates" || current == "menu-help") modal(current);
+  }
   std::string current, sessionList, selectedSession;
   Rml::Element *el(const char *id) { return doc->GetElementById(id); }
   void label(const char *id, const std::string &s) {
-    el(id)->SetInnerRML(escape(s));
+    auto* element=el(id);
+    if(std::string_view(id)=="dialog-note") {
+      if(current=="controllers") {
+        // Keep the footer quiet during normal editing; real failures stay visible.
+        const bool actionable=s.starts_with("Could not") || s.starts_with("That device") || learning>=0 || keyLearning>=0 || s.find("disconnected")!=std::string::npos || s.find("timed out")!=std::string::npos;
+        const auto message=actionable?s:std::string{};
+        element->SetProperty("display",message.empty()?"none":"block");
+        element->SetInnerRML(escape(message));return;
+      }
+      element->RemoveProperty("display");
+    }
+    element->SetInnerRML(escape(s));
   }
   std::string read(const char *file) {
     std::ifstream f(profile / file, std::ios::binary | std::ios::ate);
@@ -368,20 +438,27 @@ struct Ui : Rml::EventListener {
     if (current != "controllers" || !el("assignment"))
       return;
     const int d = devices[player];
-    std::string description =
-        pcKeyboard() ? "Mouse and keyboard assigned to this player."
-        : d < 0 ? "No physical controller is assigned."
-                : "Controller " + std::to_string(d + 1) +
-                      (connected[d] ? " connected." : " offline.");
-    if(mappings[player].device==-1)description="Automatic: "+description;
-    if(d>=0 && !connected[d])description+=" Saved bindings will return when it reconnects.";
+    const int configured = mappings[player].device;
+    std::string description;
+    if (configured == -2)
+      description = "Choose an input device";
+    else if (pcKeyboard())
+      description = configured == -1 ? "Automatic keyboard fallback"
+                                    : "Assigned to Player " + std::to_string(player + 1);
+    else if (d >= 0 && connected[d])
+      description = configured == -1 ? "Automatically selected"
+                                    : "Assigned to Player " + std::to_string(player + 1);
+    else if (configured >= 0 || configured == -4 || d >= 0)
+      description = "Reconnect or change device";
+    else
+      description = "No available input device";
     label("assignment", description);
     for (int p = 0; p < 4; p++) {
       const int assigned = devices[p];
       label(("tab-device" + std::to_string(p)).c_str(),
             assigned == -3 ? "Keyboard"
             : assigned < 0 ? "Not connected"
-                           : "Controller " + std::to_string(assigned + 1) +
+                           : deviceName(assigned) +
                                  (connected[assigned] ? "" : " (offline)"));
     }
     const bool disabled = d < 0 || !connected[d];
@@ -397,14 +474,15 @@ struct Ui : Rml::EventListener {
   void ports() {
     const bool wasKeyboard=pcKeyboard();
     const auto wasConnected=connected;const auto wasDevices=devices;
-    for (DWORD i = 0; i < 4; i++) {
+    pollSdl();
+    for (DWORD i = 0; i < jfg::kControllerDeviceCount; i++) {
       const bool previouslyConnected = connected[i];
       std::string assignedPlayer;
       for (int p = 0; p < 4; p++)
         if (devices[p] == int(i))
           assignedPlayer = " - Player " + std::to_string(p + 1);
       XINPUT_STATE s{};
-      bool on = controllerState(i, &s) == ERROR_SUCCESS;
+      bool on = readController(i, &s) == ERROR_SUCCESS;
       const WORD pressed =
           on ? static_cast<WORD>(s.Gamepad.wButtons & ~buttons[i]) : 0;
       if (on != connected[i]) {
@@ -415,12 +493,12 @@ struct Ui : Rml::EventListener {
         for (int p = 0; p < 4; p++)
           if (devices[p] == int(i))
             port = " - Player " + std::to_string(p + 1);
-        toast("Controller " + std::to_string(i + 1) +
+        toast(deviceName(static_cast<int>(i)) +
               (on ? " connected" : " disconnected") +
               (on ? port : assignedPlayer));
       } else if (pressed && !activated[i]) {
         activated[i] = true;
-        toast("Controller " + std::to_string(i + 1) + " active" +
+        toast(deviceName(static_cast<int>(i)) + " active" +
               assignedPlayer);
       }
 
@@ -432,6 +510,13 @@ struct Ui : Rml::EventListener {
                 "Controller disconnected. Select a device and retry.");
         } else {
           auto active = sample(s);
+          if(const auto* info=controllerCatalog.get(static_cast<int>(i))) {
+            for(std::size_t b=0;b<15;++b)active[b]=info->sample.buttons[b];
+            for(std::size_t axis=0;axis<6;++axis) {
+              active[15+axis*2]=info->sample.axes[axis]>16000;
+              active[16+axis*2]=info->sample.axes[axis]<-16000;
+            }
+          }
           bool neutral = std::none_of(active.begin(), active.end(),
                                       [](bool b) { return b; });
           if (!learnReleased) {
@@ -459,7 +544,10 @@ struct Ui : Rml::EventListener {
 
     devices = assignments.devices(connected);
     if(current=="controllers" && (wasConnected!=connected || wasDevices!=devices || wasKeyboard!=pcKeyboard())) {
-      learning=keyLearning=-1;normalizePicker();modal("controllers");
+      learning=keyLearning=-1;
+      if(wasDevices[player]!=devices[player] || wasKeyboard!=pcKeyboard())modernSelected=-100;
+      if(modernPanel=="capture"){modernCapture=-1;modernPanel.clear();modernNotice="Capture cancelled because a device changed.";}
+      normalizePicker();modal("controllers");
       if(wasKeyboard!=pcKeyboard())el("dialog-body")->SetScrollTop(0);
     }
     if(keyLearning>=0) {
@@ -467,6 +555,7 @@ struct Ui : Rml::EventListener {
       if(released && !keyReleased){keyReleased=true;label("dialog-note","Press a key, mouse button or scroll the wheel. Esc cancels. F11 is reserved.");}
       if(Rml::GetSystemInterface()->GetElapsedTime()>keyDeadline){keyLearning=-1;modal("controllers");label("dialog-note","Binding timed out. No binding was changed.");}
     }
+    modernPoll();
     refreshController();
     for (int p = 0; p < 4; p++) {
       bool on = devices[p] == -3 || (devices[p] >= 0 && connected[devices[p]]);
@@ -590,7 +679,7 @@ struct Ui : Rml::EventListener {
       el((std::string("menu-") + name).c_str())
           ->SetClass("selected",
                      page == name || page == std::string("menu-") + name ||
-                         (page == "support" && std::string(name) == "help"));
+                         ((page == "support" || page == "updates") && std::string(name) == "help"));
     el("dialog")->SetClassNames("dialog " + page);
     el("game-popup")->SetProperty("display", "none");
     if (popup()) {
@@ -609,7 +698,7 @@ struct Ui : Rml::EventListener {
         loadAudio();
         menu = button("audio", "Audio settings...") + button("mute", muted ? "Unmute" : "Mute", false, "Ctrl+M");
       } else if (menuName == "help") {
-        menu = button("guide", "Setup guide") + button("support", "Support report...") + "<div class=\"separator\"/>" + button("help", "About Jet Force Gemini...");
+        menu = button("guide", "Setup guide") + button("support", "Support report...") + button("check-updates", availableUpdate.empty() ? "Check for updates..." : "Check for updates... (available)") + "<div class=\"separator\"/>" + button("help", "About Jet Force Gemini...");
       } else if (menuName == "tools") {
         menu = button("map", "Live map") +
                button("inventory", "Live inventory");
@@ -633,8 +722,9 @@ struct Ui : Rml::EventListener {
     el("modal")->SetProperty("display", "block");
     std::string html, note = "Settings are saved to your game profile.";
     label("dialog-title", page == "pc-input" ? "KEYBOARD, MOUSE AND AIM"
-                          : page == "controllers" ? "CONTROLLER MAPPING"
+                          : page == "controllers" ? "CONTROLS"
                           : page == "setup"     ? "VERIFY GAME FILES"
+                          : page == "updates"   ? "CHECK FOR UPDATES"
                           : page == "support"   ? "SUPPORT REPORT"
                           : page == "video"     ? "VIDEO"
                           : page == "audio"     ? "AUDIO"
@@ -653,9 +743,10 @@ struct Ui : Rml::EventListener {
                                                               : "460dp");
     el("dialog-extra")
         ->SetInnerRML(
-            page == "controllers" && !pcKeyboard() && mappings[player].device>=-1 ? button("reset", "Restore controller defaults") : "");
+            page == "controllers" ? (modernMode()?modernFooterHtml():
+              (mappings[player].device!=-2?mcControl(pcKeyboard()?"pc-reset":controllerSettings?"mapping-reset-tuning":"reset",pcKeyboard()?"Restore keyboard defaults":controllerSettings?"Reset sensitivity &amp; behavior":"Restore controller defaults"):"")) : "");
     if (page == "pc-input") {
-      html=pcExperimental()?pcInputHtml():"<p>Enable Experimental PC controls in Controller mapping first.</p>";
+      html=mappingHtml();
       el("dialog")->SetProperty("width","880dp");el("dialog")->SetProperty("height","640dp");
       note="Changes apply live. Mouse bindings work on the player assigned Keyboard.";
     } else if (page == "audio") {
@@ -671,103 +762,14 @@ struct Ui : Rml::EventListener {
               std::to_string(volume) + "\" data-action=\"volume\"/>" +
               button("up", "+") + "</div>";
       note = "Applied immediately. Volume is remembered when muted.";
-    } else if (page == "video") {
-      html =
-          "<div class=\"split\"><div class=\"grow\"><div class=\"row\"><span "
-          "class=\"grow\">Window mode</span><div class=\"segments\">" +
-          button("windowed", "Windowed") + button("borderless", "Fullscreen") +
-          "</div></div>";
-      html += "<div class=\"row\"><span class=\"grow\">Window size</span><div "
-              "class=\"segments\">" +
-              button("size720", "1280 x 720") +
-              button("size1080", "1920 x 1080") + "</div></div>";
-      html +=
-          "<div class=\"row\"><span class=\"grow\">Aspect ratio</span><span "
-          "class=\"muted\">Original game setting</span></div></div><div "
-          "class=\"about\"><div class=\"label\">ABOUT</div><div "
-          "class=\"name\">Display</div><p>Fullscreen fills your display "
-          "without changing the game's graphics.</p><p class=\"muted\">F11 "
-          "switches modes. The game stays in a centered 4:3 area; the original "
-          "game controls its own cinematic bars.</p></div></div>";
-      html += "<div class=\"row\"><div class=\"grow\">Pause when inactive<div class=\"muted\">Pause when you switch to another app. Resume when you return.</div></div>" +
-              button("pause-inactive", state.pauseInactive ? "On" : "Off") + "</div>";
-      note = "Changes apply immediately. Settings dialogs always pause the game.";
     } else if (page == "controllers") {
-      auto &m = mappings[player];
       loadPcInput();
-      html = "<div class=\"tabs\">";
-      for (int i = 0; i < 4; i++) {
-        const int d = devices[i];
-        std::string device = d == -3 ? "Keyboard"
-                             : d < 0 ? "Not connected"
-                                     : "Controller " + std::to_string(d + 1);
-        html += "<button id=\"action-player" + std::to_string(i) +
-                "\" data-action=\"player" + std::to_string(i) + "\" class=\"" +
-                (i == player ? "selected" : "") +
-                "\"><span class=\"tab-title\">PLAYER " + std::to_string(i + 1) +
-                "</span><span class=\"tab-device\" id=\"tab-device" +
-                std::to_string(i) + "\">" + device + "</span></button>";
-      }
-      html += "</div>"+deviceSetupHtml();
-      if(pcKeyboard()) {
-        html+="<div id=\"mapping-content\" class=\"keyboard-mapping\">"+pcInputHtml()+"</div>";
-        note="Keyboard and mouse settings save automatically for this player.";
-      } else if(m.device==-2) {
-        html+="<div id=\"mapping-content\" class=\"muted\">Choose mouse and keyboard or a controller to configure bindings.</div>";
-        note="This player port is disconnected.";
+      html=modernHeaderHtml()+modernStyleHtml();
+      el("dialog")->SetClass("modern-layout",true);
+      if(modernMode()) {
+        html+=modernHtml();note=modernNotice.empty()?"Saved automatically":modernNotice;
       } else {
-      html+="<div id=\"mapping-content\" class=\"gamepad-mapping\"><div class=\"row\"><span>Movement</span>"+
-        button("stick",m.stick?"Right stick":"Left stick")+button("controller-settings",controllerSettings?"Hide settings":"Settings")+"</div>";
-      html+=pcInputHtml();
-      const char *names[] = {"A / jump", "B",      "Z / fire", "Start",  "Up",
-                             "Down",     "Left",   "Right",    "L",      "R",
-                             "C up",     "C down", "C left",   "C right"};
-      const int groups[3][6] = {
-          {0, 1, 2, 9, 8, 3}, {10, 11, 12, 13, -1, -1}, {4, 5, 6, 7, -1, -1}};
-      const char *titles[] = {"BUTTONS", "C BUTTONS", "D-PAD"};
-      html += "<div class=\"mapping-groups\">";
-      for (int g = 0; g < 3; g++) {
-        html += "<div class=\"mapping-group\"><div class=\"label\">" +
-                std::string(titles[g]) + "</div>";
-        for (int i : groups[g]) {
-          if (i < 0)
-            continue;
-          html += "<div class=\"binding-row\" id=\"binding-" +
-                  std::to_string(i) + "\"><span class=\"binding-label\">" +
-                  names[i] + "</span>" +
-                  button("learn" + std::to_string(i), bindingName(m.bindings[i]),
-                         devices[player] < 0) +
-                  button("clear" + std::to_string(i), "x") + "</div>";
-        }
-        html += "</div>";
-      }
-      html += "</div>";
-      if(controllerSettings){
-      html += "<div id=\"controller-settings\"><div class=\"tuning\">";
-      const char *tuneNames[] = {"Dead zone", "Stick threshold",
-                                 "Trigger threshold"};
-      int n = 0;
-      for (auto pair : {std::pair{"deadzone", m.deadzone},
-                        std::pair{"threshold", m.threshold},
-                        std::pair{"trigger", m.trigger}}) {
-        std::string key = pair.first;
-        html += "<div class=\"tune\"><div class=\"tune-label\"><span>" +
-                std::string(tuneNames[n++]) + "</span><span id=\"value-" + key +
-                "\">" + std::to_string((pair.second * 100 + 16383) / 32767) +
-                "%</span></div><input class=\"volume\" type=\"range\" min=\"" +
-                (key == "deadzone" ? "0" : "1000") + "\" max=\"" +
-                (key == "deadzone" ? "30000" : "32000") +
-                "\" step=\"100\" value=\"" + std::to_string(pair.second) +
-                "\" data-action=\"tune-" + key + "\"/></div>";
-      }
-      html += "</div><div class=\"inversions\">" +
-              button("invertx", m.invert_x ? "Invert X: on" : "Invert X: off") +
-              button("inverty", m.invert_y ? "Invert Y: on" : "Invert Y: off") +
-              "</div>";
-      html+="</div>";
-      }
-      html+="</div>";
-      note = "Click a binding, release controls, then press a button or move a stick. Esc cancels.";
+        html+=mappingHtml();note="";
       }
     } else if (page == "setup") {
       html = "<div class=\"steps\"><span>1 &nbsp; Import ROM</span><span>2 &nbsp; Verify</span><span>3 &nbsp; Play</span></div>"
@@ -776,6 +778,14 @@ struct Ui : Rml::EventListener {
       html += "<div class=\"setup-log\" id=\"setup-status\"><span>" + escape(u8(state.status)) + "</span></div>";
       html += "<div class=\"panel-actions\">" + button("setup-start", "Verify files", state.busy || state.rom.empty()) + "</div>";
       note = "No development tools or additional downloads are needed.";
+    } else if (page == "updates") {
+      html = "<div class=\"name\">" + escape(updateState == "available" ? "Update " + updateTag + " is available" : updateState == "checking" ? "Checking for updates" : updateState == "current" ? "You're up to date" : "Unable to check for updates") + "</div>";
+      html += "<p>Installed launcher: v" + escape(jfg::frontend::version) + "</p>";
+      if (!updateTag.empty() && updateState != "checking") html += std::string("<p>") + (updatePreview ? "Sample release: " : "Latest stable release: ") + escape(updateTag) + "</p>";
+      html += "<p class=\"muted\">" + escape(updateMessage) + "</p>";
+      html += "<div class=\"panel-actions\">";
+      html += button("releases", "View release / download") + button("retry-updates", "Check again", updatePending) + "</div>";
+      note = "Checks run at startup. Downloads open in your browser; nothing is installed automatically.";
     } else if (page == "support") {
       html = "<div class=\"split\"><div class=\"grow\"><p>Which session had "
              "the problem?</p><div class=\"session-list\">";
@@ -817,7 +827,19 @@ struct Ui : Rml::EventListener {
     if(controllerWindow) {
       el("dialog")->SetProperty("width","100%");el("dialog")->SetProperty("height","100%");
     }
+    std::vector<std::pair<std::string,float>> controlScroll;
+    const std::string viewIdentity=page=="controllers" && modernMode()?
+      std::to_string(player)+"/"+std::to_string(devices[player])+"/"+std::to_string(modernContext)+"/"+
+      std::to_string(modernSettings)+"/"+std::to_string(modernAdvanced)+"/"+std::to_string(modernDiagram):"";
+    if(!viewIdentity.empty() && modernViewIdentity==viewIdentity)
+      for(const char* id:{"mc-settings-scroll","mc-diagram-list","mc-column-0","mc-column-1","mc-column-2"})
+        if(auto* host=el(id))controlScroll.emplace_back(id,host->GetScrollTop());
+    modernViewIdentity=viewIdentity;
     el("dialog-body")->SetInnerRML(html);
+    if(!controlScroll.empty()) {
+      doc->GetContext()->Update();
+      for(const auto& [id,position]:controlScroll)if(auto* host=el(id.c_str()))host->SetScrollTop(position);
+    }
     el("dialog-body")->SetScrollTop(scroll);
     label("dialog-note", note);
     if (!focusId.empty())
@@ -830,7 +852,9 @@ struct Ui : Rml::EventListener {
       if(auto *e=el("action-invertx"))e->SetClass("selected", mappings[player].invert_x);
       if(auto *e=el("action-inverty"))e->SetClass("selected", mappings[player].invert_y);
       refreshController();
+      if(!modernNotice.empty())label("dialog-note",modernNotice);
     }
+    modernOverlay();
   }
   void rom() {
     wchar_t path[32768]{};
@@ -870,10 +894,7 @@ struct Ui : Rml::EventListener {
     }
     if (t->HasAttribute("disabled")) return;
     auto a = t->GetAttribute<Rml::String>("data-action", "");
-    const bool keyboardBinding=pcKeyboard() && (a.rfind("pc-bind",0)==0 ||
-      a.rfind("pc-unbind",0)==0 || a.rfind("pc-key",0)==0 ||
-      a=="pc-normal" || a=="pc-expert" || a=="pc-reset");
-    if(a.rfind("pc-",0)==0 && a!="pc-experimental" && !keyboardBinding && !pcExperimental())return;
+    if(modernEvent(event,t,a))return;
     if (event.GetType() == "change") {
       if(a.rfind("pc-key",0)==0) {
         const auto i=static_cast<std::size_t>(std::stoi(a.substr(6)));
@@ -882,10 +903,10 @@ struct Ui : Rml::EventListener {
       }
       if(a.rfind("pc-tune",0)==0) {
         const int i=std::stoi(a.substr(7));auto &c=pcInput[static_cast<std::size_t>(player)];
-        if(i<0 || i>6)return;
-        int* values[]={&c.mouse_sensitivity,&c.aim_sensitivity,&c.aim_deadzone,&c.mouse_aim_sensitivity,&c.camera_sensitivity,&c.mouse_vertical_sensitivity,&c.stick_vertical_sensitivity};
+        if(i<0 || i>7)return;
+        int* values[]={&c.mouse_sensitivity,&c.aim_sensitivity,&c.aim_deadzone,&c.mouse_aim_sensitivity,&c.camera_sensitivity,&c.mouse_vertical_sensitivity,&c.stick_vertical_sensitivity,&c.rumble_strength};
         int* value=values[i];
-        *value=std::clamp(event.GetParameter<int>("value",*value),i==2?0:10,i==2?30000:(i==0 || i==3)?500:300);
+        *value=std::clamp(event.GetParameter<int>("value",*value),(i==2 || i==7)?0:10,i==7?100:i==2?30000:(i==0 || i==3)?500:300);
         savePcInput();label(("pc-value"+std::to_string(i)).c_str(),std::to_string(*value));return;
       }
       if (a.rfind("tune-", 0) == 0) {
@@ -927,12 +948,28 @@ struct Ui : Rml::EventListener {
     if(a=="device-open") {
       learning=keyLearning=-1;discoverDevices();devicePicker=true;
       pickerType=pcKeyboard()?-3:0;pickerDevice=devices[player];normalizePicker();
-      modal("controllers");el("dialog-body")->SetScrollTop(0);return;
+      modal("controllers");el("dialog-body")->SetScrollTop(0);
+      if(modernMode()) {
+        auto* target=el(("action-mc-device-pick-"+std::to_string(devices[player])).c_str());
+        if(!target)target=el("action-device-cancel");
+        if(target)target->Focus(true);
+      }
+      return;
     }
     if(a=="device-refresh"){discoverDevices();normalizePicker();modal("controllers");return;}
-    if(a=="device-cancel"){devicePicker=false;modal("controllers");return;}
+    if(a=="device-cancel"){devicePicker=false;modal("controllers");if(auto* input=el("action-device-open"))input->Focus(true);return;}
     if(a=="device-apply"){if(devicePicker && (pickerType!=0 || pickerDevice>=0))assignDevice(pickerDevice);return;}
     if(a=="device-remove"){assignDevice(-2);return;}
+    if(a=="mapping-tab-buttons" || a=="mapping-tab-settings" || a=="mapping-tab-advanced") {
+      controllerSettings=a!="mapping-tab-buttons";mappingAdvanced=a=="mapping-tab-advanced";learning=keyLearning=-1;modal("controllers");return;
+    }
+    if(a=="mapping-diagram"){mappingDiagram=!mappingDiagram;modal("controllers");return;}
+    if(a=="mapping-stick-left" || a=="mapping-stick-right"){mappings[player].stick=a=="mapping-stick-right";saveController();modal("controllers");return;}
+    if(a=="mapping-reset-tuning"){
+      const jfg::ControllerMapping defaults;
+      auto& m=mappings[player];m.deadzone=defaults.deadzone;m.threshold=defaults.threshold;m.trigger=defaults.trigger;m.invert_x=m.invert_y=0;
+      saveController();modal("controllers");return;
+    }
     if(a=="controller-settings"){controllerSettings=!controllerSettings;modal("controllers");return;}
     if(a.rfind("pc-bind",0)==0 && pcKeyboard()) {
       const int index=std::stoi(a.substr(7));if(index<0 || index>=20)return;
@@ -946,34 +983,30 @@ struct Ui : Rml::EventListener {
       keyLearning=-1;pcInput[static_cast<std::size_t>(player)].keys[static_cast<std::size_t>(index)]=0;
       savePcInput();modal("controllers");return;
     }
-    if(a=="pc-experimental") {
-      if(writeFile("experimental-controls.ini",jfg::serialize_pc_experiments(!pcExperimental())))
-        modal("controllers");
-      return;
-    }
-    if(a.rfind("pc-",0)==0 && !keyboardBinding && !pcExperimental())return;
     if(a.rfind("pc-key",0)==0 || a.rfind("pc-tune",0)==0)return;
     if(a=="pc-input") {if(controllerWindow)modal("controllers");else {close();action("controllers");}return;}
     if(a.rfind("pc-player",0)==0) {player=std::clamp(a.back()-'0',0,3);loadPcInput();modal("pc-input");return;}
     if(a.rfind("pc-",0)==0) {
       auto &c=pcInput[static_cast<std::size_t>(player)];
       if(a=="pc-pad-normal" || a=="pc-pad-expert") {
-        const int device=mappings[player].device;mappings[player]=jfg::ControllerMapping{};mappings[player].device=device;
-        auto &m=mappings[player];m.bindings[0]=a=="pc-pad-expert"?0:2;m.bindings[10]=a=="pc-pad-expert"?2:0;
+        const auto previous=mappings[player];mappings[player]=jfg::ControllerMapping{};mappings[player].device=previous.device;mappings[player].device_key=previous.device_key;
+        auto &m=mappings[player];m.bindings[0]=a=="pc-pad-expert"?2:0;m.bindings[10]=a=="pc-pad-expert"?0:2;
         m.bindings[2]=25;m.bindings[9]=23;m.bindings[11]=7;m.bindings[12]=-1;m.bindings[13]=-1;
-        c.modern=1;c.dual_stick=1;saveController();
+        saveController();
       }
       else if(a=="pc-normal" || a=="pc-expert" || (a=="pc-reset" && pcKeyboard())) {
         auto next=a=="pc-reset"?jfg::PcInputConfig{}:jfg::pc_keyboard_preset(a=="pc-expert");
-        next.dual_stick=c.dual_stick;next.aim_sensitivity=c.aim_sensitivity;
-        next.aim_deadzone=c.aim_deadzone;next.aim_invert_y=c.aim_invert_y;
+        next.rumble_strength=c.rumble_strength;next.dual_stick=c.dual_stick;next.aim_sensitivity=c.aim_sensitivity;
+        next.aim_deadzone=c.aim_deadzone;next.aim_invert_y=c.aim_invert_y;next.aim_invert_x=c.aim_invert_x;
         next.camera_sensitivity=c.camera_sensitivity;next.aim_curve=c.aim_curve;next.stick_vertical_sensitivity=c.stick_vertical_sensitivity;c=next;
       }
-      else if(a=="pc-reset"){c.dual_stick=0;c.aim_sensitivity=100;c.camera_sensitivity=100;c.aim_curve=0;c.stick_vertical_sensitivity=100;c.aim_deadzone=7849;c.aim_invert_y=0;c.modern=0;}
+      else if(a=="pc-reset"){c.rumble_strength=0;c.dual_stick=0;c.aim_sensitivity=100;c.camera_sensitivity=100;c.aim_curve=0;c.stick_vertical_sensitivity=100;c.aim_deadzone=7849;c.aim_invert_y=0;c.aim_invert_x=0;c.modern=0;}
       else if(a=="pc-curve")c.aim_curve=(c.aim_curve+1)%3;
       else if(a=="pc-modern")c.modern=!c.modern;
       else if(a=="pc-mouse")c.mouse_aim=!c.mouse_aim;
       else if(a=="pc-dual")c.dual_stick=!c.dual_stick;
+      else if(a=="pc-invert-mouse-x")c.mouse_invert_x=!c.mouse_invert_x;
+      else if(a=="pc-invert-stick-x")c.aim_invert_x=!c.aim_invert_x;
       else if(a=="pc-invert-mouse")c.mouse_invert_y=!c.mouse_invert_y;
       else if(a=="pc-invert-stick")c.aim_invert_y=!c.aim_invert_y;
       else return;
@@ -1068,9 +1101,9 @@ struct Ui : Rml::EventListener {
     else if (a == "inverty")
       m.invert_y = !m.invert_y;
     else if (a == "reset") {
-      int d = m.device;
+      const auto previous=m;
       m = jfg::ControllerMapping{};
-      m.device = d;
+      m.device = previous.device;m.device_key=previous.device_key;
     } else if (a.rfind("deadzone", 0) == 0)
       m.deadzone =
           std::clamp(m.deadzone + (a.back() == '+' ? 1000 : -1000), 0, 30000);
@@ -1088,6 +1121,10 @@ struct Ui : Rml::EventListener {
       modal("controllers");
       return;
     }
+    if (a == "check-updates" || a == "retry-updates") {
+      beginUpdateCheck(); modal("updates"); return;
+    }
+    if (a == "show-update") { modal("updates"); return; }
     if (a == "audio") {
       loadAudio();
       modal(a);
@@ -1097,7 +1134,10 @@ struct Ui : Rml::EventListener {
     } else if (a == "support") {
       action("sessions");
       modal(a);
-    } else if (a == "video" || a == "setup" || a == "game" || a == "tools" ||
+    } else if (a == "video") {
+      close();
+      action("video");
+    } else if (a == "setup" || a == "game" || a == "tools" ||
                a == "help")
       modal(a);
     else {
@@ -1126,7 +1166,7 @@ struct Resources : Rml::FileInterface {
                                  {"theme.rcss", 202},
                                  {"Barlow-Regular.ttf", 203},
                                  {"Barlow-SemiBold.ttf", 204},
-                                 {"ChakraPetch-Bold.ttf", 205}, {"live-map.rml", 206}, {"live-inventory.rml", 207}, {"live-tools.rcss", 208}, {"about.rml", 209}, {"about.rcss", 210}};
+                                 {"ChakraPetch-Bold.ttf", 205}, {"live-map.rml", 206}, {"live-inventory.rml", 207}, {"live-tools.rcss", 208}, {"about.rml", 209}, {"about.rcss", 210}, {"modern-controls.rcss",211}, {"xbox.tga",212}, {"dualsense.tga",213}, {"mouse.tga",214}, {"generic.tga",215}, {"chips.tga",216}, {"highlights.tga",217},{"toolbar-pad.tga",218},{"ui-details.tga",219},{"video-settings.rml",220},{"video-settings.rcss",221}};
     for (auto &e : entries)
       if (fs::path(path).filename() == e.name) {
         auto r = FindResourceW(nullptr, MAKEINTRESOURCEW(e.id), RT_RCDATA);
@@ -1191,6 +1231,7 @@ struct Surface {
   Rml::ElementInstancerGeneric<HomeScene> homeInstancer;
   Rml::ElementInstancerGeneric<jfg_live::MapScene> mapInstancer;
   std::unique_ptr<jfg_live::ToolUi> live;
+  std::unique_ptr<jfg_video::Ui> video;
   std::unique_ptr<LogSystem> log;
   std::unique_ptr<RenderInterface_DX11> renderer;
   Rml::Context *context = nullptr;
@@ -1215,7 +1256,7 @@ void check(HRESULT r) {
 }
 } // namespace
 bool FrontendUiInit(HWND w, const fs::path &profile,
-                    std::function<void(const std::string &)> action, const std::string &tool) {
+                    std::function<void(const std::string &)> action, const std::string &tool, bool previewUpdate) {
   try {
     surface = std::make_unique<Surface>();
     auto &s = *surface;
@@ -1278,11 +1319,16 @@ bool FrontendUiInit(HWND w, const fs::path &profile,
     s.context = Rml::CreateContext("frontend", {1, 1});
     s.ui.window = w;
     s.ui.profile = profile;
+    s.ui.updatePreview = previewUpdate;
     s.ui.action = std::move(action);
     s.ui.controllerWindow=tool=="controllers";
-    s.ui.doc = s.context->LoadDocument(tool.empty() || s.ui.controllerWindow?"main.rml":tool=="map"?"live-map.rml":"live-inventory.rml");
+    s.ui.doc = s.context->LoadDocument(tool=="video"?"video-settings.rml":tool.empty() || s.ui.controllerWindow?"main.rml":tool=="map"?"live-map.rml":"live-inventory.rml");
     if (!s.ui.doc)
       throw std::runtime_error("Cannot load UI document");
+    if(tool=="video") {
+      s.video=std::make_unique<jfg_video::Ui>();s.video->init(w,s.ui.doc,profile);
+      s.ui.doc->Show();FrontendUiResize();return true;
+    }
     if(!tool.empty() && !s.ui.controllerWindow) {
       s.files.liveAssets=profile/("live-tool-"+std::to_string(reinterpret_cast<std::uintptr_t>(w))+"-"+std::to_string(reinterpret_cast<std::uintptr_t>(GetPropW(w,L"JfgLiveToken"))));
       std::error_code error;fs::create_directories(s.files.liveAssets,error);
@@ -1297,6 +1343,7 @@ bool FrontendUiInit(HWND w, const fs::path &profile,
     s.ui.loadControllers();
     s.ui.doc->SetClass("controller-window",s.ui.controllerWindow);
     if(s.ui.controllerWindow)s.ui.modal("controllers");
+    else s.ui.beginUpdateCheck();
     BOOL animations = TRUE;
     SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0);
     s.ui.reducedMotion = !animations;
@@ -1337,9 +1384,11 @@ void FrontendUiFrame(const FrontendUiState &state) {
     return;
   auto &s = *surface;
   auto &ui = s.ui;
-  if (s.live) {
-    s.live->tick();s.context->Update();const float clear[]={0,0,0,0};s.gpu->ClearRenderTargetView(s.target.Get(),clear);s.renderer->BeginFrame();s.context->Render();s.renderer->EndFrame(s.target.Get());s.swap->Present(1,0);return;
+  if(ui.modernDeferredRefresh){ui.modernDeferredRefresh=false;if(ui.current=="controllers")ui.modal("controllers");}
+  if (s.live || s.video) {
+    if(s.live)s.live->tick();s.context->Update();const float clear[]={0,0,0,0};s.gpu->ClearRenderTargetView(s.target.Get(),clear);s.renderer->BeginFrame();s.context->Render();s.renderer->EndFrame(s.target.Get());s.swap->Present(1,0);return;
   }
+  ui.pollUpdateCheck();
   const bool paused = state.playing && GetPropW(s.window, L"JfgFrontendPaused") != nullptr;
   const bool pauseChanged = ui.doc->IsClassSet("paused") != paused;
   const bool refreshPanel =
@@ -1360,7 +1409,7 @@ void FrontendUiFrame(const FrontendUiState &state) {
     if (state.playing)
       for (int p = 0; p < 4; p++)
         if (ui.devices[p] >= 0 && ui.connected[ui.devices[p]])
-          ui.toast("Controller " + std::to_string(ui.devices[p] + 1) +
+          ui.toast(ui.deviceName(ui.devices[p]) +
                    " connected - Player " + std::to_string(p + 1));
   }
   if (state.fullscreen != ui.state.fullscreen)
@@ -1418,6 +1467,10 @@ void FrontendUiFrame(const FrontendUiState &state) {
   s.swap->Present(1, 0);
 }
 void FrontendUiMessage(UINT m, WPARAM w, LPARAM l) {
+  if(surface && surface->video) {
+    if(surface->video->keyboard(m,w))return;
+    RmlWin32::WindowProcedure(surface->context,surface->ime,surface->window,m,w,l);return;
+  }
   if(surface && surface->live) {
     if(surface->live->keyboard(m,w))return;
     RmlWin32::WindowProcedure(surface->context,surface->ime,surface->window,m,w,l);return;
@@ -1427,6 +1480,7 @@ void FrontendUiMessage(UINT m, WPARAM w, LPARAM l) {
     if((m==WM_KILLFOCUS || (m==WM_ACTIVATEAPP && !w)) && ui.learning>=0) {
       ui.learning=-1;ui.modal("controllers");
     }
+    if(ui.modernMessage(m,w,l))return;
     if(ui.bindingMessage(m,w))return;
     if(ui.controllerWindow) {
       if(m==WM_KEYDOWN && w==VK_ESCAPE){
@@ -1471,8 +1525,7 @@ void FrontendUiMessage(UINT m, WPARAM w, LPARAM l) {
       !surface->ui.current.empty()) {
     auto &ui = surface->ui;
     auto *root =
-        ui.el(ui.popup() ? "game-popup"
-                                                            : "dialog");
+        ui.el(ui.popup() ? "game-popup" : !ui.modernPanel.empty() ? "modern-overlay" : "dialog");
     Rml::ElementList controls;
     root->QuerySelectorAll(controls, "button, input, select");
     controls.erase(std::remove_if(controls.begin(), controls.end(),
@@ -1505,6 +1558,9 @@ void FrontendUiPanel(const std::string &name) {
         surface->ui.modal("controllers");
       } else
         surface->ui.close();
+    } else if (name == "video") {
+      surface->ui.close();
+      surface->ui.action("video");
     } else
       surface->ui.modal(name == "game" ? "menu-game" : name);
   }

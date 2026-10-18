@@ -1,0 +1,1180 @@
+{
+  "schema": 1,
+  "status": "qualified native ROM loading improvement delivered locally; later hitches and owner verification remain open",
+  "runtime_sha256": "5f902049bd3e4a991a020f17e63a51d0291f28709057a9aa7efc03097692764b",
+  "runtime_source_files": {
+    "include/jfg/boot/original_timing_pi_dma.hpp": "3e57403ff17752e4c442245907c83fe12f3da3891810588ee9e7ccb2da15edfc",
+    "src/boot/native_boot.cpp": "e15f9f55adf53e182ccaa5d957971f0fa039cf0e6ea380373de8d079562a191b"
+  },
+  "scope": "Native immutable-ROM PI reads complete at the next Count tick after the synchronous host copy. Reference/recorded clocks and FlashRAM retain their timing. Includes prior audio and bridge remedies.",
+  "original_reference": {
+    "ram_save": true,
+    "instructions": true,
+    "probe": true,
+    "hashes": true
+  },
+  "recorded_reference": {
+    "ram_save": true,
+    "instructions": true,
+    "interpolation": true,
+    "rom_original_policy": true,
+    "unsupported_accesses": true
+  },
+  "tests": [
+    "jfg_original_timing_runtime_tests",
+    "jfg_native_event_batch_tests"
+  ],
+  "alternating_comparisons": [
+    {
+      "case": "reference-a",
+      "native_rom": false,
+      "explosion_ms": 48.161,
+      "three_vi_updates": 1,
+      "audio_underruns": 1
+    },
+    {
+      "case": "fast-a",
+      "native_rom": true,
+      "explosion_ms": 33.198,
+      "three_vi_updates": 0,
+      "audio_underruns": 0
+    },
+    {
+      "case": "fast-b",
+      "native_rom": true,
+      "explosion_ms": 33.974,
+      "three_vi_updates": 0,
+      "audio_underruns": 0
+    },
+    {
+      "case": "reference-b",
+      "native_rom": false,
+      "explosion_ms": 36.815,
+      "three_vi_updates": 0,
+      "audio_underruns": 0
+    }
+  ],
+  "native_checks": [
+    {
+      "label": "default120-long",
+      "runtime_sha256": "5f902049bd3e4a991a020f17e63a51d0291f28709057a9aa7efc03097692764b",
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "unsupported_accesses": 0,
+      "update_intervals_4000_5500": {
+        "2": 749
+      },
+      "audio_pauses": 0,
+      "rom_calls": 11958,
+      "rom_native_calls": 11958,
+      "explosion_work": [
+        [
+          4847,
+          2387,
+          1602741,
+          143475,
+          2359183,
+          34194,
+          3060
+        ]
+      ],
+      "explosion_rom": [
+        [
+          4845,
+          2386,
+          1,
+          232,
+          2293,
+          1,
+          1
+        ],
+        [
+          4847,
+          2387,
+          27,
+          4576,
+          44915,
+          27,
+          27
+        ],
+        [
+          4849,
+          2388,
+          3,
+          824,
+          8021,
+          3,
+          3
+        ]
+      ],
+      "levels": {
+        "0": 687,
+        "349": 66,
+        "127": 122,
+        "21": 10063
+      },
+      "gaps": [
+        {
+          "delta_vi": 37,
+          "missed_vi_slots": 35,
+          "wall_between_returns_ms": 631.54,
+          "interval_transition_calls": [],
+          "cold_overlays_during_update": true,
+          "cold_overlays_during_previous_update": false,
+          "previous_update": {
+            "vi": 6421,
+            "poll": 3174,
+            "return_us": 108053415,
+            "wall_ms": 33.507,
+            "active_ms": 17.71,
+            "known_wait_ms": 15.797,
+            "observed_instructions": 1094311,
+            "thread_cycles": null,
+            "state_before": {
+              "stamp_us": 108019903,
+              "vi": 6419,
+              "poll": 3173,
+              "game_state": 16,
+              "level": 21,
+              "actors": 43
+            },
+            "state_after": {
+              "stamp_us": 108052521,
+              "vi": 6421,
+              "poll": 3174,
+              "game_state": 16,
+              "level": 21,
+              "actors": 43
+            },
+            "cold_overlay_events": 0,
+            "cold_overlay_sections": [],
+            "route_transitions": [],
+            "latest_route_transition": {
+              "stamp_us": 107597870,
+              "vi": 6393,
+              "poll": 3161,
+              "kind": "death_restart",
+              "age_ms": 455.545
+            },
+            "native_collision": {
+              "calls": 73,
+              "nodes": 586,
+              "edges": 354,
+              "fallbacks": 0,
+              "expired": 0,
+              "invalid": 0,
+              "max_call_ns": 3700,
+              "clock_refreshes": 73
+            }
+          },
+          "update": {
+            "vi": 6458,
+            "poll": 3176,
+            "return_us": 108684955,
+            "wall_ms": 631.535,
+            "active_ms": 612.066,
+            "known_wait_ms": 19.469,
+            "observed_instructions": 58439045,
+            "thread_cycles": null,
+            "state_before": {
+              "stamp_us": 108053416,
+              "vi": 6421,
+              "poll": 3174,
+              "game_state": 16,
+              "level": 21,
+              "actors": 43
+            },
+            "state_after": {
+              "stamp_us": 108671060,
+              "vi": 6458,
+              "poll": 3175,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "cold_overlay_events": 24,
+            "cold_overlay_sections": [
+              3,
+              4,
+              6,
+              12,
+              13,
+              14,
+              23,
+              25,
+              29,
+              35,
+              46,
+              69,
+              70,
+              79,
+              83,
+              85,
+              96,
+              102,
+              115,
+              131,
+              134,
+              140
+            ],
+            "route_transitions": [],
+            "latest_route_transition": {
+              "stamp_us": 107597870,
+              "vi": 6393,
+              "poll": 3161,
+              "kind": "death_restart",
+              "age_ms": 1087.085
+            },
+            "native_collision": {
+              "calls": 73,
+              "nodes": 586,
+              "edges": 354,
+              "fallbacks": 0,
+              "expired": 0,
+              "invalid": 0,
+              "max_call_ns": 3600,
+              "clock_refreshes": 73
+            }
+          }
+        },
+        {
+          "delta_vi": 3,
+          "missed_vi_slots": 1,
+          "wall_between_returns_ms": 67.115,
+          "interval_transition_calls": [],
+          "cold_overlays_during_update": false,
+          "cold_overlays_during_previous_update": false,
+          "previous_update": {
+            "vi": 15344,
+            "poll": 7619,
+            "return_us": 257202270,
+            "wall_ms": 33.386,
+            "active_ms": 13.449,
+            "known_wait_ms": 19.937,
+            "observed_instructions": 544889,
+            "thread_cycles": null,
+            "state_before": {
+              "stamp_us": 257168879,
+              "vi": 15342,
+              "poll": 7618,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "state_after": {
+              "stamp_us": 257201446,
+              "vi": 15344,
+              "poll": 7619,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "cold_overlay_events": 0,
+            "cold_overlay_sections": [],
+            "route_transitions": [],
+            "latest_route_transition": {
+              "stamp_us": 107597870,
+              "vi": 6393,
+              "poll": 3161,
+              "kind": "death_restart",
+              "age_ms": 149604.4
+            },
+            "native_collision": {
+              "calls": 0,
+              "nodes": 0,
+              "edges": 0,
+              "fallbacks": 0,
+              "expired": 0,
+              "invalid": 0,
+              "max_call_ns": 0,
+              "clock_refreshes": 0
+            }
+          },
+          "update": {
+            "vi": 15347,
+            "poll": 7620,
+            "return_us": 257269385,
+            "wall_ms": 67.109,
+            "active_ms": 54.312,
+            "known_wait_ms": 12.797,
+            "observed_instructions": 650122,
+            "thread_cycles": null,
+            "state_before": {
+              "stamp_us": 257202271,
+              "vi": 15344,
+              "poll": 7619,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "state_after": {
+              "stamp_us": 257268483,
+              "vi": 15347,
+              "poll": 7620,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "cold_overlay_events": 0,
+            "cold_overlay_sections": [],
+            "route_transitions": [],
+            "latest_route_transition": {
+              "stamp_us": 107597870,
+              "vi": 6393,
+              "poll": 3161,
+              "kind": "death_restart",
+              "age_ms": 149671.515
+            },
+            "native_collision": {
+              "calls": 0,
+              "nodes": 0,
+              "edges": 0,
+              "fallbacks": 0,
+              "expired": 0,
+              "invalid": 0,
+              "max_call_ns": 0,
+              "clock_refreshes": 0
+            }
+          }
+        },
+        {
+          "delta_vi": 3,
+          "missed_vi_slots": 1,
+          "wall_between_returns_ms": 49.96,
+          "interval_transition_calls": [],
+          "cold_overlays_during_update": true,
+          "cold_overlays_during_previous_update": false,
+          "previous_update": {
+            "vi": 21055,
+            "poll": 10474,
+            "return_us": 352678827,
+            "wall_ms": 32.85,
+            "active_ms": 7.895,
+            "known_wait_ms": 24.955,
+            "observed_instructions": 991545,
+            "thread_cycles": null,
+            "state_before": {
+              "stamp_us": 352645970,
+              "vi": 21053,
+              "poll": 10473,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "state_after": {
+              "stamp_us": 352678550,
+              "vi": 21055,
+              "poll": 10474,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "cold_overlay_events": 0,
+            "cold_overlay_sections": [],
+            "route_transitions": [],
+            "latest_route_transition": {
+              "stamp_us": 107597870,
+              "vi": 6393,
+              "poll": 3161,
+              "kind": "death_restart",
+              "age_ms": 245080.957
+            },
+            "native_collision": {
+              "calls": 0,
+              "nodes": 0,
+              "edges": 0,
+              "fallbacks": 0,
+              "expired": 0,
+              "invalid": 0,
+              "max_call_ns": 0,
+              "clock_refreshes": 0
+            }
+          },
+          "update": {
+            "vi": 21058,
+            "poll": 10475,
+            "return_us": 352728787,
+            "wall_ms": 49.955,
+            "active_ms": 48.111,
+            "known_wait_ms": 1.844,
+            "observed_instructions": 7459326,
+            "thread_cycles": null,
+            "state_before": {
+              "stamp_us": 352678828,
+              "vi": 21055,
+              "poll": 10474,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "state_after": {
+              "stamp_us": 352728095,
+              "vi": 21058,
+              "poll": 10475,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "cold_overlay_events": 3,
+            "cold_overlay_sections": [
+              18,
+              20,
+              37
+            ],
+            "route_transitions": [],
+            "latest_route_transition": {
+              "stamp_us": 107597870,
+              "vi": 6393,
+              "poll": 3161,
+              "kind": "death_restart",
+              "age_ms": 245130.917
+            },
+            "native_collision": {
+              "calls": 0,
+              "nodes": 0,
+              "edges": 0,
+              "fallbacks": 0,
+              "expired": 0,
+              "invalid": 0,
+              "max_call_ns": 0,
+              "clock_refreshes": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "label": "default360",
+      "runtime_sha256": "5f902049bd3e4a991a020f17e63a51d0291f28709057a9aa7efc03097692764b",
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "unsupported_accesses": 0,
+      "update_intervals_4000_5500": {
+        "2": 749
+      },
+      "audio_pauses": 0,
+      "rom_calls": 10418,
+      "rom_native_calls": 10418,
+      "explosion_work": [
+        [
+          4846,
+          2387,
+          1621162,
+          213356,
+          2356413,
+          34587,
+          4551
+        ]
+      ],
+      "explosion_rom": [
+        [
+          4844,
+          2386,
+          1,
+          232,
+          2293,
+          1,
+          1
+        ],
+        [
+          4846,
+          2387,
+          27,
+          4576,
+          44915,
+          27,
+          27
+        ],
+        [
+          4848,
+          2388,
+          3,
+          824,
+          8021,
+          3,
+          3
+        ]
+      ],
+      "levels": {
+        "0": 687,
+        "349": 66,
+        "127": 122,
+        "21": 2314
+      },
+      "gaps": [
+        {
+          "delta_vi": 36,
+          "missed_vi_slots": 34,
+          "wall_between_returns_ms": 615.746,
+          "interval_transition_calls": [],
+          "cold_overlays_during_update": true,
+          "cold_overlays_during_previous_update": false,
+          "previous_update": {
+            "vi": 6420,
+            "poll": 3174,
+            "return_us": 108042874,
+            "wall_ms": 33.619,
+            "active_ms": 20.814,
+            "known_wait_ms": 12.805,
+            "observed_instructions": 1092905,
+            "thread_cycles": null,
+            "state_before": {
+              "stamp_us": 108009250,
+              "vi": 6418,
+              "poll": 3173,
+              "game_state": 16,
+              "level": 21,
+              "actors": 43
+            },
+            "state_after": {
+              "stamp_us": 108042604,
+              "vi": 6420,
+              "poll": 3174,
+              "game_state": 16,
+              "level": 21,
+              "actors": 43
+            },
+            "cold_overlay_events": 0,
+            "cold_overlay_sections": [],
+            "route_transitions": [],
+            "latest_route_transition": {
+              "stamp_us": 107587031,
+              "vi": 6392,
+              "poll": 3161,
+              "kind": "death_restart",
+              "age_ms": 455.843
+            },
+            "native_collision": {
+              "calls": 73,
+              "nodes": 586,
+              "edges": 354,
+              "fallbacks": 0,
+              "expired": 0,
+              "invalid": 0,
+              "max_call_ns": 4200,
+              "clock_refreshes": 73
+            }
+          },
+          "update": {
+            "vi": 6456,
+            "poll": 3176,
+            "return_us": 108658620,
+            "wall_ms": 615.739,
+            "active_ms": 597.844,
+            "known_wait_ms": 17.895,
+            "observed_instructions": 58445092,
+            "thread_cycles": null,
+            "state_before": {
+              "stamp_us": 108042875,
+              "vi": 6420,
+              "poll": 3174,
+              "game_state": 16,
+              "level": 21,
+              "actors": 43
+            },
+            "state_after": {
+              "stamp_us": 108643919,
+              "vi": 6456,
+              "poll": 3175,
+              "game_state": 16,
+              "level": 21,
+              "actors": 42
+            },
+            "cold_overlay_events": 24,
+            "cold_overlay_sections": [
+              3,
+              4,
+              6,
+              12,
+              13,
+              14,
+              23,
+              25,
+              29,
+              35,
+              46,
+              69,
+              70,
+              79,
+              83,
+              85,
+              96,
+              102,
+              115,
+              131,
+              134,
+              140
+            ],
+            "route_transitions": [],
+            "latest_route_transition": {
+              "stamp_us": 107587031,
+              "vi": 6392,
+              "poll": 3161,
+              "kind": "death_restart",
+              "age_ms": 1071.589
+            },
+            "native_collision": {
+              "calls": 73,
+              "nodes": 586,
+              "edges": 354,
+              "fallbacks": 0,
+              "expired": 0,
+              "invalid": 0,
+              "max_call_ns": 4000,
+              "clock_refreshes": 73
+            }
+          }
+        }
+      ]
+    },
+    {
+      "label": "reference120",
+      "runtime_sha256": "5f902049bd3e4a991a020f17e63a51d0291f28709057a9aa7efc03097692764b",
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "unsupported_accesses": 0,
+      "update_intervals_4000_5500": {
+        "2": 749
+      },
+      "audio_pauses": 0,
+      "rom_calls": 6855,
+      "rom_native_calls": 0,
+      "explosion_work": [
+        [
+          4926,
+          2387,
+          1610639,
+          194279,
+          2363809,
+          34362,
+          4141
+        ]
+      ],
+      "explosion_rom": [
+        [
+          4924,
+          2386,
+          1,
+          232,
+          2293,
+          2293,
+          0
+        ],
+        [
+          4926,
+          2387,
+          27,
+          4576,
+          44915,
+          44915,
+          0
+        ],
+        [
+          4928,
+          2388,
+          3,
+          824,
+          8021,
+          8021,
+          0
+        ]
+      ],
+      "levels": {
+        "0": 687,
+        "349": 66,
+        "127": 122,
+        "21": 1841
+      },
+      "gaps": []
+    }
+  ],
+  "audio_payload_checks": {
+    "default120-long": {
+      "returns": {
+        "0": 11005
+      },
+      "payloads": 11004,
+      "payload_mismatches": 0,
+      "transport_max_ms": 0.088,
+      "hitches": [
+        {
+          "vi": 6458,
+          "poll": 3176,
+          "wall_ms": 631.535,
+          "active_ms": 612.066,
+          "instructions": 58439045,
+          "submissions": [
+            {
+              "stamp_us": 108058808,
+              "vi": 6421,
+              "poll": 3174,
+              "total_ms": 4.745,
+              "full_sync_ms": 2.783,
+              "snapshot_check_ms": 0.054,
+              "crosses_start": false
+            },
+            {
+              "stamp_us": 108066114,
+              "vi": 6421,
+              "poll": 3175,
+              "total_ms": 1.273,
+              "full_sync_ms": 0.561,
+              "snapshot_check_ms": 0.062,
+              "crosses_start": false
+            }
+          ],
+          "rom_dma": [
+            [
+              6458,
+              3176,
+              3363,
+              1252992,
+              11696713,
+              3363,
+              3363
+            ]
+          ],
+          "coalesced": []
+        },
+        {
+          "vi": 15347,
+          "poll": 7620,
+          "wall_ms": 67.109,
+          "active_ms": 54.312,
+          "instructions": 650122,
+          "submissions": [
+            {
+              "stamp_us": 257243691,
+              "vi": 15344,
+              "poll": 7619,
+              "total_ms": 40.72,
+              "full_sync_ms": 39.6,
+              "snapshot_check_ms": 0.061,
+              "crosses_start": false
+            },
+            {
+              "stamp_us": 257252893,
+              "vi": 15345,
+              "poll": 7620,
+              "total_ms": 1.283,
+              "full_sync_ms": 0.669,
+              "snapshot_check_ms": 0.062,
+              "crosses_start": false
+            }
+          ],
+          "rom_dma": [],
+          "coalesced": [
+            [
+              15344,
+              12050021694,
+              12048805160,
+              12050372200,
+              2,
+              783520
+            ]
+          ]
+        },
+        {
+          "vi": 21058,
+          "poll": 10475,
+          "wall_ms": 49.955,
+          "active_ms": 48.111,
+          "instructions": 7459326,
+          "submissions": [
+            {
+              "stamp_us": 352681619,
+              "vi": 21055,
+              "poll": 10474,
+              "total_ms": 1.344,
+              "full_sync_ms": 0.716,
+              "snapshot_check_ms": 0.064,
+              "crosses_start": false
+            }
+          ],
+          "rom_dma": [
+            [
+              21058,
+              10475,
+              137,
+              151352,
+              1374246,
+              137,
+              137
+            ]
+          ],
+          "coalesced": []
+        }
+      ],
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.88487698386417,
+          "scenes": 29.821512856126052,
+          "interval_ms": {
+            "n": 1001,
+            "median": 8.342,
+            "p99": 8.56,
+            "max": 9.668
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.442,
+            "p99": 35.194,
+            "max": 35.645
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 119.96053298464805,
+          "scenes": 29.790199024520934,
+          "interval_ms": {
+            "n": 600,
+            "median": 8.337,
+            "p99": 8.546,
+            "max": 8.807
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.4,
+            "p99": 35.386,
+            "max": 36.731
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 119.96183975952542,
+          "scenes": 29.84075714484035,
+          "interval_ms": {
+            "n": 1202,
+            "median": 8.337,
+            "p99": 8.507,
+            "max": 8.832
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.451,
+            "p99": 34.912,
+            "max": 35.309
+          },
+          "vi_deltas": {
+            "2": 299
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 119.86612704462657,
+          "scenes": 29.77947475890223,
+          "interval_ms": {
+            "n": 801,
+            "median": 8.337,
+            "p99": 8.567,
+            "max": 9.91
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.456,
+            "p99": 34.557,
+            "max": 35.151
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        }
+      ]
+    },
+    "default360": {
+      "returns": {
+        "0": 3252
+      },
+      "payloads": 3251,
+      "payload_mismatches": 0,
+      "transport_max_ms": 0.037312,
+      "hitches": [
+        {
+          "vi": 6456,
+          "poll": 3176,
+          "wall_ms": 615.739,
+          "active_ms": 597.844,
+          "instructions": 58445092,
+          "submissions": [
+            {
+              "stamp_us": 108050449,
+              "vi": 6420,
+              "poll": 3174,
+              "total_ms": 5.341,
+              "full_sync_ms": 3.151,
+              "snapshot_check_ms": 0.073,
+              "crosses_start": false
+            },
+            {
+              "stamp_us": 108058127,
+              "vi": 6420,
+              "poll": 3175,
+              "total_ms": 1.204,
+              "full_sync_ms": 0.526,
+              "snapshot_check_ms": 0.058,
+              "crosses_start": false
+            }
+          ],
+          "rom_dma": [
+            [
+              6456,
+              3176,
+              3363,
+              1252992,
+              11696713,
+              3363,
+              3363
+            ]
+          ],
+          "coalesced": []
+        }
+      ],
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 350.4109696950179,
+          "scenes": 29.80947436079927,
+          "interval_ms": {
+            "n": 2927,
+            "median": 2.776,
+            "p99": 7.401,
+            "max": 15.146
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.425,
+            "p99": 35.061,
+            "max": 35.86
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 351.87913231074276,
+          "scenes": 29.722216958220336,
+          "interval_ms": {
+            "n": 1764,
+            "median": 2.776,
+            "p99": 5.865,
+            "max": 13.115
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.424,
+            "p99": 35.129,
+            "max": 35.523
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 351.35846472208425,
+          "scenes": 29.820091101874308,
+          "interval_ms": {
+            "n": 3523,
+            "median": 2.776,
+            "p99": 5.987,
+            "max": 16.639
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.468,
+            "p99": 35.352,
+            "max": 36.656
+          },
+          "vi_deltas": {
+            "2": 299
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 355.45660308907503,
+          "scenes": 29.783521690410918,
+          "interval_ms": {
+            "n": 2375,
+            "median": 2.776,
+            "p99": 2.899,
+            "max": 16.561
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.442,
+            "p99": 34.813,
+            "max": 34.993
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        }
+      ]
+    },
+    "reference120": {
+      "returns": {
+        "0": 2800
+      },
+      "payloads": 2799,
+      "payload_mismatches": 0,
+      "transport_max_ms": 0.04680533333333333,
+      "hitches": [],
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.84821779953165,
+          "scenes": 29.812393838245136,
+          "interval_ms": {
+            "n": 1001,
+            "median": 8.343,
+            "p99": 8.667,
+            "max": 9.494
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.426,
+            "p99": 35.063,
+            "max": 35.823
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 119.95930980211513,
+          "scenes": 29.789895267525257,
+          "interval_ms": {
+            "n": 600,
+            "median": 8.344,
+            "p99": 8.542,
+            "max": 8.647
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.426,
+            "p99": 34.911,
+            "max": 34.973
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 119.95857137924214,
+          "scenes": 29.83994412844709,
+          "interval_ms": {
+            "n": 1202,
+            "median": 8.339,
+            "p99": 8.497,
+            "max": 8.572
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.45,
+            "p99": 35.096,
+            "max": 35.293
+          },
+          "vi_deltas": {
+            "2": 299
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 119.9398528225747,
+          "scenes": 29.837254027290747,
+          "interval_ms": {
+            "n": 406,
+            "median": 8.345,
+            "p99": 8.502,
+            "max": 8.699
+          },
+          "update_ms": {
+            "n": 101,
+            "median": 33.421,
+            "p99": 34.827,
+            "max": 35.197
+          },
+          "vi_deltas": {
+            "2": 101
+          }
+        }
+      ]
+    }
+  },
+  "delivered": true,
+  "owner_live_verified": false,
+  "no_20fps_goal_complete": false,
+  "limits": [
+    "Hidden input replays do not qualify monitor scanout or owner listening/visual acceptance.",
+    "Native replay paths and scheduling phases can differ. One repeated control did not miss a VI deadline.",
+    "A long default replay retains a death/reload pause, a 67 ms update with 40 ms renderer synchronization, and a later cold-overlay load.",
+    "The reference-bus control had one underrun during a roughly 160 ms gap in game/presentation progress; its initiating cause is unproved.",
+    "ROM bus Count ticks are scheduling durations, not thread CPU cycles or the whole measured loading cost."
+  ],
+  "private_evidence": [
+    "explosion-decompression-profile",
+    "native-rom-completion-abba",
+    "native-rom-original-correspondence",
+    "native-rom-recorded-correspondence",
+    "native-rom-final-native-v2",
+    "native-rom-audio-late-audit"
+  ],
+  "runtime_source_commit": "8277a80611e73c0dc57285e32e0761e9b7519e41",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T09:39:21.249969+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 40,
+    "manifest_verified": 14,
+    "launcher_sha256": "60b2696f1447101809053922a1aa5b24efc94c197875a63ad22b3fb9c4dc045c",
+    "launcher_setup_runtime_protocol_passed": true
+  }
+}

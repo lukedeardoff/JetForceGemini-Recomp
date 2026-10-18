@@ -1,98 +1,96 @@
 # Known issues
 
-Check this page before opening a report. It summarizes confirmed limitations
-and links to current reports; [GitHub issues](https://github.com/TK22-26/JetForceGemini-Recomp/issues)
-contain the ongoing discussion.
+Known issues and qualification limits for 1.2.1. The [issue register](development/issues/README.md)
+contains causes, attempted remedies and evidence. Earlier candidate statuses are
+preserved in the [historical notes](development/known-issues-before-1.2.0.md).
 
-## Windows 10 setup
+## High-refresh rendering and performance
 
-[Issue 4](https://github.com/TK22-26/JetForceGemini-Recomp/issues/4) reports four
-setup failures with `v0.4.0-preview.1` and Windows PowerShell 5.1:
+The [Vela rescue cutscene](development/issues/vela-rescue-cutscene-stutter-resolution.md)
+has confirmed update stalls and shot-specific interpolation loss in v1.2.0.
+Presentation queue waits and repeated screen passes are localized; the reported
+low-resolution appearance and remedy still need targeted validation.
 
-- Disabled firmware virtualization can lead to repeated restart instructions.
-- Older WSL installations may reject the requested Ubuntu distribution.
-- Missing Linux packages can cause the package check to stop setup.
-- Long RT64 dependency paths can fail checkout; a retry can skip incomplete
-  submodules left by the first attempt.
+Owner testing reports no perceptible gameplay slowdown and resolution of the
+reported shuriken reticle, resting-shuriken jitter and crouch-inversion problems.
+Character seams, drone/gem flashing, bending bridges, audio sample delivery and
+combat CPU/cache behavior have received tested corrections. This does not certify
+every level, display or PC at 30 game updates or 360 presentations per second.
 
-[Preview 0.4.0-preview.2](https://github.com/TK22-26/JetForceGemini-Recomp/releases/tag/v0.4.0-preview.2)
-uses short build/dependency cache paths, enables Git long-path handling for
-dependency downloads, and retries submodule initialization when a checkout
-already exists. Its checked-command wrapper also preserves native stderr and
-exit codes under PowerShell 5.1. These changes have automated coverage; the
-reporter's complete Windows 10 installation sequence still needs a retest.
+- Unlimited pacing/audio and physical 360+ Hz display qualification remain limited.
+- Ground-shadow cadence and broad late-object/camera coverage remain incomplete.
+- The owner reported Goldwood exit-cutscene choppiness/audio interruptions. The
+  earlier detailed trace capped before the exit, so it cannot clear that report.
+- Original is the default rendering mode. F8 shows OUTPUT and SCENES separately;
+  interpolation does not create extra simulation steps or guarantee monitor scanout.
 
-Firmware-virtualization detection, older WSL distribution handling, and
-PowerShell prerequisite probes such as `Test-LinuxPackages` remain open.
-Repeated restarts alone will not resolve every setup failure. The issue records
-the reporter's workarounds; they are not a validated general automatic repair.
-[Manual build setup](development/rom-bootstrap.md) is available for users
-comfortable installing and checking prerequisites.
+See [performance](development/issues/goldwood-combat-slowdown.md),
+[shadow cadence](development/issues/shadow-cadence.md),
+[late objects](development/issues/tutorial-late-object-jitter.md) and
+[diagnostic coverage](development/issues/frame-diagnostics.md).
 
-## Release and source versions
+## Controls and camera
 
-Each released launcher builds its pinned source revision. `main` can contain
-newer gameplay fixes, so include your launcher version and game/source build
-when reporting. See [getting started](getting-started.md) for both paths and
-[recent fixes](development/boot-gameplay-fix.md) for their validation scope.
+[GitHub #20: Ichor boss controls](development/issues/github-ichor-boss-controls.md)
+is corrected in 1.2.1. The native boss actor was mistaken for an input lock.
+Unit/captured-state tests and native effective-input routes cover mouse,
+controller and original mapping. The owner confirms controls in Vela/Ichor,
+Juno and Lupus fights. Mizar and a full physical-device matrix were not tested.
 
-## Controller coverage
+Modern Controls is opt-in for player 1 in single-player. Original multiplayer uses
+Controller Mapping. Compatible SDL controllers and Xbox/PlayStation layouts are
+available; XInput rumble works, while native SDL/DualSense rumble, gyro and adaptive
+triggers are not implemented. Some menu subpages still need keyboard/controller
+navigation. Devices, weapons, characters and unusual states have finite coverage.
 
-The v1.0.0 release supports keyboard input and configurable Xbox/XInput controllers. Other
-controller types need an XInput-compatible driver or adapter. Native
-DirectInput/HID mapping and rumble configuration are not implemented.
+Controller vertical inversion is available in Modern Controls > Sensitivity &
+behavior. The keyboard/mouse startup crash was reproduced in v1.1.0 and its early
+game-memory initialization remedy is included. The [GitHub review](development/issues/github-release-readiness-20261016.md)
+records exact verification scope and remaining reporter-machine checks.
 
-Experimental mouse look and dual-stick controls are opt-in and currently
-limited to single-player gameplay. Camera obstruction, pointer-driven guest
-menus, other device backends and broader gameplay coverage remain follow-up
-work. See [PC controls status](planning/pc-controls-status.md).
+Camera terrain/pond corrections retain native responses for unknown geometry;
+this is not a complete swept-volume camera rewrite. See
+[camera coverage](development/issues/camera-collision-bounce.md).
 
-## Gameplay coverage
+## Platform and setup
 
-Maintainer-reported progress is tracked in the [README](../README.md#campaign-playtest-progress).
-The maintainer has completed the campaign using optional infinite-health and
-enemy auto-kill testing mods and a save with all Tribals unlocked. Saving and
-loading are also verified. This establishes campaign progression coverage;
-original-console accuracy and broader unassisted play coverage remain under
-validation. Report a specific failure with its location and reproduction steps using the
-[playtesting guide](playtesting.md).
+The release package is Windows x64. Linux native-source portability corrections
+are included; this does not claim a packaged/tested Linux AppImage. Normal ZIP
+installation imports your ROM and needs no compiler or WSL.
 
-## Player shadow darkness
+Legacy Windows source setup now diagnoses disabled firmware virtualization,
+updates old WSL support and distinguishes installation failure from a requested
+restart. Automated setup fixtures pass; a fresh Windows 10 reporter-machine
+installation is still pending. See [setup](development/issues/github-windows-source-setup.md)
+and [Linux build](development/issues/github-linux-native-build.md).
 
-The native renderer retained a raw player silhouette because its offscreen
-intensity buffer was not returned to game memory. The game's CPU blur and
-opacity reduction therefore read an empty buffer. Preview 0.4.0-preview.3 builds
-return these masks before task completion and preserve subsequent CPU edits.
-A copied-save Juno test in the tutorial confirmed the processed opacity range
-against Angrylion and exited cleanly. See [the renderer fix and validation
-scope](development/boot-gameplay-fix.md#player-shadow-cpu-postprocessing).
-Older builds need rebuilding; full-campaign shadow accuracy remains unverified.
+## Gameplay, tools and support
 
-## Particle textures
+[Exit warp](development/issues/map-exit-warp-transition.md) now requests the
+eligible native transition instead of stopping at the door. Ten native room
+transitions and the separate Juno/Lupus boss entries pass. Normal progression
+requirements still apply; manual coverage of every launcher exit is incomplete.
 
-Preview.4 fixes stale renderer memory that produced opaque
-particle rectangles. The recorded Vela water splash has before/after replay
-validation. The maintainer also confirms that all previously reported broken
-particle effects now render correctly, including dust, pickup sparkles, ship
-exhaust and Tawfret rain. Juno's water splash has not been tested.
-See [the renderer evidence](development/boot-gameplay-fix.md#cpu-texture-refresh-after-framebuffer-reuse).
+The maintainer confirms the campaign, original multiplayer and optional content
+are playable. The retained completion run used optional infinite-health/enemy
+auto-kill mods and an unlocked save; it is not an exhaustive unassisted hardware
+test. Original-console accuracy remains under validation. Player-shadow checks
+cover Juno; his water splash remains untested.
 
-## Support reports
+The optional navigation mod has not established autonomous campaign completion.
+Lupus hover, moving platforms, crawling, combat gates and unsupported scripted
+traversal still need manual play. Normal gameplay leaves the mod off.
 
-Preview 0.4.0-preview.2 supports session selection, filtered system/build details,
-crash stacks and an on-demand freeze snapshot. Rebuild an older game to gain the
-native capture features. Capture remains best effort: forced termination, early
-startup failures, corrupted stacks or access restrictions can leave partial logs.
-These are text stack snapshots, not full-memory dumps. See [playtesting](playtesting.md)
-for the file inventory and attachment instructions. Nothing uploads automatically.
+Support capture is best effort and may be partial after forced termination or
+early crashes. Nothing uploads automatically. Include the launcher/game version,
+location and reproduction steps using the [playtesting guide](playtesting.md).
 
-## Experimental navigation mod
 
-Preview 0.4.0-preview.3 includes an opt-in Navigation mod with a live height map,
-item/NPC markers, a character inventory tracker, and shared walking/jump routing.
-NPC reward dialogue, item-room returns and door requirements have focused tests.
-The unified stair/NPC route has recorded-geometry and simulated-command coverage;
-a full native run of that sequence and autonomous campaign completion remain
-unverified. Lupus hover, moving platforms, shooting/explosive gates and unsupported
-scripted traversal still need manual play. Normal gameplay leaves the mod off.
-See [navigation validation and limits](development/navigation-mod.md).
+The failed experimental GPU-blur change is excluded; cutscene/boss blur quality
+and output pacing remain under investigation.
+
+### Boss-controls verification (2026-10-18)
+
+The owner confirms Vela/Ichor, Juno and Lupus controls in 1.2.1-beta.1; the focused stable 1.2.1 release is approved. This preview does not resolve [Vela cutscene stalls/resolution](development/issues/vela-rescue-cutscene-stutter-resolution.md). See [INPUT-011](development/issues/github-ichor-boss-controls.md).
+
+The remaining session findings and ongoing general performance work are tracked for 1.3 in [issue #21](https://github.com/TK22-26/JetForceGemini-Recomp/issues/21). Controls acceptance does not close the blur, presentation or audio reports.

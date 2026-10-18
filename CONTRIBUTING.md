@@ -36,7 +36,8 @@ correctness fix today.
    coverage for behavior changes where practical, using fixtures without game data.
 4. Follow [development setup](docs/development/setup.md) for relevant checks.
    Run `python scripts/check_repository_hygiene.py --history` before pushing.
-   Documentation changes should include link and whitespace checks; runtime
+   Documentation changes should include link and whitespace checks and follow
+   the [documentation layout](docs/README.md#where-documents-belong); runtime
    changes need the applicable builds and tests.
 5. Open a pull request. A draft is welcome while work is in progress. Include
    test results and any remaining limitations; maintainers will review before merging.

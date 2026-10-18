@@ -1,0 +1,315 @@
+{
+  "date_utc": "2026-10-15",
+  "status": "tested and delivered as local preview; full-route/live issues remain open",
+  "parent_runtime_sha256": "243d77a1f4e6de2a821e70a8fc5635a90ee3a08ee2e0203dca03e6752144d8b0",
+  "runtime_sha256": "ae65a40c6fe437d0baedb17a2a70346320976ea7e2c3f2fd532ad43ab27b9fa7",
+  "formatter_microbenchmark_new_over_old": 0.29560184937414336,
+  "differential_cases": 12000,
+  "dense": {
+    "runtime_sha256": "ae65a40c6fe437d0baedb17a2a70346320976ea7e2c3f2fd532ad43ab27b9fa7",
+    "equal_files": {
+      "rdram.bin": true,
+      "jfg.flash": true
+    },
+    "per_update_guest_records_equal": 1847,
+    "interpolation_matching_records_equal": 17715,
+    "actor_rows": 36634,
+    "renderer_snapshot_not_captured_in_either_dense_fixture": true,
+    "phase": {
+      "samples": 2787,
+      "render_source_rates": {
+        "0": 969,
+        "30": 5886,
+        "20": 676
+      },
+      "display_source_rates": {
+        "0": 6,
+        "30": 3451,
+        "20": 520
+      },
+      "completion": {
+        "dropped_chunks": 0,
+        "writer_failed": false
+      },
+      "complete": true,
+      "repeated_phases": 15,
+      "backward_phases": 0,
+      "phase_step_counts": {
+        "0.5000": 2455,
+        "2.5000": 166,
+        "4.5000": 6,
+        "3.5000": 14,
+        "2.0000": 111,
+        "4.0000": 2,
+        "3.0000": 17,
+        "0.0000": 15
+      },
+      "present_interval_ms": {
+        "median": 8.339,
+        "p99": 16.44,
+        "maximum": 21.212
+      }
+    },
+    "scope": "Exact recorded clock and input; gameplay/actor formatting changed only. Host timestamps and measured cost values are intentionally not equality assertions."
+  },
+  "native": [
+    {
+      "settings": {
+        "version": "1",
+        "mode": "custom",
+        "fps": "120",
+        "vsync": "1"
+      },
+      "retraces": 6005,
+      "audio_underruns": 0,
+      "dropped_frame_rows": 0,
+      "actor_rows": 71349,
+      "combat_windows": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.94047505046598,
+          "scenes": 29.80556715325951,
+          "interval_ms": {
+            "n": 1002,
+            "median": 8.337,
+            "p99": 8.562,
+            "max": 9.717
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.443,
+            "p99": 36.577,
+            "max": 37.898
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 119.94638396636704,
+          "scenes": 29.786685351647815,
+          "interval_ms": {
+            "n": 600,
+            "median": 8.336,
+            "p99": 8.574,
+            "max": 9.001
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.427,
+            "p99": 36.86,
+            "max": 38.278
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 119.86024355481729,
+          "scenes": 29.740510057731516,
+          "interval_ms": {
+            "n": 1201,
+            "median": 8.337,
+            "p99": 8.557,
+            "max": 12.746
+          },
+          "update_ms": {
+            "n": 298,
+            "median": 33.463499999999996,
+            "p99": 37.402,
+            "max": 48.078
+          },
+          "vi_deltas": {
+            "2": 296,
+            "3": 2
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 119.80040444975495,
+          "scenes": 29.613583122411335,
+          "interval_ms": {
+            "n": 801,
+            "median": 8.34,
+            "p99": 8.529,
+            "max": 14.936
+          },
+          "update_ms": {
+            "n": 198,
+            "median": 33.465,
+            "p99": 38.936,
+            "max": 49.398
+          },
+          "vi_deltas": {
+            "2": 196,
+            "3": 2
+          }
+        }
+      ]
+    },
+    {
+      "settings": {
+        "version": "1",
+        "mode": "custom",
+        "fps": "360",
+        "vsync": "0"
+      },
+      "retraces": 6006,
+      "audio_underruns": 0,
+      "dropped_frame_rows": 0,
+      "actor_rows": 70950,
+      "combat_windows": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 359.71963655029225,
+          "scenes": 29.80705141464984,
+          "interval_ms": {
+            "n": 3005,
+            "median": 2.778,
+            "p99": 2.931,
+            "max": 3.59
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.442,
+            "p99": 37.088,
+            "max": 37.174
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 359.4210626729751,
+          "scenes": 29.735557100651466,
+          "interval_ms": {
+            "n": 1801,
+            "median": 2.778,
+            "p99": 3.005,
+            "max": 3.969
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.43,
+            "p99": 37.639,
+            "max": 38.352
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 359.32604456519357,
+          "scenes": 29.777851254155454,
+          "interval_ms": {
+            "n": 3608,
+            "median": 2.778,
+            "p99": 2.929,
+            "max": 14.56
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.393,
+            "p99": 37.646,
+            "max": 44.416
+          },
+          "vi_deltas": {
+            "2": 298,
+            "3": 1
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 359.1588427950053,
+          "scenes": 29.680071316114795,
+          "interval_ms": {
+            "n": 2396,
+            "median": 2.777,
+            "p99": 2.982,
+            "max": 7.431
+          },
+          "update_ms": {
+            "n": 198,
+            "median": 33.397000000000006,
+            "p99": 37.584,
+            "max": 49.563
+          },
+          "vi_deltas": {
+            "2": 197,
+            "3": 1
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Formatting microbenchmark does not establish a game-FPS improvement.",
+    "Native host-clock replay paths can differ.",
+    "Shadow cadence, Unlimited pacing and full-route physical-display acceptance remain open."
+  ],
+  "private_artifacts": {
+    "trace-format-prototype-v4/result.json": {
+      "sha256": "e9176b6a92736b399fd97e44582395993060eb38950ee5e3362ed07308926db9",
+      "bytes": 787
+    },
+    "trace-format-candidate/result.json": {
+      "sha256": "868c8f15a24ae81b483e15e8a307425ee2b8b586309714f72abe32e5d382e43a",
+      "bytes": 436
+    },
+    "trace-format-dense-review.json": {
+      "sha256": "82a7f8d5999c3593c1de746700ed8e69d7d8e39a2202dec130a0c17bb35e3243",
+      "bytes": 1220
+    },
+    "trace-format-native-review.json": {
+      "sha256": "048e8488763f976543ba82ee2cc37a0be04b2044690382c580bff9166d58e324",
+      "bytes": 9176
+    },
+    "capture-overhead-native-review.json": {
+      "sha256": "0d671f7f66eedb5ad0ddbeb86edcf1584b8afd8ed81257b71bdc1894713b7dfb",
+      "bytes": 40010
+    },
+    "overlay-lifetime-cadence-review.json": {
+      "sha256": "86d97142336e5404246deedec5f356060b1d6e91a2e90fdb77c6e42fa26027ba",
+      "bytes": 17483
+    }
+  },
+  "delivery": {
+    "delivered_at_utc": "2026-10-15T00:46:41.735837+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 40,
+    "manifest_verified": 14,
+    "launcher_sha256": "60b2696f1447101809053922a1aa5b24efc94c197875a63ad22b3fb9c4dc045c",
+    "launcher_setup_runtime_protocol_passed": true
+  }
+}

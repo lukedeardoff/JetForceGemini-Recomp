@@ -31,6 +31,11 @@ Barlow and Chakra Petch fonts
   Font source and hashes: licenses/font-manifest.json
   Font bytes are embedded in the launcher, not supplied as loose font files.
 
+
+SDL 2.26.3 controller API
+  Zlib license: licenses/SDL2-zlib.txt
+  SDL2.dll is loaded from the selected local runtime.
+
 Pinned upstream source paths and notice hashes: licenses/provenance.json
 
 This archive contains the launcher, not the locally built game runtime.

@@ -35,8 +35,10 @@ BizHawk bdddf4a58aa1a022afb11dc73294a81a5aa7bbd5.
 #include "recomp.h"
 #if defined(_MSC_VER)
 #define JFG_CLOCK_INLINE __forceinline
+#define JFG_CLOCK_NOINLINE __declspec(noinline)
 #else
 #define JFG_CLOCK_INLINE inline __attribute__((always_inline))
+#define JFG_CLOCK_NOINLINE __attribute__((noinline,unused))
 #endif
 typedef struct { unsigned tag,valid,dirty; } JfgTimingCacheLine;
 // Shared host state only. The native event handler and generated instruction
@@ -49,6 +51,12 @@ typedef struct JfgOriginalTimingFast {
  uint32_t execution_fast_pending,guest_last_pc,guest_last_word;
  bool execution_fast_profile_ready,guest_previous_branch,guest_previous_delay;
  bool guest_eret_boundary,play_mode;
+ bool diagnostic_host_clock;
+ unsigned host_clock_poll_budget;
+ unsigned native_fast_status;
+ bool native_fast_ready;
+ bool native_spans_enabled;
+ uint64_t native_span_instructions,native_span_commits;
  const volatile uint64_t* io_revision;
  volatile uint64_t* io_guest_count;
  JfgTimingCacheLine *instruction_cache,*data_cache;
@@ -95,12 +103,92 @@ static JFG_CLOCK_INLINE unsigned jfg_clock_data(JfgOriginalTimingFast* s,unsigne
  if(write)line->dirty=1;
  return cost;
 }
-static JFG_CLOCK_INLINE void jfg_original_timing_step(unsigned metadata,unsigned pc,unsigned word,void* context) {
+// Refresh only at the fully checked CPU/device handler. Clock, pending state and
+// deadlines cannot change in ordinary generated instructions. CPU register writes
+// and ERET invalidate the certificate; live Status and I/O revision are checked
+// at every instruction. The bounded poll interval and all instruction metadata
+// boundaries remain intact. This caches eligibility, never elapsed time.
+static JFG_CLOCK_INLINE void jfg_native_timing_refresh(JfgOriginalTimingFast* s,
+    const recomp_context* cpu) {
+ s->native_fast_ready=false;
+ if(!s->diagnostic_host_clock || !cpu || s->guest_eret_boundary ||
+    s->execution_fast_deadline<=s->cpu_count ||
+    s->execution_fast_revision!=*s->io_revision ||
+    ((cpu->status_reg&7U)==1U &&
+     (s->execution_fast_pending&cpu->status_reg&0xff00U)!=0U))return;
+ if(!s->play_mode) {
+  if(s->observed_guest_instructions>=24000000000ULL)return;
+  uint64_t remaining=24000000000ULL-s->observed_guest_instructions+1U;
+  if(remaining<s->host_clock_poll_budget)s->host_clock_poll_budget=(unsigned)remaining;
+ }
+ s->native_fast_status=cpu->status_reg;
+ s->native_fast_ready=true;
+}
+// Generated spans contain only register arithmetic and dynamically validated
+// cached RDRAM accesses. They cannot change Status, I/O revision, pending events
+// or the clock. Calls, branches, CACHE/CP0, labels and observers are boundaries.
+// Admission reserves enough of the existing sampling quantum for every member.
+static JFG_CLOCK_INLINE bool jfg_native_timing_span_begin(unsigned flags,unsigned count,void* context) {
+ JfgOriginalTimingFast* s=jfg_original_timing_state;
+ return s && context && s->native_spans_enabled && s->diagnostic_host_clock &&
+   count>=2U && count<=16U && (flags&~0x100U)==0U &&
+   s->native_fast_ready && s->host_clock_poll_budget>count &&
+   s->native_fast_status==((recomp_context*)context)->status_reg &&
+   s->execution_fast_revision==*s->io_revision &&
+   ((flags&0x100U)==0U || (s->native_fast_status&0x20000000U)!=0U);
+}
+static JFG_CLOCK_INLINE bool jfg_native_timing_span_ram(uint64_t address,unsigned width) {
+ // Match generated full-width address arithmetic, not a truncating virtual
+ // address test. Only permanently mapped cached RDRAM can avoid MMIO traps.
+ return (width==1U || width==2U || width==4U || width==8U) &&
+   address>=UINT64_C(0xffffffff80000000) &&
+   address<=UINT64_C(0xffffffff80400000)-width &&
+   (address&(width-1U))==0U;
+}
+static JFG_CLOCK_INLINE void jfg_native_timing_span_commit(unsigned first_pc,unsigned last_pc,unsigned last_word,unsigned count) {
+ JfgOriginalTimingFast* s=jfg_original_timing_state;
+ // Caller commits a nonempty executed prefix, or the whole admitted span.
+ // No externally observable instruction or host callback occurs before this.
+ bool delay=count==1U && s->guest_previous_branch && first_pc==s->guest_last_pc+4U;
+ s->host_clock_poll_budget-=count;
+ s->observed_guest_instructions+=count;s->execution_fast_hits+=count;
+ s->native_span_instructions+=count;++s->native_span_commits;
+ *s->io_guest_count=s->cpu_count;
+ s->guest_last_pc=last_pc;s->guest_last_word=last_word;
+ s->guest_previous_branch=false;s->guest_previous_delay=delay;
+}
+
+static JFG_CLOCK_INLINE void jfg_native_timing_step(unsigned metadata,unsigned pc,unsigned word,void* context) {
+ JfgOriginalTimingFast* s=jfg_original_timing_state;
+ unsigned kind=(metadata>>12U)&3U;
+ if(s && context && kind!=3U && (metadata&0xa00U)==0U &&
+    s->native_fast_ready && s->host_clock_poll_budget>1U &&
+    s->native_fast_status==((recomp_context*)context)->status_reg &&
+    s->execution_fast_revision==*s->io_revision &&
+    ((metadata&0x100U)==0U || (s->native_fast_status&0x20000000U)!=0U)) {
+  bool delay=s->guest_previous_branch && pc==s->guest_last_pc+4U;
+  --s->host_clock_poll_budget;
+  ++s->observed_guest_instructions;++s->execution_fast_hits;
+  *s->io_guest_count=s->cpu_count;
+  s->guest_last_pc=pc;s->guest_last_word=word;
+  s->guest_previous_delay=delay;s->guest_previous_branch=(metadata&0x400U)!=0U;
+  return;
+ }
+ jfg_phase9_execution_probe_predecoded(metadata,pc,word,context);
+}
+// Forced inlining of the cache model substantially expands generated code
+// under MSVC. Keep one callable copy per translation unit; native instruction
+// and span checks stay inline, and all modeled costs and fallbacks remain.
+#ifdef __cplusplus
+[[maybe_unused]]
+#endif
+static JFG_CLOCK_NOINLINE void jfg_original_timing_step(unsigned metadata,unsigned pc,unsigned word,void* context) {
  JfgOriginalTimingFast* s=jfg_original_timing_state;
  unsigned kind=(metadata>>12U)&3U;
  // CACHE instructions and every event/observer boundary retain the fully
 // checked native handler. Constant instruction operands fold at generation sites.
- if(s && context && kind!=3U && s->execution_fast_profile_ready &&
+ if(s && context && kind!=3U && (s->execution_fast_profile_ready ||
+    (s->diagnostic_host_clock && s->host_clock_poll_budget>1U)) &&
     !s->guest_eret_boundary && (metadata&0x800U)==0U &&
     (s->play_mode || s->observed_guest_instructions<24000000000ULL) &&
     s->execution_fast_deadline>s->cpu_count && s->execution_fast_revision==*s->io_revision) {
@@ -109,16 +197,23 @@ static JFG_CLOCK_INLINE void jfg_original_timing_step(unsigned metadata,unsigned
   bool eligible=(cpu->status_reg&7U)==1U && (s->execution_fast_pending&cpu->status_reg&0xff00U)!=0U;
   if(!eligible && !(fpu && (cpu->status_reg&0x20000000U)==0U) && (metadata&0x200U)==0U) {
    bool delay=s->guest_previous_branch && pc==s->guest_last_pc+4U;
-   uint64_t cost=jfg_clock_fetch(s,pc)+((metadata>>16U)&127U);
-   if(kind==1U || kind==2U) {
-    unsigned reg=(word>>21U)&31U;uint64_t value=0;
-    if(reg)memcpy(&value,(const unsigned char*)cpu+offsetof(recomp_context,r1)+(reg-1)*sizeof(uint64_t),sizeof(value));
-    cost+=jfg_clock_data(s,(uint32_t)value+(uint32_t)(int32_t)(int16_t)word,kind==2U);
+   if(s->diagnostic_host_clock) {
+    // Ordinary native instructions carry no emulated execution penalty.
+    // A bounded budget returns to the host clock/device handler; hardware,
+    // observer, exception and interrupt checks above are never bypassed.
+    --s->host_clock_poll_budget;
+   } else {
+    uint64_t cost=jfg_clock_fetch(s,pc)+((metadata>>16U)&127U);
+    if(kind==1U || kind==2U) {
+     unsigned reg=(word>>21U)&31U;uint64_t value=0;
+     if(reg)memcpy(&value,(const unsigned char*)cpu+offsetof(recomp_context,r1)+(reg-1)*sizeof(uint64_t),sizeof(value));
+     cost+=jfg_clock_data(s,(uint32_t)value+(uint32_t)(int32_t)(int16_t)word,kind==2U);
+    }
+    s->cache_counters[10]+=cost;
+    cost+=s->diagnostic_cpu_half_tick;
+    s->cpu_count+=cost/2U;s->diagnostic_cpu_half_tick=cost%2U;
    }
-   s->cache_counters[10]+=cost;
-   cost+=s->diagnostic_cpu_half_tick;
    ++s->observed_guest_instructions;++s->execution_fast_hits;
-   s->cpu_count+=cost/2U;s->diagnostic_cpu_half_tick=cost%2U;
    *s->io_guest_count=s->cpu_count;
    s->guest_last_pc=pc;s->guest_last_word=word;
    s->guest_previous_delay=delay;s->guest_previous_branch=(metadata&0x400U)!=0U;
@@ -129,6 +224,7 @@ static JFG_CLOCK_INLINE void jfg_original_timing_step(unsigned metadata,unsigned
 }
 #ifndef __cplusplus
 // Generated C retains its existing hook ABI and source/object inventory.
-#define jfg_phase9_execution_probe_predecoded(m,p,w,c) do { if ((m)&0x800000U) jfg_original_timing_step(m,p,w,c); else (jfg_phase9_execution_probe_predecoded)(m,p,w,c); } while (0)
+#define jfg_phase9_execution_probe_predecoded(m,p,w,c) do { if (jfg_original_timing_state && jfg_original_timing_state->diagnostic_host_clock) jfg_native_timing_step(m,p,w,c); else if ((m)&0x800000U) jfg_original_timing_step(m,p,w,c); else (jfg_phase9_execution_probe_predecoded)(m,p,w,c); } while (0)
 #endif
 #undef JFG_CLOCK_INLINE
+#undef JFG_CLOCK_NOINLINE

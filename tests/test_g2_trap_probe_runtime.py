@@ -21,7 +21,7 @@ class G2TrapProbeRuntimeTests(unittest.TestCase):
         # environment-incompatible there (reports kSetupFailure before the
         # sandboxed child writes its escape report) while passing under WSL and
         # MSVC. CI sets JFG_QUARANTINE_TRAP_PROBE to skip it; it still runs by
-        # default. See docs/tests/quarantine.md.
+        # default. See docs/development/test-quarantine.md.
         if os.environ.get("JFG_QUARANTINE_TRAP_PROBE") == "1":
             self.skipTest("trap-probe escape test quarantined in this environment")
         compiler = shutil.which("clang++") or shutil.which("g++")

@@ -12,46 +12,58 @@ namespace JfgLauncher
     internal sealed class ControllerProfile
     {
         internal int Device = -1, Stick, Deadzone = 7849, Threshold = 8689, Trigger = 3855, InvertX, InvertY;
+        internal string DeviceKey = "";
         internal int[] Bindings = { 0, 1, 23, 6, 11, 12, 13, 14, 9, 10, 22, 21, 20, 19 };
         internal static string FileName(string root) { return FileName(root, 0); }
         internal static string FileName(string root, int port) { if(port<0||port>=4)throw new ArgumentOutOfRangeException("port"); return Path.Combine(root, port == 0 ? "controller.ini" : "controller-" + (port + 1) + ".ini"); }
         internal string Encode()
         {
-            StringBuilder text = new StringBuilder("version=1\n");
+            StringBuilder text = new StringBuilder(Device == -4 ? "version=2\n" : "version=1\n");
             string[] keys = { "device", "stick", "deadzone", "threshold", "trigger", "invert_x", "invert_y" };
             int[] values = { Device, Stick, Deadzone, Threshold, Trigger, InvertX, InvertY };
             for (int i = 0; i < keys.Length; ++i) text.Append(keys[i]).Append('=').Append(values[i].ToString(CultureInfo.InvariantCulture)).Append('\n');
             for (int i = 0; i < Bindings.Length; ++i) text.Append("map").Append(i).Append('=').Append(Bindings[i].ToString(CultureInfo.InvariantCulture)).Append('\n');
+            if(Device == -4) text.Append("device_key=").Append(DeviceKey).Append('\n');
             return text.ToString();
+        }
+        private static int Number(Dictionary<string,string> fields,string key) {
+            int number;string value=fields[key];
+            if(!Int32.TryParse(value,NumberStyles.AllowLeadingSign,CultureInfo.InvariantCulture,out number) || number.ToString(CultureInfo.InvariantCulture)!=value)
+                throw new InvalidDataException("The controller profile has an invalid number.");
+            return number;
+        }
+        internal static bool ValidDeviceKey(string key) {
+            if(key==null || key.Length!=68 || !key.StartsWith("sdl:",StringComparison.Ordinal))return false;
+            for(int i=4;i<key.Length;++i)if(!((key[i]>='0'&&key[i]<='9')||(key[i]>='a'&&key[i]<='f')))return false;
+            return true;
         }
         internal static ControllerProfile Parse(string text)
         {
-            if (text.Length > 4096) throw new InvalidDataException("The controller profile is invalid. Restore defaults in Controllers.");
-            Dictionary<string, int> fields = new Dictionary<string, int>(StringComparer.Ordinal);
-            string trimmed = text.EndsWith("\n", StringComparison.Ordinal) ? text.Substring(0, text.Length - 1) : text;
-            foreach (string raw in trimmed.Split('\n'))
-            {
-                string line = raw.TrimEnd('\r');
-                int at = line.IndexOf('='); int number;
-                if (at < 1 || !Int32.TryParse(line.Substring(at + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out number) ||
-                    number.ToString(CultureInfo.InvariantCulture) != line.Substring(at + 1) || fields.ContainsKey(line.Substring(0, at)))
-                    throw new InvalidDataException("The controller profile is invalid. Restore defaults in Controllers.");
-                fields.Add(line.Substring(0, at), number);
+            if(String.IsNullOrEmpty(text) || text.Length > 4096) throw new InvalidDataException("The controller profile is invalid. Restore defaults in Controllers.");
+            Dictionary<string,string> fields = new Dictionary<string,string>(StringComparer.Ordinal);
+            string trimmed = text.EndsWith("\n",StringComparison.Ordinal) ? text.Substring(0,text.Length-1) : text;
+            foreach(string raw in trimmed.Split('\n')) {
+                string line=raw.EndsWith("\r",StringComparison.Ordinal)?raw.Substring(0,raw.Length-1):raw;
+                int at=line.IndexOf('=');
+                if(at<1 || line.Length>128 || fields.ContainsKey(line.Substring(0,at)))throw new InvalidDataException("The controller profile is invalid.");
+                fields.Add(line.Substring(0,at),line.Substring(at+1));
             }
-            try
-            {
-                ControllerProfile p = new ControllerProfile();
-                if (fields.Count != 22 || fields["version"] != 1) throw new InvalidDataException();
-                p.Device = fields["device"]; p.Stick = fields["stick"]; p.Deadzone = fields["deadzone"];
-                p.Threshold = fields["threshold"]; p.Trigger = fields["trigger"]; p.InvertX = fields["invert_x"]; p.InvertY = fields["invert_y"];
-                for (int i = 0; i < 14; ++i) p.Bindings[i] = fields["map" + i.ToString(CultureInfo.InvariantCulture)];
-                if (p.Device < -3 || p.Device > 3 || p.Stick < 0 || p.Stick > 1 || p.Deadzone < 0 || p.Deadzone > 30000 ||
-                    p.Threshold < 1000 || p.Threshold > 32000 || p.Trigger < 1000 || p.Trigger > 32000 ||
-                    p.InvertX < 0 || p.InvertX > 1 || p.InvertY < 0 || p.InvertY > 1) throw new InvalidDataException();
-                foreach (int binding in p.Bindings) if (binding < -1 || binding > 26) throw new InvalidDataException();
+            try {
+                ControllerProfile p=new ControllerProfile();int version=Number(fields,"version");
+                p.Device=Number(fields,"device");p.Stick=Number(fields,"stick");p.Deadzone=Number(fields,"deadzone");
+                p.Threshold=Number(fields,"threshold");p.Trigger=Number(fields,"trigger");p.InvertX=Number(fields,"invert_x");p.InvertY=Number(fields,"invert_y");
+                if(version==1) {
+                    if(fields.Count!=22 || fields.ContainsKey("device_key") || p.Device==-4)throw new InvalidDataException();
+                } else if(version==2) {
+                    if(fields.Count!=23 || p.Device!=-4 || !fields.TryGetValue("device_key",out p.DeviceKey) || !ValidDeviceKey(p.DeviceKey))throw new InvalidDataException();
+                } else throw new InvalidDataException();
+                for(int i=0;i<14;++i)p.Bindings[i]=Number(fields,"map"+i.ToString(CultureInfo.InvariantCulture));
+                if(p.Device < -4 || p.Device > 3 || p.Stick < 0 || p.Stick > 1 || p.Deadzone < 0 || p.Deadzone > 30000 ||
+                   p.Threshold < 1000 || p.Threshold > 32000 || p.Trigger < 1000 || p.Trigger > 32000 ||
+                   p.InvertX < 0 || p.InvertX > 1 || p.InvertY < 0 || p.InvertY > 1)throw new InvalidDataException();
+                foreach(int binding in p.Bindings)if(binding < -1 || binding > 26)throw new InvalidDataException();
                 return p;
-            }
-            catch (KeyNotFoundException) { throw new InvalidDataException("The controller profile is incomplete. Restore defaults in Controllers."); }
+            } catch(KeyNotFoundException) {throw new InvalidDataException("The controller profile is incomplete. Restore defaults in Controllers.");}
         }
         internal static ControllerProfile Load(string root) { return Load(root, 0); }
         internal static ControllerProfile Load(string root, int port)
@@ -62,9 +74,11 @@ namespace JfgLauncher
             return Parse(File.ReadAllText(path));
         }
         internal void ValidateAssignment(string root,int port) {
-            for(int p=0;p<4;++p)
-                if(p!=port && (Device>=0 || Device==-3) && Load(root,p).Device==Device)
+            for(int p=0;p<4;++p) {
+                if(p==port)continue;var other=Load(root,p);
+                if((Device>=0 || Device==-3 || Device==-4) && other.Device==Device && (Device!=-4 || other.DeviceKey==DeviceKey))
                     throw new InvalidDataException("That device is already assigned to Player " + (p+1) + ". Disconnect that assignment first.");
+            }
         }
         internal void Save(string root) { Save(root, 0); }
         internal void Save(string root, int port)
@@ -128,6 +142,7 @@ namespace JfgLauncher
         private readonly Timer timer = new Timer { Interval = 50 };
         private readonly string root;
         private int port;
+        private string savedDeviceKey="";
         private readonly TabControl ports = new TabControl { Dock = DockStyle.Top, Height = 28 };
         private int learning = -1;
         private bool released;
@@ -150,7 +165,7 @@ namespace JfgLauncher
             header.Controls.Add(ports); layout.Controls.Add(header, 0, 0);
             FlowLayoutPanel selection = new FlowLayoutPanel { Dock = DockStyle.Fill };
             device.DropDownStyle = ComboBoxStyle.DropDownList; device.Width = 200;
-            device.Items.AddRange(new object[] { "Automatic (one per player)", "Controller 1", "Controller 2", "Controller 3", "Controller 4", "Disconnected", "Keyboard" });
+            device.Items.AddRange(new object[] { "Automatic (one per player)", "Controller 1", "Controller 2", "Controller 3", "Controller 4", "Disconnected", "Keyboard", "Saved SDL controller (use native mapping)" });
             selection.Controls.Add(device); selection.Controls.Add(new Label { Text = "Movement stick", AutoSize = true, Padding = new Padding(10, 4, 0, 0) });
             stick.DropDownStyle = ComboBoxStyle.DropDownList; stick.Items.AddRange(new object[] { "Left stick", "Right stick" }); selection.Controls.Add(stick);
             layout.Controls.Add(selection, 0, 1);
@@ -195,7 +210,8 @@ namespace JfgLauncher
         }
         private void Apply(ControllerProfile p)
         {
-            device.SelectedIndex = p.Device == -2 ? 5 : p.Device == -3 ? 6 : p.Device + 1; stick.SelectedIndex = p.Stick;
+            savedDeviceKey=p.DeviceKey;
+            device.SelectedIndex = p.Device == -4 ? 7 : p.Device == -2 ? 5 : p.Device == -3 ? 6 : p.Device + 1; stick.SelectedIndex = p.Stick;
             deadzone.Value = Math.Min(deadzone.Maximum, p.Deadzone * 100M / 32767);
             threshold.Value = Math.Max(threshold.Minimum, Math.Min(threshold.Maximum, p.Threshold * 100M / 32767)); trigger.Value = Math.Max(trigger.Minimum, Math.Min(trigger.Maximum, p.Trigger * 100M / 32767));
             invertX.Checked = p.InvertX != 0; invertY.Checked = p.InvertY != 0;
@@ -203,7 +219,7 @@ namespace JfgLauncher
         }
         private ControllerProfile ReadProfile()
         {
-            ControllerProfile p = new ControllerProfile { Device = device.SelectedIndex == 5 ? -2 : device.SelectedIndex == 6 ? -3 : device.SelectedIndex - 1, Stick = stick.SelectedIndex,
+            ControllerProfile p = new ControllerProfile { DeviceKey = device.SelectedIndex==7?savedDeviceKey:"", Device = device.SelectedIndex == 7 ? -4 : device.SelectedIndex == 5 ? -2 : device.SelectedIndex == 6 ? -3 : device.SelectedIndex - 1, Stick = stick.SelectedIndex,
                 Deadzone = (int)(deadzone.Value * 32767 / 100), Threshold = (int)(threshold.Value * 32767 / 100), Trigger = (int)(trigger.Value * 32767 / 100),
                 InvertX = invertX.Checked ? 1 : 0, InvertY = invertY.Checked ? 1 : 0 };
             for (int i = 0; i < 14; ++i) p.Bindings[i] = bindings[i].SelectedIndex - 1; return p;
@@ -211,6 +227,7 @@ namespace JfgLauncher
         private void Poll()
         {
             if(DateTime.UtcNow<noticeUntil)return;
+            if(device.SelectedIndex==7){status.Text="Use the native Controller Mapping window to configure this SDL device.";return;}
             if(device.SelectedIndex==5){status.Text="Player "+(port+1)+" is disconnected. Apply mapping to unplug this port.";return;}
             if(device.SelectedIndex==6){status.Text="Keyboard: WASD move; Space/Z = A; X = B; C = Z; Enter = Start.\nQ/E = L/R; IJKL = C buttons; arrows = D-pad; Shift = full stick.";return;}
             if(device.SelectedIndex==0){status.Text="Automatic assigns a different connected controller to each player.\nSelect Controller 1-4 to preview a specific device or use Learn.";return;}

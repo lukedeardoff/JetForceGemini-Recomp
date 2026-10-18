@@ -1,0 +1,960 @@
+{
+  "schema": 1,
+  "issue": "PERF-002",
+  "status": "Capped-play correction verified and delivered as a local preview; owner live confirmation pending",
+  "source_commit": "5c7df1bdee61778590fb3b7baa281958a9167870",
+  "runtime_sha256": "a14d9d77fc98ef6be1999a3ea9492d60467a4b107e376c66d431fbfd70231259",
+  "clock_policy": {
+    "interactive_preview": "elapsed host time in 46.875-MHz Count units",
+    "original_timing": "default build policy and finite reference probes",
+    "guest_frame_step_unchanged": true,
+    "private_build_option": "JFG_EXPERIMENTAL_NATIVE_PLAY_TIMING"
+  },
+  "baseline": {
+    "case": "reference",
+    "runtime_sha256": "61de79eb1fee535bbd6c2ddd8db132fe79c4f9f0058f961597126059abe12eaf",
+    "code": 0,
+    "seconds": 77.28200000000652,
+    "muted": true,
+    "hidden": true,
+    "bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 119.98571332901756,
+        "scenes": 29.830335152120092,
+        "interval_ms": {
+          "n": 1806,
+          "median": 8.336,
+          "p99": 8.558,
+          "max": 8.831
+        },
+        "update_ms": {
+          "n": 449,
+          "median": 33.403,
+          "p99": 35.051,
+          "max": 35.801
+        },
+        "vi_deltas": {
+          "2": 449
+        }
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 119.97949114615763,
+        "scenes": 24.56508932330818,
+        "interval_ms": {
+          "n": 801,
+          "median": 8.337,
+          "p99": 8.616,
+          "max": 8.815
+        },
+        "update_ms": {
+          "n": 164,
+          "median": 34.313,
+          "p99": 51.588,
+          "max": 51.637
+        },
+        "vi_deltas": {
+          "2": 94,
+          "3": 70
+        }
+      },
+      {
+        "vi": [
+          4113,
+          4275
+        ],
+        "output": 119.99133395921406,
+        "scenes": 19.628212036538102,
+        "interval_ms": {
+          "n": 324,
+          "median": 8.336,
+          "p99": 8.54,
+          "max": 8.768
+        },
+        "update_ms": {
+          "n": 53,
+          "median": 50.134,
+          "p99": 51.588,
+          "max": 51.612
+        },
+        "vi_deltas": {
+          "3": 53
+        }
+      }
+    ],
+    "drops": 0,
+    "audio_events": {
+      "audio-queue": 2247,
+      "audio-start": 1,
+      "audio-anchor-drain-begin": 1,
+      "audio-anchor-drain-end": 1
+    },
+    "pcm": {
+      "seconds": 75.11090925606322,
+      "nonzero": 0.9701495109421258,
+      "rate": 22018
+    }
+  },
+  "final_runtime_checks": [
+    {
+      "case": "play-120-vsync",
+      "runtime_sha256": "a14d9d77fc98ef6be1999a3ea9492d60467a4b107e376c66d431fbfd70231259",
+      "code": 0,
+      "seconds": 77.125,
+      "muted": true,
+      "hidden": true,
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 119.64733631709005,
+          "scenes": 29.86195331093576,
+          "interval_ms": {
+            "n": 1799,
+            "median": 8.334,
+            "p99": 9.074,
+            "max": 10.262
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.429,
+            "p99": 33.967,
+            "max": 34.621
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 119.65749835957048,
+          "scenes": 29.764802716943155,
+          "interval_ms": {
+            "n": 800,
+            "median": 8.337,
+            "p99": 9.019,
+            "max": 9.534
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.428,
+            "p99": 33.949,
+            "max": 33.962
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 119.6831324225311,
+          "scenes": 29.64288109536374,
+          "interval_ms": {
+            "n": 323,
+            "median": 8.333,
+            "p99": 8.734,
+            "max": 9.534
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.3795,
+            "p99": 33.949,
+            "max": 33.962
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "drops": 0,
+      "audio_events": {
+        "audio-queue": 2251,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "pcm": {
+        "seconds": 75.24461803978564,
+        "nonzero": 0.9696556965020378,
+        "rate": 22018
+      }
+    },
+    {
+      "case": "play-360",
+      "runtime_sha256": "a14d9d77fc98ef6be1999a3ea9492d60467a4b107e376c66d431fbfd70231259",
+      "code": 0,
+      "seconds": 76.93800000002375,
+      "muted": true,
+      "hidden": true,
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 346.5425301500977,
+          "scenes": 29.853721419300438,
+          "interval_ms": {
+            "n": 5212,
+            "median": 2.778,
+            "p99": 4.818,
+            "max": 28.026
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.428,
+            "p99": 36.764,
+            "max": 37.39
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 351.9918970028608,
+          "scenes": 29.781627339952937,
+          "interval_ms": {
+            "n": 2352,
+            "median": 2.776,
+            "p99": 3.157,
+            "max": 28.819
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.451,
+            "p99": 36.739,
+            "max": 37.269
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 359.5032198099589,
+          "scenes": 29.588742371190033,
+          "interval_ms": {
+            "n": 972,
+            "median": 2.776,
+            "p99": 2.988,
+            "max": 3.617
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.43,
+            "p99": 36.739,
+            "max": 37.132
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "drops": 0,
+      "audio_events": {
+        "audio-queue": 2249,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "pcm": {
+        "seconds": 75.16940684894178,
+        "nonzero": 0.9692848684051526,
+        "rate": 22018
+      }
+    },
+    {
+      "case": "reference",
+      "runtime_sha256": "a14d9d77fc98ef6be1999a3ea9492d60467a4b107e376c66d431fbfd70231259",
+      "code": 0,
+      "seconds": 77.10899999999674,
+      "muted": true,
+      "hidden": true,
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 119.98295936541696,
+          "scenes": 29.813142642541347,
+          "interval_ms": {
+            "n": 1807,
+            "median": 8.335,
+            "p99": 8.504,
+            "max": 8.859
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.416,
+            "p99": 35.008,
+            "max": 35.691
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 119.97672361691627,
+          "scenes": 24.5645226881077,
+          "interval_ms": {
+            "n": 801,
+            "median": 8.335,
+            "p99": 8.568,
+            "max": 9.055
+          },
+          "update_ms": {
+            "n": 164,
+            "median": 34.236000000000004,
+            "p99": 51.635,
+            "max": 52.158
+          },
+          "vi_deltas": {
+            "2": 94,
+            "3": 70
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 119.98884066633555,
+          "scenes": 19.68857137868664,
+          "interval_ms": {
+            "n": 323,
+            "median": 8.332,
+            "p99": 8.568,
+            "max": 8.699
+          },
+          "update_ms": {
+            "n": 53,
+            "median": 50.127,
+            "p99": 51.635,
+            "max": 52.158
+          },
+          "vi_deltas": {
+            "3": 53
+          }
+        }
+      ],
+      "drops": 0,
+      "audio_events": {
+        "audio-queue": 2247,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "pcm": {
+        "seconds": 75.11090925606322,
+        "nonzero": 0.9701495109421258,
+        "rate": 22018
+      }
+    }
+  ],
+  "original_clock_reference_hashes_match": true,
+  "movement_boundary_checks": [
+    {
+      "vi": 4050,
+      "reference_xyz": [
+        19.0,
+        -22.33265495300293,
+        402.125
+      ],
+      "native_xyz": [
+        19.0,
+        -22.33265495300293,
+        402.125
+      ],
+      "maximum_difference": 0.0
+    },
+    {
+      "vi": 4100,
+      "reference_xyz": [
+        19.0,
+        10.895200729370117,
+        605.25
+      ],
+      "native_xyz": [
+        19.0,
+        10.895200729370117,
+        605.25
+      ],
+      "maximum_difference": 0.0
+    },
+    {
+      "vi": 4270,
+      "reference_xyz": [
+        19.0,
+        6.242923736572266,
+        1060.25
+      ],
+      "native_xyz": [
+        19.0,
+        6.242923736572266,
+        1060.25
+      ],
+      "maximum_difference": 0.0
+    },
+    {
+      "vi": 4400,
+      "reference_xyz": [
+        19.0,
+        13.313247680664062,
+        621.5
+      ],
+      "native_xyz": [
+        19.0,
+        13.313247680664062,
+        621.5
+      ],
+      "maximum_difference": 0.0
+    }
+  ],
+  "pause_check": {
+    "runtime_sha256": "c3f769b245731b508c3d10894d6aaec0b506f0138e14968d0ac265b6660157bb",
+    "elapsed_ms": 1263.949,
+    "vi_unchanged": true,
+    "count_ticks_elapsed": 4,
+    "normal_route_audio_underruns": 0
+  },
+  "intentional_stall_check": {
+    "runtime_sha256": "6f09a4fa7f9613c43a327f9bdea3a2c444197cd887217c8242b3714b078829fa",
+    "stall_ms": 2000,
+    "first_coalesced_edges": 119,
+    "deadline_phase_preserved_unit_test": true
+  },
+  "startup_audio_comparison": [
+    {
+      "case": "startup-reference",
+      "runtime_sha256": "c3f769b245731b508c3d10894d6aaec0b506f0138e14968d0ac265b6660157bb",
+      "code": 0,
+      "seconds": 202.5,
+      "muted": true,
+      "hidden": true,
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 119.66332500678801,
+          "scenes": 29.865943817703066,
+          "interval_ms": {
+            "n": 1799,
+            "median": 8.334,
+            "p99": 9.071,
+            "max": 10.481
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.38,
+            "p99": 34.627,
+            "max": 35.152
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 119.64543621543066,
+          "scenes": 29.799051072428913,
+          "interval_ms": {
+            "n": 799,
+            "median": 8.337,
+            "p99": 9.263,
+            "max": 9.882
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.434,
+            "p99": 34.859,
+            "max": 34.949
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 119.63445931706131,
+          "scenes": 29.63082583704305,
+          "interval_ms": {
+            "n": 323,
+            "median": 8.336,
+            "p99": 9.263,
+            "max": 9.468
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.4975,
+            "p99": 34.501,
+            "max": 34.661
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "drops": 0,
+      "audio_events": {
+        "audio-queue": 5997,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "pcm": {
+        "seconds": 200.4628939958216,
+        "nonzero": 0.988956548020387,
+        "rate": 22018
+      }
+    },
+    {
+      "case": "startup-native-play",
+      "runtime_sha256": "c3f769b245731b508c3d10894d6aaec0b506f0138e14968d0ac265b6660157bb",
+      "code": 0,
+      "seconds": 202.64000000001397,
+      "muted": true,
+      "hidden": true,
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 119.6571088860402,
+          "scenes": 29.864392379006144,
+          "interval_ms": {
+            "n": 1799,
+            "median": 8.336,
+            "p99": 9.011,
+            "max": 10.329
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.415,
+            "p99": 38.157,
+            "max": 38.944
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 119.57822964729952,
+          "scenes": 27.50299281887889,
+          "interval_ms": {
+            "n": 800,
+            "median": 8.334,
+            "p99": 8.699,
+            "max": 33.458
+          },
+          "update_ms": {
+            "n": 184,
+            "median": 33.489999999999995,
+            "p99": 54.218,
+            "max": 54.815
+          },
+          "vi_deltas": {
+            "2": 153,
+            "3": 31
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 119.94561970108661,
+          "scenes": 29.707893424417737,
+          "interval_ms": {
+            "n": 323,
+            "median": 8.334,
+            "p99": 8.586,
+            "max": 8.768
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.435500000000005,
+            "p99": 33.933,
+            "max": 34.057
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "drops": 0,
+      "audio_events": {
+        "audio-queue": 5999,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1,
+        "audio-underrun": 3,
+        "audio-pause-empty": 1,
+        "audio-resume": 1
+      },
+      "pcm": {
+        "seconds": 200.5130347897175,
+        "nonzero": 0.9884163749270651,
+        "rate": 22018
+      }
+    }
+  ],
+  "startup_zero_underrun_gate_passed": false,
+  "unlimited_retained_limit": {
+    "case": "native-unlimited",
+    "runtime_sha256": "c3f769b245731b508c3d10894d6aaec0b506f0138e14968d0ac265b6660157bb",
+    "code": 0,
+    "seconds": 78.90600000001723,
+    "muted": true,
+    "hidden": true,
+    "bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 1098.8371487259817,
+        "scenes": 28.525548090770453,
+        "interval_ms": {
+          "n": 17296,
+          "median": 0.5974999999999999,
+          "p99": 6.168,
+          "max": 10.618
+        },
+        "update_ms": {
+          "n": 449,
+          "median": 34.867,
+          "p99": 38.193,
+          "max": 40.545
+        },
+        "vi_deltas": {
+          "2": 449
+        }
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 1391.6601681172187,
+        "scenes": 19.26577264724414,
+        "interval_ms": {
+          "n": 9535,
+          "median": 0.54,
+          "p99": 3.071,
+          "max": 5.352
+        },
+        "update_ms": {
+          "n": 132,
+          "median": 50.182500000000005,
+          "p99": 68.593,
+          "max": 69.829
+        },
+        "vi_deltas": {
+          "3": 132
+        }
+      },
+      {
+        "vi": [
+          4113,
+          4275
+        ],
+        "output": 1402.4898408240372,
+        "scenes": 19.00587102113883,
+        "interval_ms": {
+          "n": 3911,
+          "median": 0.532,
+          "p99": 3.068,
+          "max": 4.455
+        },
+        "update_ms": {
+          "n": 53,
+          "median": 50.12,
+          "p99": 66.172,
+          "max": 69.829
+        },
+        "vi_deltas": {
+          "3": 53
+        }
+      }
+    ],
+    "drops": 0,
+    "audio_events": {
+      "audio-queue": 2247,
+      "audio-start": 1,
+      "audio-anchor-drain-begin": 1,
+      "audio-anchor-drain-end": 1,
+      "audio-underrun": 102,
+      "audio-pause-empty": 20,
+      "audio-resume": 19
+    },
+    "pcm": {
+      "seconds": 74.98555727132346,
+      "nonzero": 0.9700950678121321,
+      "rate": 22018
+    }
+  },
+  "rejected_unlimited_yield": {
+    "case": "native-unlimited",
+    "runtime_sha256": "f778134caf06f49d666832864ce1e9f1883ef177a9de23cc50a08c6ad2634780",
+    "code": 0,
+    "seconds": 77.17199999996228,
+    "muted": true,
+    "hidden": true,
+    "bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 327.3295848251096,
+        "scenes": 29.8782239452072,
+        "interval_ms": {
+          "n": 4919,
+          "median": 0.688,
+          "p99": 17.572,
+          "max": 18.858
+        },
+        "update_ms": {
+          "n": 449,
+          "median": 33.445,
+          "p99": 35.078,
+          "max": 36.477
+        },
+        "vi_deltas": {
+          "2": 449
+        }
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 145.26615059588445,
+        "scenes": 29.925428538903734,
+        "interval_ms": {
+          "n": 966,
+          "median": 0.625,
+          "p99": 40.701,
+          "max": 41.504
+        },
+        "update_ms": {
+          "n": 199,
+          "median": 33.41,
+          "p99": 35.119,
+          "max": 35.424
+        },
+        "vi_deltas": {
+          "2": 199
+        }
+      },
+      {
+        "vi": [
+          4113,
+          4275
+        ],
+        "output": 147.35425072584925,
+        "scenes": 29.618944869517442,
+        "interval_ms": {
+          "n": 398,
+          "median": 0.5925,
+          "p99": 40.418,
+          "max": 41.493
+        },
+        "update_ms": {
+          "n": 80,
+          "median": 33.4255,
+          "p99": 35.119,
+          "max": 35.424
+        },
+        "vi_deltas": {
+          "2": 80
+        }
+      }
+    ],
+    "drops": 0,
+    "audio_events": {
+      "audio-queue": 2246,
+      "audio-start": 1,
+      "audio-anchor-drain-begin": 1,
+      "audio-anchor-drain-end": 1
+    },
+    "pcm": {
+      "seconds": 75.07748206013262,
+      "nonzero": 0.9701331957296062,
+      "rate": 22018
+    }
+  },
+  "maximum_cap_observation": {
+    "case": "native-1000",
+    "runtime_sha256": "f778134caf06f49d666832864ce1e9f1883ef177a9de23cc50a08c6ad2634780",
+    "code": 0,
+    "seconds": 77.14100000000326,
+    "muted": true,
+    "hidden": true,
+    "bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 820.532390680441,
+        "scenes": 29.809777766446963,
+        "interval_ms": {
+          "n": 12359,
+          "median": 1.005,
+          "p99": 3.552,
+          "max": 8.885
+        },
+        "update_ms": {
+          "n": 449,
+          "median": 33.378,
+          "p99": 35.162,
+          "max": 37.841
+        },
+        "vi_deltas": {
+          "2": 449
+        }
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 493.66263776352673,
+        "scenes": 29.850764179562994,
+        "interval_ms": {
+          "n": 3291,
+          "median": 1.003,
+          "p99": 18.402,
+          "max": 22.296
+        },
+        "update_ms": {
+          "n": 199,
+          "median": 33.431,
+          "p99": 34.029,
+          "max": 34.142
+        },
+        "vi_deltas": {
+          "2": 199
+        }
+      },
+      {
+        "vi": [
+          4113,
+          4275
+        ],
+        "output": 498.04035985274356,
+        "scenes": 29.733752827029466,
+        "interval_ms": {
+          "n": 1340,
+          "median": 1.0025,
+          "p99": 18.208,
+          "max": 21.655
+        },
+        "update_ms": {
+          "n": 80,
+          "median": 33.4345,
+          "p99": 33.867,
+          "max": 34.142
+        },
+        "vi_deltas": {
+          "2": 80
+        }
+      }
+    ],
+    "drops": 0,
+    "audio_events": {
+      "audio-queue": 2246,
+      "audio-start": 1,
+      "audio-anchor-drain-begin": 1,
+      "audio-anchor-drain-end": 1
+    },
+    "pcm": {
+      "seconds": 75.07748206013262,
+      "nonzero": 0.9701325907894227,
+      "rate": 22018
+    }
+  },
+  "unit_tests": {
+    "passed": 5,
+    "names": [
+      "host_count_clock",
+      "native_event_batch",
+      "original_timing_fast",
+      "interpolation_history",
+      "rt64_interpolation"
+    ]
+  },
+  "limitations": [
+    "About 30 source scenes is verified for the measured capped-play Goldwood route, not all scenes.",
+    "Unlimited can still reduce scene cadence to about 20 under render/readback load.",
+    "Three native startup audio underruns occurred; audible quality and broader continuity remain open.",
+    "Explicit heavy screenshots impose synchronous GPU waits and invalidate ordinary-play pacing benchmarks.",
+    "OUTPUT includes interpolated/repeated images and measures present returns, not physical scanout or unique actor poses.",
+    "Seams, delayed lighting, complete character interpolation, other levels/combat and long sessions remain open."
+  ],
+  "private_artifact_ids": [
+    "scene-rate-release-checks",
+    "scene-rate-final-core",
+    "scene-rate-no-periodic-capture",
+    "scene-rate-unlimited-banks",
+    "scene-rate-yield-game-work",
+    "scene-rate-clock-analysis.json"
+  ],
+  "local_delivery": {
+    "source_commit": "5c7df1bdee61778590fb3b7baa281958a9167870",
+    "runtime_sha256": "a14d9d77fc98ef6be1999a3ea9492d60467a4b107e376c66d431fbfd70231259",
+    "manifest_verified": 14,
+    "launcher_init_passed": true,
+    "muted_tests": true,
+    "owner_profile_preserved": true,
+    "capped_bridge_scene_rate_verified": true,
+    "unlimited_scene_rate_resolved": false,
+    "startup_audio_underruns_resolved": false,
+    "owner_live_validation_pending": true,
+    "public_release": false,
+    "delivered_at_utc": "2026-10-12T15:01:40.877492+00:00",
+    "package_name": "high-refresh-native-timing-preview-20261012",
+    "desktop_shortcut_updated": true
+  }
+}

@@ -1,0 +1,692 @@
+{
+  "status": "Local preview delivered; owner live confirmation pending",
+  "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+  "muted": true,
+  "simulation_code_changed": false,
+  "owner_profile_modified": false,
+  "physical_monitor_scanout_measured": false,
+  "physical_F8_automated": false,
+  "fixture": "4500 VI Goldwood bridge route, hidden 1600x900, copied save/configuration",
+  "old_120_comparison": {
+    "case": "old-120-off",
+    "runtime_sha256": "9fc3233e51b0436f2675362bf9c803a81ee0a94a5a43cd1d9ee68612e2caa0f4",
+    "mode": "custom",
+    "requested_fps": 120,
+    "vsync": 0,
+    "seconds": 77.23500000001513,
+    "size": [
+      1600,
+      900
+    ],
+    "hashes": {
+      "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+      "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+      "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+    },
+    "bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 119.98208515828259,
+        "scenes": 29.86250345680093,
+        "median_ms": 8.336,
+        "p99_ms": 9.844,
+        "max_ms": 11.622,
+        "over16ms": 0,
+        "over25ms": 0
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 119.43136285570729,
+        "scenes": 24.575587839819317,
+        "median_ms": 8.328,
+        "p99_ms": 9.823,
+        "max_ms": 29.735,
+        "over16ms": 3,
+        "over25ms": 1
+      }
+    ],
+    "scene_total": 2056,
+    "drops": 0,
+    "effective_targets": [
+      120
+    ]
+  },
+  "mode_comparison": {
+    "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+    "muted": true,
+    "cases": [
+      {
+        "case": "new-120-off",
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "mode": "custom",
+        "requested_fps": 120,
+        "vsync": 0,
+        "seconds": 77.03099999998813,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 119.91668484039607,
+            "scenes": 29.862779530414773,
+            "median_ms": 8.338,
+            "p99_ms": 9.784,
+            "max_ms": 16.668,
+            "over16ms": 1,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 119.99570352462285,
+            "scenes": 24.568408711658112,
+            "median_ms": 8.334,
+            "p99_ms": 9.725,
+            "max_ms": 10.892,
+            "over16ms": 0,
+            "over25ms": 0
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0,
+        "effective_targets": [
+          120
+        ],
+        "completed_repeat_groups": 1113,
+        "repeat_max_outputs": 6,
+        "transition_4113_rendered": 6,
+        "progression_gate": true
+      },
+      {
+        "case": "new-360-off",
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "mode": "custom",
+        "requested_fps": 360,
+        "vsync": 0,
+        "seconds": 77.01600000000326,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 359.7313651173615,
+            "scenes": 29.855708491256067,
+            "median_ms": 2.776,
+            "p99_ms": 3.709,
+            "max_ms": 10.796,
+            "over16ms": 0,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 359.80486986832614,
+            "scenes": 24.555971143739278,
+            "median_ms": 2.776,
+            "p99_ms": 3.494,
+            "max_ms": 7.11,
+            "over16ms": 0,
+            "over25ms": 0
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0,
+        "effective_targets": [
+          360
+        ],
+        "completed_repeat_groups": 1127,
+        "repeat_max_outputs": 18,
+        "transition_4113_rendered": 18,
+        "progression_gate": true
+      },
+      {
+        "case": "old-unlimited-off",
+        "runtime_sha256": "9fc3233e51b0436f2675362bf9c803a81ee0a94a5a43cd1d9ee68612e2caa0f4",
+        "mode": "unlimited",
+        "requested_fps": 120,
+        "vsync": 0,
+        "seconds": 78.625,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 1195.8419963721217,
+            "scenes": 28.622690781549267,
+            "median_ms": 0.578,
+            "p99_ms": 6.336,
+            "max_ms": 14.961,
+            "over16ms": 0,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 1207.4389052049978,
+            "scenes": 23.840594805396055,
+            "median_ms": 0.581,
+            "p99_ms": 6.416,
+            "max_ms": 14.146,
+            "over16ms": 0,
+            "over25ms": 0
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0,
+        "effective_targets": [
+          0
+        ],
+        "progression_gate": false
+      },
+      {
+        "case": "new-unlimited-off",
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "mode": "unlimited",
+        "requested_fps": 120,
+        "vsync": 0,
+        "seconds": 78.42199999999139,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 1317.087753522706,
+            "scenes": 28.816509177063395,
+            "median_ms": 0.554,
+            "p99_ms": 5.758,
+            "max_ms": 8.205,
+            "over16ms": 0,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 1458.3540485897054,
+            "scenes": 23.8407161053341,
+            "median_ms": 0.508,
+            "p99_ms": 5.663,
+            "max_ms": 8.42,
+            "over16ms": 0,
+            "over25ms": 0
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0,
+        "effective_targets": [
+          0
+        ],
+        "completed_repeat_groups": 1161,
+        "repeat_max_outputs": 1,
+        "transition_4113_rendered": 77,
+        "progression_gate": false
+      },
+      {
+        "case": "new-vsync",
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "mode": "custom",
+        "requested_fps": 120,
+        "vsync": 1,
+        "seconds": 77.01500000001397,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 59.98416444688642,
+            "scenes": 29.892219574530525,
+            "median_ms": 16.661,
+            "p99_ms": 18.764,
+            "max_ms": 20.096,
+            "over16ms": 506,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 60.003723231026484,
+            "scenes": 24.601526524720857,
+            "median_ms": 16.6625,
+            "p99_ms": 18.396,
+            "max_ms": 19.739,
+            "over16ms": 301,
+            "over25ms": 0
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0,
+        "effective_targets": [
+          60
+        ],
+        "completed_repeat_groups": 589,
+        "repeat_max_outputs": 3,
+        "transition_4113_rendered": 3,
+        "progression_gate": true
+      },
+      {
+        "case": "new-original",
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "mode": "original",
+        "requested_fps": 120,
+        "vsync": 1,
+        "seconds": 77.0,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 59.82331028926999,
+            "scenes": 29.878383003206036,
+            "median_ms": 16.687,
+            "p99_ms": 18.3,
+            "max_ms": 18.682,
+            "over16ms": 778,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 49.32832513393615,
+            "scenes": 24.589195507494004,
+            "median_ms": 16.901,
+            "p99_ms": 34.47,
+            "max_ms": 34.931,
+            "over16ms": 293,
+            "over25ms": 70
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0,
+        "effective_targets": [
+          0
+        ],
+        "progression_gate": true
+      }
+    ],
+    "measurements_complete": true
+  },
+  "normal_no_interpolation_trace": {
+    "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+    "muted": true,
+    "cases": [
+      {
+        "case": "old-unlimited",
+        "runtime_sha256": "9fc3233e51b0436f2675362bf9c803a81ee0a94a5a43cd1d9ee68612e2caa0f4",
+        "mode": "unlimited",
+        "target": 120,
+        "overlay": true,
+        "interpolation_trace": false,
+        "seconds": 78.42200000002049,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 1249.5068998209745,
+            "scenes": 28.71621016633145,
+            "median_ms": 0.563,
+            "p99_ms": 6.242,
+            "max_ms": 11.896,
+            "over16ms": 0,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 1420.4741972187308,
+            "scenes": 23.88330616607257,
+            "median_ms": 0.507,
+            "p99_ms": 5.924,
+            "max_ms": 34.311,
+            "over16ms": 2,
+            "over25ms": 1
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0
+      },
+      {
+        "case": "new-unlimited",
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "mode": "unlimited",
+        "target": 120,
+        "overlay": true,
+        "interpolation_trace": false,
+        "seconds": 78.40599999998813,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 1376.5274791549355,
+            "scenes": 28.881347576661966,
+            "median_ms": 0.545,
+            "p99_ms": 5.752,
+            "max_ms": 7.863,
+            "over16ms": 0,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 1552.6544750542562,
+            "scenes": 23.90493183523263,
+            "median_ms": 0.496,
+            "p99_ms": 5.616,
+            "max_ms": 7.998,
+            "over16ms": 0,
+            "over25ms": 0
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0
+      },
+      {
+        "case": "new-120-log-only",
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "mode": "custom",
+        "target": 120,
+        "overlay": false,
+        "interpolation_trace": false,
+        "seconds": 77.0,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 119.91295237460567,
+            "scenes": 29.861850036715445,
+            "median_ms": 8.325,
+            "p99_ms": 9.937,
+            "max_ms": 16.613,
+            "over16ms": 3,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 119.98624876699525,
+            "scenes": 24.566472906101396,
+            "median_ms": 8.342,
+            "p99_ms": 9.854,
+            "max_ms": 10.167,
+            "over16ms": 0,
+            "over25ms": 0
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0
+      },
+      {
+        "case": "new-1000",
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "mode": "custom",
+        "target": 1000,
+        "overlay": true,
+        "interpolation_trace": false,
+        "seconds": 77.04699999999139,
+        "size": [
+          1600,
+          900
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "bins": [
+          {
+            "vi": [
+              3000,
+              3900
+            ],
+            "output": 923.895734198295,
+            "scenes": 29.848120927833826,
+            "median_ms": 1.001,
+            "p99_ms": 2.837,
+            "max_ms": 7.901,
+            "over16ms": 0,
+            "over25ms": 0
+          },
+          {
+            "vi": [
+              4000,
+              4400
+            ],
+            "output": 936.4188368923883,
+            "scenes": 24.540218799992278,
+            "median_ms": 1.0,
+            "p99_ms": 2.512,
+            "max_ms": 7.729,
+            "over16ms": 0,
+            "over25ms": 0
+          }
+        ],
+        "scene_total": 2056,
+        "drops": 0
+      }
+    ],
+    "measurements_complete": true
+  },
+  "pixel_verification": {
+    "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+    "muted": true,
+    "cases": [
+      {
+        "case": "new",
+        "seconds": 76.76600000000326,
+        "size": [
+          640,
+          480
+        ],
+        "hashes": {
+          "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+          "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+          "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+        },
+        "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+        "groups": {
+          "3216": [
+            {
+              "file": "3216-0.ppm",
+              "hash": "e6fd119d6cb04d0e9b9bcfa8386660b95329bb8b23915f8d37cc8cb934bcc47e"
+            },
+            {
+              "file": "3216-1.ppm",
+              "hash": "e6fd119d6cb04d0e9b9bcfa8386660b95329bb8b23915f8d37cc8cb934bcc47e"
+            },
+            {
+              "file": "3216-2.ppm",
+              "hash": "e6fd119d6cb04d0e9b9bcfa8386660b95329bb8b23915f8d37cc8cb934bcc47e"
+            },
+            {
+              "file": "3216-3.ppm",
+              "hash": "e6fd119d6cb04d0e9b9bcfa8386660b95329bb8b23915f8d37cc8cb934bcc47e"
+            }
+          ],
+          "3217": [
+            {
+              "file": "3217-0.ppm",
+              "hash": "6492927fa01f630fb13d10fe4445fd8e7595a93493d140fe5f021c9598053dcb"
+            },
+            {
+              "file": "3217-1.ppm",
+              "hash": "5f2630aed48242bc1b579651e68a2f747c2bd94c32c5cf61afbf16a9c8263d3e"
+            },
+            {
+              "file": "3217-2.ppm",
+              "hash": "e7b270c50f7a378d3bed85cb34c4838c7dee19cc7366bec94751b293aa5636f7"
+            },
+            {
+              "file": "3217-3.ppm",
+              "hash": "f0fa79fe1d6dffeda1b7b861ea131a915541a002ab7ef1212c17ba004531bbc7"
+            }
+          ],
+          "3218": [
+            {
+              "file": "3218-0.ppm",
+              "hash": "f0fa79fe1d6dffeda1b7b861ea131a915541a002ab7ef1212c17ba004531bbc7"
+            },
+            {
+              "file": "3218-1.ppm",
+              "hash": "f0fa79fe1d6dffeda1b7b861ea131a915541a002ab7ef1212c17ba004531bbc7"
+            },
+            {
+              "file": "3218-2.ppm",
+              "hash": "f0fa79fe1d6dffeda1b7b861ea131a915541a002ab7ef1212c17ba004531bbc7"
+            },
+            {
+              "file": "3218-3.ppm",
+              "hash": "f0fa79fe1d6dffeda1b7b861ea131a915541a002ab7ef1212c17ba004531bbc7"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "pre_diagnostics_runtime_sha256": "59d828e38c409ce87c2b082d29786d63a72dc901c4b2f298abae9f5a3e07619f",
+  "pre_diagnostics_source_rates": {
+    "30": 644,
+    "0": 717,
+    "20": 69
+  },
+  "owner_capture_sha256": "ff71ed11bd58cac477bfb45a267ad5fb0334ca406c47e8bae6736725bff7ce21",
+  "limits": [
+    "Single hardware/scene fixture, not broad stutter acceptance",
+    "Source scene rate varies 30/20 in the pre-logging runtime",
+    "Counter output includes generated/repeated images, not unique authored poses",
+    "Current desktop VSync reports 60 Hz; 120/360 tested with VSync off",
+    "Unlimited wall-time scene throughput is slightly below capped mode in old and new traced tests",
+    "Finite interpolation stores two alternating GPU target banks; roughly doubles intermediate-target storage",
+    "Conservative actor interpolation and Original-mode seams/lighting remain open"
+  ],
+  "rejected_experiments": {
+    "single_completed_repeat": "Stops motion rewind but causes ~25 ms output gaps at 120",
+    "streamed_capped": "Poor p99 pacing",
+    "paced_streamed_capped": "Slows source progression (about 81 sec versus 77 sec); rejected",
+    "bank_only": "Does not alone fill idle VI output gaps",
+    "initial_qualification": "Correctly failed Unlimited strict progression gate; baseline later demonstrates this limit predates the candidate"
+  },
+  "delivery": {
+    "implementation_commit": "19fde3c7c0d5b102e4dd2c2d1fa6e0c9af4fbd67",
+    "runtime_sha256": "b3e871f0cde15a90263f5e691932cf026e6cef182c42f3592ca86023e3fa3a50",
+    "manifest_files_verified": 14,
+    "isolated_managed_launcher_init_passed": true,
+    "owner_profile_preserved": true,
+    "desktop_shortcut_updated": true,
+    "public_release": false
+  }
+}

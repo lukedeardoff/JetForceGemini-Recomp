@@ -1,0 +1,413 @@
+{
+  "schema": 1,
+  "status": "delivered corrections accepted by owner in live play; broader coverage limits remain",
+  "runtime_sha256": "313a60a9b51a0aa17e5a1a9ec5c59e3cbec0de46edf9d8db22ab477057e53e95",
+  "runtime_source_files": {
+    "cmake/rt64_gpu_timing.cmake": "ee913eae241b0dc54f71b8541dbe7357cc58f6a20cc1517c685fe3c20c5e97e1",
+    "cmake/rt64_video_settings.cmake": "4f7185510bf4892d75155229fff1a0382665324f171b292cf9a4d5d0b25a51ea",
+    "include/jfg/renderer/interpolation_bridge.hpp": "9d11997ab35594f7785d7669dad75bed5d33cd5b039dc660c5246e86e5843f3d",
+    "include/jfg/renderer/presentation_identity.hpp": "d25b0b53e20624f2e0f14d2c708beb07ae20ffc33bdb6ac0b2a809ed520fce59",
+    "include/jfg/runtime/pc_input.hpp": "5c84cd1696d518fdf795f10d94375ceb0fab76875c0db0e3d51ab6997ecd943f",
+    "src/boot/native_boot.cpp": "c1220a0945387a5f095ab40fde9d1442492c15b07a0dbd8530c61f5240d73865",
+    "src/renderer/rt64_cpu_overlay.hpp": "db4a987c3b0e3c84616bbac0f260f129f66bfd915b34895ed889a1393209b351",
+    "src/renderer/rt64_shell.cpp": "52ab04c56b2b94203d21ccba6b0e6014cff54cd8ed9506d89ec1b3f86c0e3297"
+  },
+  "crouch": {
+    "positive_baseline": {
+      "crouch-baseline": {
+        "5": {
+          "(30, -30)": 25
+        }
+      },
+      "crouch-candidate": {
+        "5": {
+          "(30, 30)": 25
+        }
+      }
+    },
+    "negative_candidate": {
+      "5": {
+        "(-30, -30)": 25
+      }
+    },
+    "preferences_edited": false
+  },
+  "resting_shuriken": {
+    "stationary_owned": 10428,
+    "stationary_matched": 10124
+  },
+  "reticle_coverage": {
+    "runtime_sha256": "313a60a9b51a0aa17e5a1a9ec5c59e3cbec0de46edf9d8db22ab477057e53e95",
+    "counts": {
+      "cpu-overlay-retained": 240,
+      "cpu-draw-write": 241,
+      "cpu-overlay-presented": 4144,
+      "cpu-vi-overlay-retained": 796,
+      "cpu-present-overlay": 18,
+      "cpu-present-skipped": 1262
+    },
+    "vi_masks": 796,
+    "vi_masks_presented": 796,
+    "weapon9_aim": 423,
+    "weapon9_aim_without_overlay_within_4vi": 0
+  },
+  "reticle_modes": [
+    {
+      "label": "qualified-120-vsync",
+      "counts": {
+        "cpu-overlay-retained": 136,
+        "cpu-draw-write": 136,
+        "cpu-overlay-presented": 2228,
+        "cpu-vi-overlay-retained": 421,
+        "cpu-present-overlay": 8,
+        "cpu-present-skipped": 457
+      },
+      "phases": {
+        "0": 557,
+        "1": 557,
+        "2": 557,
+        "3": 557
+      },
+      "recent": {
+        "cpu-overlay-presented": 200,
+        "cpu-present-overlay": 1
+      },
+      "capture": [
+        "capture-copy",
+        "211126120207",
+        "4498",
+        "30",
+        "0",
+        "3",
+        "4",
+        "1",
+        "1164",
+        "873"
+      ],
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "last_weapon": [
+        76107606,
+        [
+          4498,
+          2149318320,
+          0,
+          1,
+          9,
+          6,
+          10,
+          11,
+          1,
+          0,
+          32,
+          1065353216,
+          1114636286
+        ]
+      ],
+      "frame_timing": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.94967370463014,
+          "scenes": 29.748474853040744,
+          "interval_ms": {
+            "n": 1004,
+            "median": 8.336,
+            "p99": 8.609,
+            "max": 9.018
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.423,
+            "p99": 36.786,
+            "max": 37.723
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        }
+      ]
+    },
+    {
+      "label": "qualified-360",
+      "counts": {
+        "cpu-present-skipped": 485,
+        "cpu-overlay-retained": 141,
+        "cpu-draw-write": 141,
+        "cpu-overlay-presented": 6588,
+        "cpu-vi-overlay-retained": 413,
+        "cpu-present-overlay": 16
+      },
+      "phases": {
+        "0": 548,
+        "1": 548,
+        "2": 548,
+        "3": 548,
+        "4": 548,
+        "5": 548,
+        "6": 548,
+        "7": 548,
+        "8": 548,
+        "9": 548,
+        "10": 548,
+        "11": 548,
+        "12": 2,
+        "13": 2,
+        "14": 2,
+        "15": 2,
+        "16": 2,
+        "17": 2
+      },
+      "recent": {
+        "cpu-overlay-presented": 588,
+        "cpu-present-overlay": 2
+      },
+      "capture": [
+        "capture-copy",
+        "211203698943",
+        "4498",
+        "30",
+        "0",
+        "11",
+        "12",
+        "1",
+        "1164",
+        "873"
+      ],
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "last_weapon": [
+        76082177,
+        [
+          4496,
+          2149318320,
+          0,
+          1,
+          9,
+          6,
+          10,
+          11,
+          1,
+          0,
+          32,
+          1065353216,
+          1114636287
+        ]
+      ],
+      "frame_timing": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 354.8469668654471,
+          "scenes": 29.65028564104814,
+          "interval_ms": {
+            "n": 2968,
+            "median": 2.776,
+            "p99": 3.467,
+            "max": 13.75
+          },
+          "update_ms": {
+            "n": 248,
+            "median": 33.416,
+            "p99": 37.803,
+            "max": 47.988
+          },
+          "vi_deltas": {
+            "2": 246,
+            "3": 2
+          }
+        }
+      ]
+    },
+    {
+      "label": "qualified-release",
+      "counts": {
+        "cpu-overlay-retained": 94,
+        "cpu-draw-write": 94,
+        "cpu-overlay-presented": 1368,
+        "cpu-vi-overlay-retained": 248,
+        "cpu-present-overlay": 6,
+        "cpu-present-skipped": 331
+      },
+      "phases": {
+        "0": 342,
+        "1": 342,
+        "2": 342,
+        "3": 342
+      },
+      "recent": {},
+      "capture": [
+        "capture-copy",
+        "211281300945",
+        "4498",
+        "30",
+        "0",
+        "1",
+        "4",
+        "0.5",
+        "1164",
+        "873"
+      ],
+      "audio_underruns": 0,
+      "audio_overruns": 0,
+      "last_weapon": [
+        76052564,
+        [
+          4498,
+          2149318320,
+          0,
+          1,
+          9,
+          6,
+          10,
+          0,
+          1,
+          0,
+          32,
+          1065353216,
+          1112539136
+        ]
+      ],
+      "frame_timing": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.88108083921064,
+          "scenes": 29.790807513935576,
+          "interval_ms": {
+            "n": 1002,
+            "median": 8.334,
+            "p99": 8.593,
+            "max": 10.207
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.437,
+            "p99": 35.913,
+            "max": 37.153
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        }
+      ]
+    }
+  ],
+  "normal_play_health": {
+    "runtime_sha256": "313a60a9b51a0aa17e5a1a9ec5c59e3cbec0de46edf9d8db22ab477057e53e95",
+    "detail_disabled": true,
+    "game_update_records": 4465,
+    "health": [
+      "play-health",
+      "9058",
+      "9055",
+      "0",
+      "0",
+      "0",
+      "4465",
+      "4477"
+    ],
+    "matches_native_final_counters": true,
+    "limits": "Native Play on copied owner inputs; replay diverges from the complete live route; hidden window is not monitor/audio acceptance."
+  },
+  "focused_tests": [
+    {
+      "name": "jfg_pc_input_tests",
+      "exit_code": 0,
+      "stdout": "363 PC input checks passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "jfg_rt64_interpolation_tests",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "jfg_semantic_presentation_tests",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "name": "jfg_rt64_shell_tests",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "visual_review": {
+    "reviewed": true,
+    "method": "Assistant directly inspected all four native captured PNGs with view_image.",
+    "images": [
+      {
+        "path": "D:\\JFG-private\\high-refresh-20261011\\shuriken-followup-20261016\\qualified-120-vsync\\frame.png",
+        "sha256": "d9265fdce1a2de7cb84973f91ef5c18a23a0f05de9d4ddeddff389cd6dcc4e6a",
+        "observation": "Actual weapon 9, ammo 6: green segmented aiming circle and target-lock lines/box are visible at captured output phase 3."
+      },
+      {
+        "path": "D:\\JFG-private\\high-refresh-20261011\\shuriken-followup-20261016\\qualified-360\\frame.png",
+        "sha256": "63027c1d264cdc500dac2e099216dfb4591ae1c51adb38cb6883b03132ab6b0d",
+        "observation": "Actual weapon 9, ammo 6: green segmented aiming circle and target-lock lines/box are visible at captured output phase 11."
+      },
+      {
+        "path": "D:\\JFG-private\\high-refresh-20261011\\shuriken-followup-20261016\\qualified-release\\frame.png",
+        "sha256": "c2f68c5fee512f92de148163d97f55f8d90c43b468310c3ecc6513259d05d259",
+        "observation": "Actual weapon 9, ammo 6: standing third-person view after native Aim release; no stale green aiming circle or lock lines remain."
+      },
+      {
+        "path": "D:\\JFG-private\\high-refresh-20261011\\shuriken-followup-20261016\\owner-early-mask-fixed\\frame.png",
+        "sha256": "01165e840dc539a2b11d8e01a3c2f29e4d2b7152b7075ae664a074132aaea508",
+        "observation": "The final long-route screenshot has weapon 9, ammo 2 and no aiming overlay. It is not itself positive reticle visibility evidence; temporal coverage comes from the trace."
+      }
+    ],
+    "limits": [
+      "Static frames cannot prove absence of movement jitter or flicker.",
+      "Earlier route-mask-control screenshot also had a visible reticle; it is not visual before/after loss proof.",
+      "Hidden captures do not validate physical scanout or owner live experience."
+    ]
+  },
+  "delivered": true,
+  "owner_live_verified": true,
+  "limits": [
+    "Hidden native-clock replay is not monitor scanout or listening acceptance.",
+    "Recorded owner inputs reproduce weapon use but diverge from the exact complete owner route; no full tutorial or exit-cutscene acceptance is claimed.",
+    "Reticle capture/mask scope is the supported US 320x240 RGBA16 framebuffer; Original and other dimensions retain their existing paths.",
+    "An instrumented combat interval had one three-VI update among 298 intervals; the instrumented 360 FPS check had two three-VI updates among 248. This is not a universal no-dips claim.",
+    "Unlimited pacing/audio and broader camera/character/ground coverage remain open."
+  ],
+  "private_artifacts": [
+    "shuriken-followup-20261016/capture-manifest.json",
+    "shuriken-followup-20261016/cross-thread-mask-result.json",
+    "shuriken-followup-20261016/qualified-modes.json",
+    "shuriken-followup-20261016/qualified-health-verified.json"
+  ],
+  "informative_failures": [
+    "The initial trace inventory keyed timestamps instead of event names; corrected inventory retained separately.",
+    "The first software-line hook used an unrelated address; the corrected deferred writer confirmed original pixels.",
+    "A direct-present mask trial confused 240 visible rows with a 256-row GPU allocation and did not apply.",
+    "Direct composition alone misses CPU-write VIs skipped by the presentation queue.",
+    "The first import-time retainer used thread-local time across two threads, yielding expired tick-zero masks; changed to atomic time.",
+    "The short route control screenshot happened to retain the reticle, so that image is not visual A/B proof.",
+    "An initial qualification gate expected over 100 VI imports in a short route that had only 28. No mode checks ran under that failed gate; the longer run independently verifies all 796 VI masks."
+  ],
+  "runtime_source_commit": "95efb8f97b47717921aa4c29ab17245771c3ff22",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T20:33:08.946572+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 41,
+    "manifest_verified": 14,
+    "launcher_sha256": "a4288ecac58356e41db77d6ea3072380ab4e567b70ebb9c45d7f04868f983921",
+    "launcher_setup_runtime_protocol_passed": true
+  },
+  "owner_confirmation": "2026-10-16: owner reports no noticeable slowdowns and all reported issues seem resolved; authorizes commit."
+}

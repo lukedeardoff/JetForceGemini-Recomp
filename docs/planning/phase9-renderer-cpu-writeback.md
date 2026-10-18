@@ -18,5 +18,5 @@ snapshots, overlapping ownership, and a complete asynchronous coherence model
 remain separate coverage. Host rendering duration does not determine guest time.
 
 The bounded branch proof did not fix the later pacing mismatch. See the
-[runtime summary](../development/runtime-research.md) for the recorded frontier
-and [Git history](../history.md) for full experiment evidence.
+[runtime architecture](../development/architecture.md#boot-os-and-timing) for the recorded frontier
+and [Git history](../README.md#historical-material) for full experiment evidence.

@@ -236,7 +236,7 @@ namespace JfgLauncher
     }
     internal sealed class MapMods {
         internal bool Warp, Health, Kill;
-        internal const string WarpHelp = "Double-click an exit marker on the map or an exit in the inspector to warp to it. Normal exit requirements still apply.";
+        internal const string WarpHelp = "Double-click an exit marker on the map or an exit in the inspector to enter the next room. Normal exit requirements still apply.";
         internal const string HealthHelp = "Keep your current character at full health and prevent damage during gameplay.";
         internal const string KillHelp = "Automatically defeat loaded ordinary enemies during gameplay. Tribals and friendly NPCs are spared; defeated enemies stay defeated when switched off.";
         internal static MapMods Load(string directory, MapLive live) {

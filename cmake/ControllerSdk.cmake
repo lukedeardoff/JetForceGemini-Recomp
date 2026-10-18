@@ -1,0 +1,21 @@
+# SDL supplies controller definitions; the runtime already distributes SDL2.dll.
+set(JFG_CONTROLLER_SDL_ROOT "" CACHE PATH "SDL 2.26.3 VC SDK for controller support")
+if(NOT JFG_CONTROLLER_SDL_ROOT)
+ set(jfg_controller_local "${CMAKE_CURRENT_LIST_DIR}/../tools/upstream/rt64/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3")
+ if(EXISTS "${jfg_controller_local}/include/SDL.h")
+  set(JFG_CONTROLLER_SDL_ROOT "${jfg_controller_local}")
+ else()
+  include(FetchContent)
+  FetchContent_Declare(jfg_controller_sdl
+   URL "https://github.com/libsdl-org/SDL/releases/download/release-2.26.3/SDL2-devel-2.26.3-VC.zip"
+   URL_HASH SHA256=3b561bfcd7676d42f2b84ebde12d7433d176035ed28335c4fb9e554ef2764ec5)
+  FetchContent_GetProperties(jfg_controller_sdl)
+  if(NOT jfg_controller_sdl_POPULATED)
+   FetchContent_Populate(jfg_controller_sdl)
+  endif()
+  set(JFG_CONTROLLER_SDL_ROOT "${jfg_controller_sdl_SOURCE_DIR}")
+ endif()
+endif()
+if(NOT EXISTS "${JFG_CONTROLLER_SDL_ROOT}/include/SDL.h")
+ message(FATAL_ERROR "JFG_CONTROLLER_SDL_ROOT must point to an SDL 2.26.3 VC SDK")
+endif()

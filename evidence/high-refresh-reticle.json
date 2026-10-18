@@ -1,0 +1,461 @@
+{
+  "schema": 1,
+  "status": "finite-mode reticle remedy qualified and delivered locally; sustained owner gameplay pending",
+  "runtime_sha256": "bee0d0018bf7e2a14585107d51bb6d77bbebd88d8ba0a4c0970adbb1c9cf8315",
+  "runtime_source_files": {
+    "cmake/rt64_video_settings.cmake": "99d2cc6c190d94b1ff54a2c575892fe9ca88850803078234e2e63a5ae7fcb2bf",
+    "include/jfg/renderer/interpolation_bridge.hpp": "a2c20766ec494c570a97e2a31a5df9c9adb022d3644a0f06c5ef48193678b3bf",
+    "src/renderer/rt64_cpu_overlay.hpp": "2939c4aef328074f588a926a40fb86194e59fad8605c0d1b8d08e2f590b64a35",
+    "src/renderer/rt64_shell.cpp": "3c7f1e680e77620a9d077ec725be1d77fcc5c29b9bbb62c7d60bd47b2e27691a",
+    "src/boot/native_boot.cpp": "36609fc73cdf12b2dc50640feb1e575e27aa4a9b650cd8b468c191394483bf15"
+  },
+  "scope": "Preserve CPU changed-pixel masks from game-selected VI framebuffer and compose them into SkipBuffering output; Original path unchanged.",
+  "qualification": [
+    {
+      "label": "overlay-120-base",
+      "mode": "custom",
+      "fps": 120,
+      "vsync": false,
+      "phase": 0,
+      "runtime_sha256": "bee0d0018bf7e2a14585107d51bb6d77bbebd88d8ba0a4c0970adbb1c9cf8315",
+      "capture": [
+        "capture-copy",
+        "192139627820",
+        "4498",
+        "30",
+        "0",
+        "0",
+        "4",
+        "0.25",
+        "1164",
+        "873"
+      ],
+      "retained": 656,
+      "presented": 2627,
+      "phases": {
+        "0": 659,
+        "1": 656,
+        "2": 656,
+        "3": 656
+      },
+      "last_reticle_draw_vi": 4498,
+      "last_tick_audio_underruns": 0,
+      "last_tick_audio_overruns": 0,
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.64561924743863,
+          "scenes": 29.791759192612222,
+          "interval_ms": {
+            "n": 1000,
+            "median": 8.335,
+            "p99": 8.995,
+            "max": 10.016
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.439,
+            "p99": 35.874,
+            "max": 36.235
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        }
+      ],
+      "limits": "Isolated original-drawer fixture; native host clock, copied save, no owner route acceptance."
+    },
+    {
+      "label": "overlay-120-vsync-last",
+      "mode": "custom",
+      "fps": 120,
+      "vsync": true,
+      "phase": 3,
+      "runtime_sha256": "bee0d0018bf7e2a14585107d51bb6d77bbebd88d8ba0a4c0970adbb1c9cf8315",
+      "capture": [
+        "capture-copy",
+        "192216980742",
+        "4498",
+        "30",
+        "0",
+        "3",
+        "4",
+        "1",
+        "1164",
+        "873"
+      ],
+      "retained": 660,
+      "presented": 2640,
+      "phases": {
+        "0": 660,
+        "1": 660,
+        "2": 660,
+        "3": 660
+      },
+      "last_reticle_draw_vi": 4498,
+      "last_tick_audio_underruns": 0,
+      "last_tick_audio_overruns": 0,
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.64978507907355,
+          "scenes": 29.792796484689312,
+          "interval_ms": {
+            "n": 1000,
+            "median": 8.336,
+            "p99": 8.914,
+            "max": 9.907
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.457,
+            "p99": 36.402,
+            "max": 36.871
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        }
+      ],
+      "limits": "Isolated original-drawer fixture; native host clock, copied save, no owner route acceptance."
+    },
+    {
+      "label": "overlay-360-last",
+      "mode": "custom",
+      "fps": 360,
+      "vsync": false,
+      "phase": 11,
+      "runtime_sha256": "bee0d0018bf7e2a14585107d51bb6d77bbebd88d8ba0a4c0970adbb1c9cf8315",
+      "capture": [
+        "capture-copy",
+        "192294238083",
+        "4496",
+        "30",
+        "0",
+        "11",
+        "12",
+        "1",
+        "1164",
+        "873"
+      ],
+      "retained": 657,
+      "presented": 7873,
+      "phases": {
+        "0": 657,
+        "1": 656,
+        "2": 656,
+        "3": 656,
+        "4": 656,
+        "5": 656,
+        "6": 656,
+        "7": 656,
+        "8": 656,
+        "9": 656,
+        "10": 656,
+        "11": 656
+      },
+      "last_reticle_draw_vi": 4498,
+      "last_tick_audio_underruns": 0,
+      "last_tick_audio_overruns": 0,
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 357.637103471204,
+          "scenes": 29.713593181291223,
+          "interval_ms": {
+            "n": 2997,
+            "median": 2.779,
+            "p99": 3.29,
+            "max": 8.721
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.43,
+            "p99": 36.081,
+            "max": 36.619
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        }
+      ],
+      "limits": "Isolated original-drawer fixture; native host clock, copied save, no owner route acceptance."
+    },
+    {
+      "label": "overlay-release-aim",
+      "mode": "custom",
+      "fps": 120,
+      "vsync": false,
+      "phase": 1,
+      "runtime_sha256": "bee0d0018bf7e2a14585107d51bb6d77bbebd88d8ba0a4c0970adbb1c9cf8315",
+      "capture": [
+        "capture-copy",
+        "192596204747",
+        "4499",
+        "30",
+        "0",
+        "1",
+        "4",
+        "0.5",
+        "1164",
+        "873"
+      ],
+      "retained": 400,
+      "presented": 1600,
+      "phases": {
+        "0": 400,
+        "1": 400,
+        "2": 400,
+        "3": 400
+      },
+      "last_reticle_draw_vi": 3973,
+      "last_tick_audio_underruns": 0,
+      "last_tick_audio_overruns": 0,
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.63323798963043,
+          "scenes": 29.788676259417976,
+          "interval_ms": {
+            "n": 1000,
+            "median": 8.345,
+            "p99": 8.972,
+            "max": 12.114
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.44,
+            "p99": 33.931,
+            "max": 34.165
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        }
+      ],
+      "limits": "Isolated original-drawer fixture; native host clock, copied save, no owner route acceptance."
+    },
+    {
+      "label": "overlay-motion",
+      "mode": "custom",
+      "fps": 120,
+      "vsync": false,
+      "phase": 1,
+      "runtime_sha256": "bee0d0018bf7e2a14585107d51bb6d77bbebd88d8ba0a4c0970adbb1c9cf8315",
+      "capture": [
+        "capture-copy",
+        "192673561652",
+        "4499",
+        "30",
+        "0",
+        "1",
+        "4",
+        "0.5",
+        "1164",
+        "873"
+      ],
+      "retained": 659,
+      "presented": 2638,
+      "phases": {
+        "0": 661,
+        "1": 659,
+        "2": 659,
+        "3": 659
+      },
+      "last_reticle_draw_vi": 4497,
+      "last_tick_audio_underruns": 0,
+      "last_tick_audio_overruns": 0,
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.79236787386498,
+          "scenes": 29.798501099492885,
+          "interval_ms": {
+            "n": 1001,
+            "median": 8.337,
+            "p99": 8.801,
+            "max": 9.558
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.423,
+            "p99": 33.933,
+            "max": 34.781
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        }
+      ],
+      "limits": "Isolated original-drawer fixture; native host clock, copied save, no owner route acceptance."
+    },
+    {
+      "label": "overlay-control-disabled",
+      "mode": "custom",
+      "fps": 120,
+      "vsync": false,
+      "phase": 1,
+      "runtime_sha256": "bee0d0018bf7e2a14585107d51bb6d77bbebd88d8ba0a4c0970adbb1c9cf8315",
+      "capture": [
+        "capture-copy",
+        "192750877888",
+        "4499",
+        "30",
+        "0",
+        "1",
+        "4",
+        "0.5",
+        "1164",
+        "873"
+      ],
+      "retained": 658,
+      "presented": 0,
+      "phases": {},
+      "last_reticle_draw_vi": 4497,
+      "last_tick_audio_underruns": 0,
+      "last_tick_audio_overruns": 0,
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.66431765611108,
+          "scenes": 29.79641509637166,
+          "interval_ms": {
+            "n": 1000,
+            "median": 8.329,
+            "p99": 9.064,
+            "max": 9.846
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.444,
+            "p99": 33.856,
+            "max": 33.958
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        }
+      ],
+      "limits": "Isolated original-drawer fixture; native host clock, copied save, no owner route acceptance."
+    }
+  ],
+  "focused_tests": [
+    {
+      "test": "jfg_rt64_shell_tests",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "test": "jfg_rt64_interpolation_tests",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "test": "jfg_semantic_presentation_tests",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "test": "jfg_async_diagnostic_file_tests",
+      "exit_code": 0,
+      "stdout": "binary, formatting, buffer crossings, queued flush, shutdown drain: pass\n",
+      "stderr": ""
+    },
+    {
+      "test": "jfg_modern_controls_tests",
+      "exit_code": 0,
+      "stdout": "140 modern controls checks passed\n",
+      "stderr": ""
+    }
+  ],
+  "final_live_health": {
+    "detail_disabled": true,
+    "semantic_hashing_disabled": true,
+    "game_update_records": 2070,
+    "health": [
+      "play-health",
+      "4241",
+      "4238",
+      "0",
+      "0",
+      "0",
+      "2070",
+      "2080"
+    ],
+    "matches_native_final_counters": true,
+    "progress_audio_counters_present": true
+  },
+  "launcher_tests": {
+    "managed_checks": 641,
+    "setup_checks": 15,
+    "native_ui_checks_from_menu_fix": 717
+  },
+  "visual_comparison_reviewed": true,
+  "owner_live_verified": false,
+  "delivered": true,
+  "capture_overhead_comparison": {
+    "without_periodic_readback": {
+      "game_update_vi_intervals": {
+        "2": 501
+      },
+      "present_max_us": 95,
+      "audio_underruns": 0
+    },
+    "with_periodic_readback": {
+      "game_update_vi_intervals": {
+        "2": 493,
+        "3": 6
+      },
+      "presents_over_25ms": 11,
+      "present_max_us": 40912,
+      "audio_underruns": 0
+    }
+  },
+  "limits": [
+    "Isolated original-drawer fixture selects shuriken drawing only; full weapon gameplay and owner route remain unverified.",
+    "Recognized 320x240 RGBA16 VI buffers only; other formats and dimensions retain their existing behavior.",
+    "Unlimited is not qualified: current native-clock stress probe had 265 underruns and installed baseline control had 281. Different weapon drawing means this is not an exact performance comparison.",
+    "The owner Goldwood exit-cutscene choppiness/audio report remains open. The prior long trace capped before the end; it cannot certify final audio or game-update totals.",
+    "Normal Play health was checked with detailed gameplay trace and semantic hashing disabled; hidden replay does not establish audible or monitor scanout acceptance."
+  ],
+  "private_evidence": [
+    "shuriken-reticle-20261016/reticle-qualification-panels.png",
+    "shuriken-reticle-20261016/overlay-qualification.json",
+    "shuriken-reticle-20261016/final-live-health-verified.json",
+    "shuriken-reticle-20261016/capture-overhead-correlation.json",
+    "shuriken-reticle-20261016/unlimited-installed-control/unlimited-health.json"
+  ],
+  "runtime_source_commit": "26295c75dd43848f59cdd1268518d7131861dbee",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T15:32:15.765855+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 41,
+    "manifest_verified": 14,
+    "launcher_sha256": "86425af71aa821f426d5f6f2a86bbd5d7fe1de06243178312465aae104cd5797",
+    "launcher_setup_runtime_protocol_passed": true
+  }
+}

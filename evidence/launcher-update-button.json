@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "owner-approved card and browser actions verified, committed and delivered locally",
+  "owner_visual_review": true,
+  "ui_checks": {
+    "passed": true,
+    "checks": 78,
+    "background_requests": 8
+  },
+  "backend_checks": 28,
+  "live_helper": {
+    "passed": true,
+    "state": "current",
+    "tag": "v1.1.0",
+    "protocol_lines": 3,
+    "game_status_preserved": true
+  },
+  "reference_zip_sha256": "2cea7e64db3aa66427d556982ee6683f9ee8fa65e906c30d5fe6aaaf8b628791",
+  "reference": "Owner-supplied larger card below Play; explicitly themed in JFG amber, not the reference green.",
+  "update_action": "https://github.com/TK22-26/JetForceGemini-Recomp/releases/latest",
+  "api": "https://api.github.com/repos/TK22-26/JetForceGemini-Recomp/releases/latest",
+  "documentation": "https://docs.github.com/en/rest/releases/releases#get-the-latest-release",
+  "launcher_sha256": "8da00b1ffc070a790a05947e37cb3926ecbf5f8d11649dc9ddb258e29d24205f",
+  "runtime_sha256": "313a60a9b51a0aa17e5a1a9ec5c59e3cbec0de46edf9d8db22ab477057e53e95",
+  "runtime_source_commit": "95efb8f97b47717921aa4c29ab17245771c3ff22",
+  "scope": "Launcher UI and release discovery only. Accepted game runtime unchanged.",
+  "private_artifacts": [
+    "launcher-update-button-20261016/accepted-checks.json",
+    "launcher-update-button-20261016/accepted-ui-checks/result.json",
+    "launcher-update-button-20261016/accepted-helper-check.json",
+    "launcher-update-button-20261016/owner-review.json"
+  ],
+  "preview": {
+    "shortcut": "JFG - Update Button Preview.lnk",
+    "explicit_flag": "--preview-update",
+    "sample_version": "v1.2.0",
+    "separate_muted_profile": true,
+    "persistent_fake_result": false
+  },
+  "normal_shortcuts_updated": true,
+  "informative_iterations": [
+    "Owner rejected the first top-right menu pill and then specified the larger reference card and JFG amber. Those previews remain as history.",
+    "Cloned test wrappers initially summarized the original UI result file despite running the new fixtures. The final collector reads review-ui-checks/result.json directly; 75 checks pass. The correction receipt preserves both values.",
+    "Explicit line height centers labels in the rounded reference buttons.",
+    "Owner selected the main repository for Whats new; the temporary internal release-notes extension was removed, retaining the existing three-line checker protocol. Final result: 78 UI assertions and 28 checker cases."
+  ],
+  "limits": [
+    "The normal API currently returns the installed release, so the newer-release banner is exercised with synthetic release data.",
+    "No automatic download/install or restart flow; Update now opens the fixed GitHub release page.",
+    "100% and 150% DPI, compact layout, imported/missing ROM, gameplay hiding, keyboard/pointer controls and error states are covered; arbitrary hardware/proxy/DPI combinations are not exhaustive."
+  ],
+  "whats_new_action": "https://github.com/TK22-26/JetForceGemini-Recomp",
+  "owner_acceptance": "Owner approved the amber card provided that Whats new opens the main repository page; final UI checks exercise that action.",
+  "source_commit": "628d1ff40ff14ce44a6921e89e594050b290b766",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T22:16:39.879624+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk",
+      "JFG - Update Button Preview.lnk"
+    ],
+    "profile_files_unchanged": 41,
+    "manifest_verified": 14,
+    "launcher_setup_runtime_protocol_passed": true,
+    "runtime_unchanged": true,
+    "final_packaged_live_update_check": [
+      "current",
+      "v1.1.0"
+    ]
+  }
+}

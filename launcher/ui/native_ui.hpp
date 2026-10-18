@@ -9,7 +9,7 @@ struct FrontendUiState {
   bool pauseInactive = false;
 };
 bool FrontendUiInit(HWND, const std::filesystem::path &,
-                    std::function<void(const std::string &)>, const std::string &tool = "");
+                    std::function<void(const std::string &)>, const std::string &tool = "", bool previewUpdate = false);
 int FrontendLiveToolEntry(HINSTANCE, int);
 void FrontendUiShutdown();
 void FrontendUiFrame(const FrontendUiState &);

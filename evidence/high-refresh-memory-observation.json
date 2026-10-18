@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "kind": "private-native-memory-observation-qualification",
+  "status": "diagnostics qualified on recorded route; intermittent corruption unresolved; delivery withheld",
+  "runtime_sha256": "b2af901adfd6d552ab845da8b6b1297f008bd91bbdfeb82a38e9ec296cdd3732",
+  "clock": {
+    "bytes": 2048000016,
+    "samples": 64000000,
+    "sha256": "2e54d0504cc82f2cea8dd30a3a6a32a7148b21dd083a9e2cd59d78897c1eb195",
+    "explicit_limit": 64000000,
+    "default_limit_unchanged": 16000000
+  },
+  "qualification": {
+    "same_rdram": true,
+    "same_save": true,
+    "complete_update_records": 7837,
+    "same_update_records": true,
+    "same_stop": "native-clock/sample-limit at 0x80098a20",
+    "normal_play_changed": false,
+    "actual_corruption_writer_identified": false
+  },
+  "private_artifacts": {
+    "alias-page-replay-review.json": "8bbf5b7de0f0515dabec0893d26273c3bce18240190e876bbba357f1c7100578",
+    "long-clock-replay-review.json": "d2f1437457e5e71fb9c0aa8b3885d5c36e5aefc04a77557b077d9bb52c9ca56c",
+    "alias-page-write-fixture/result.json": "8f8c08af1d5fd3b75c393088329cd7ec2f32f5c64fad539344f2b98ae5613f82",
+    "hardware-four-word-fixture/result.json": "4295256b42d0334231e76dba24c30b8221c4145ec2ebce0544d680b49d727d5f"
+  }
+}

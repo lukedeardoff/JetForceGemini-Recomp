@@ -1,3 +1,15 @@
+add_executable(jfg_native_audio_source_tests native_audio_source_tests.cpp)
+target_link_libraries(jfg_native_audio_source_tests PRIVATE jfg_boot)
+target_compile_features(jfg_native_audio_source_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_native_audio_source_tests)
+add_test(NAME jfg.native_audio_source COMMAND jfg_native_audio_source_tests)
+
+add_executable(jfg_audio_dma_broker_tests audio_dma_broker_tests.cpp)
+target_include_directories(jfg_audio_dma_broker_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_audio_dma_broker_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_audio_dma_broker_tests)
+add_test(NAME jfg.audio_dma_broker COMMAND jfg_audio_dma_broker_tests)
+
 add_executable(jfg_timer_tests timer_tests.cpp)
 add_executable(jfg_guest_thread_transport_tests guest_thread_transport_tests.cpp)
 target_link_libraries(jfg_guest_thread_transport_tests PRIVATE jfg_boot)
@@ -25,6 +37,16 @@ target_include_directories(jfg_reference_pif_boot_tests PRIVATE "${PROJECT_SOURC
 target_compile_features(jfg_reference_pif_boot_tests PRIVATE cxx_std_20)
 jfg_set_project_warnings(jfg_reference_pif_boot_tests)
 add_test(NAME jfg.reference_pif_boot COMMAND jfg_reference_pif_boot_tests)
+add_executable(jfg_recorded_input_timeline_tests recorded_input_timeline_tests.cpp)
+target_include_directories(jfg_recorded_input_timeline_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_recorded_input_timeline_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_recorded_input_timeline_tests)
+add_test(NAME jfg.recorded_input_timeline COMMAND jfg_recorded_input_timeline_tests)
+add_executable(jfg_host_count_clock_tests host_count_clock_tests.cpp)
+target_include_directories(jfg_host_count_clock_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_host_count_clock_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_host_count_clock_tests)
+add_test(NAME jfg.host_count_clock COMMAND jfg_host_count_clock_tests)
 add_executable(jfg_execution_clock_tests execution_clock_tests.cpp)
 target_link_libraries(jfg_execution_clock_tests PRIVATE jfg_boot)
 target_compile_features(jfg_execution_clock_tests PRIVATE cxx_std_20)
@@ -291,6 +313,29 @@ if(TARGET jfg_rt64_renderer)
             VERBATIM)
     endif()
     add_test(NAME jfg.rt64_f3ddkr_texture COMMAND jfg_rt64_f3ddkr_texture_tests)
+    add_executable(jfg_rt64_interpolation_tests rt64_interpolation_tests.cpp)
+    target_link_libraries(jfg_rt64_interpolation_tests PRIVATE jfg_rt64_renderer)
+    target_include_directories(jfg_rt64_interpolation_tests PRIVATE
+        "${PROJECT_SOURCE_DIR}/src/renderer"
+        $<TARGET_PROPERTY:jfg_rt64_renderer,INCLUDE_DIRECTORIES>)
+    target_compile_definitions(jfg_rt64_interpolation_tests PRIVATE
+        $<TARGET_PROPERTY:jfg_rt64_renderer,COMPILE_DEFINITIONS>)
+    target_compile_features(jfg_rt64_interpolation_tests PRIVATE cxx_std_20)
+    jfg_set_project_warnings(jfg_rt64_interpolation_tests)
+    if(MSVC)
+        target_compile_options(jfg_rt64_interpolation_tests PRIVATE
+            /wd4201 /wd4244 /wd4324)
+    endif()
+    if(WIN32)
+        add_custom_command(TARGET jfg_rt64_interpolation_tests POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "${jfg_rt64_root}/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3/lib/x64/SDL2.dll"
+                "${jfg_rt64_root}/src/contrib/dxc/bin/x64/dxcompiler.dll"
+                "${jfg_rt64_root}/src/contrib/dxc/bin/x64/dxil.dll"
+                "$<TARGET_FILE_DIR:jfg_rt64_interpolation_tests>"
+            VERBATIM)
+    endif()
+    add_test(NAME jfg.rt64_interpolation COMMAND jfg_rt64_interpolation_tests)
 
     add_executable(jfg_rt64_depth_bounds_tests rt64_depth_bounds_tests.cpp)
     target_link_libraries(jfg_rt64_depth_bounds_tests PRIVATE jfg_rt64_renderer)
@@ -315,6 +360,30 @@ if(TARGET jfg_rt64_renderer)
             VERBATIM)
     endif()
     add_test(NAME jfg.rt64_depth_bounds COMMAND jfg_rt64_depth_bounds_tests)
+
+    add_executable(jfg_rt64_draw_call_key_tests rt64_draw_call_key_tests.cpp)
+    target_link_libraries(jfg_rt64_draw_call_key_tests PRIVATE jfg_rt64_renderer)
+    target_include_directories(jfg_rt64_draw_call_key_tests PRIVATE
+        "${PROJECT_SOURCE_DIR}/src/renderer"
+        $<TARGET_PROPERTY:jfg_rt64_renderer,INCLUDE_DIRECTORIES>)
+    target_compile_definitions(jfg_rt64_draw_call_key_tests PRIVATE
+        $<TARGET_PROPERTY:jfg_rt64_renderer,COMPILE_DEFINITIONS>)
+    target_compile_features(jfg_rt64_draw_call_key_tests PRIVATE cxx_std_20)
+    jfg_set_project_warnings(jfg_rt64_draw_call_key_tests)
+    if(MSVC)
+        target_compile_options(jfg_rt64_draw_call_key_tests PRIVATE
+            /wd4201 /wd4244 /wd4324)
+    endif()
+    if(WIN32)
+        add_custom_command(TARGET jfg_rt64_draw_call_key_tests POST_BUILD
+            COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+                "${jfg_rt64_root}/src/contrib/mupen64plus-win32-deps/SDL2-2.26.3/lib/x64/SDL2.dll"
+                "${jfg_rt64_root}/src/contrib/dxc/bin/x64/dxcompiler.dll"
+                "${jfg_rt64_root}/src/contrib/dxc/bin/x64/dxil.dll"
+                "$<TARGET_FILE_DIR:jfg_rt64_draw_call_key_tests>"
+            VERBATIM)
+    endif()
+    add_test(NAME jfg.rt64_draw_call_key COMMAND jfg_rt64_draw_call_key_tests)
 endif()
 
 add_executable(jfg_bounded_custom_graphics_tests
@@ -421,6 +490,15 @@ if(JFG_BUILD_SYNTHETIC_GENERATED_TESTS)
         BASELINE_AUDIT_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/generated_baseline_audit.cpp"
         PATCH_AUDIT_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/generated_patch_audit.cpp"
     )
+
+    add_executable(jfg_native_mmio_bridge_tests native_mmio_bridge_tests.cpp)
+    target_include_directories(jfg_native_mmio_bridge_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    target_include_directories(jfg_native_mmio_bridge_tests SYSTEM PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/generated-code-synthetic/include")
+    target_link_libraries(jfg_native_mmio_bridge_tests PRIVATE jfg_synthetic_generated_minimal_runtime_objects)
+    target_compile_features(jfg_native_mmio_bridge_tests PRIVATE cxx_std_20)
+    jfg_set_project_warnings(jfg_native_mmio_bridge_tests)
+    add_test(NAME jfg.native_mmio_bridge COMMAND jfg_native_mmio_bridge_tests)
 
     add_executable(jfg_generated_runtime_capacity_tests
         generated_runtime_capacity_tests.cpp
@@ -589,6 +667,12 @@ target_compile_features(jfg_controller_ports_tests PRIVATE cxx_std_20)
 jfg_set_project_warnings(jfg_controller_ports_tests)
 add_test(NAME jfg.controller_ports COMMAND jfg_controller_ports_tests)
 
+add_executable(jfg_modern_controls_tests modern_controls_tests.cpp)
+target_link_libraries(jfg_modern_controls_tests PRIVATE jfg_runtime)
+target_compile_features(jfg_modern_controls_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_modern_controls_tests)
+add_test(NAME jfg.modern_controls COMMAND jfg_modern_controls_tests)
+
 add_executable(jfg_pc_input_tests pc_input_tests.cpp)
 target_link_libraries(jfg_pc_input_tests PRIVATE jfg_runtime)
 target_compile_features(jfg_pc_input_tests PRIVATE cxx_std_20)
@@ -616,3 +700,126 @@ target_include_directories(jfg_original_timing_fast_tests PRIVATE
 target_compile_features(jfg_original_timing_fast_tests PRIVATE cxx_std_20)
 jfg_set_project_warnings(jfg_original_timing_fast_tests)
 add_test(NAME jfg.original_timing_fast COMMAND jfg_original_timing_fast_tests)
+
+add_executable(jfg_pc_rumble_tests pc_rumble_tests.cpp)
+target_compile_features(jfg_pc_rumble_tests PRIVATE cxx_std_20)
+target_link_libraries(jfg_pc_rumble_tests PRIVATE jfg_runtime)
+jfg_set_project_warnings(jfg_pc_rumble_tests)
+add_test(NAME jfg.pc_rumble COMMAND jfg_pc_rumble_tests)
+
+add_executable(jfg_controller_catalog_tests controller_catalog_tests.cpp)
+target_link_libraries(jfg_controller_catalog_tests PRIVATE jfg_runtime)
+target_compile_features(jfg_controller_catalog_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_controller_catalog_tests)
+add_test(NAME jfg.controller_catalog COMMAND jfg_controller_catalog_tests)
+if(WIN32)
+ include("${PROJECT_SOURCE_DIR}/cmake/ControllerSdk.cmake")
+ add_executable(jfg_sdl_controller_backend_tests sdl_controller_backend_tests.cpp)
+ target_include_directories(jfg_sdl_controller_backend_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+ target_include_directories(jfg_sdl_controller_backend_tests SYSTEM PRIVATE "${JFG_CONTROLLER_SDL_ROOT}/include")
+ target_compile_features(jfg_sdl_controller_backend_tests PRIVATE cxx_std_20)
+ jfg_set_project_warnings(jfg_sdl_controller_backend_tests)
+ target_link_libraries(jfg_sdl_controller_backend_tests PRIVATE "${JFG_CONTROLLER_SDL_ROOT}/lib/x64/SDL2.lib")
+ add_custom_command(TARGET jfg_sdl_controller_backend_tests POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different "${JFG_CONTROLLER_SDL_ROOT}/lib/x64/SDL2.dll" "$<TARGET_FILE_DIR:jfg_sdl_controller_backend_tests>")
+ add_test(NAME jfg.sdl_controller_backend COMMAND jfg_sdl_controller_backend_tests)
+endif()
+
+add_executable(jfg_menu_pointer_tests menu_pointer_tests.cpp)
+target_include_directories(jfg_menu_pointer_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_menu_pointer_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_menu_pointer_tests)
+add_test(NAME jfg.menu_pointer COMMAND jfg_menu_pointer_tests)
+
+add_executable(jfg_native_event_batch_tests native_event_batch_tests.cpp)
+target_include_directories(jfg_native_event_batch_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_native_event_batch_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_native_event_batch_tests)
+add_test(NAME jfg.native_event_batch COMMAND jfg_native_event_batch_tests)
+
+if(WIN32)
+  add_executable(jfg_host_deadline_wait_tests host_deadline_wait_tests.cpp)
+  target_include_directories(jfg_host_deadline_wait_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+  target_compile_features(jfg_host_deadline_wait_tests PRIVATE cxx_std_20)
+  jfg_set_project_warnings(jfg_host_deadline_wait_tests)
+  add_test(NAME jfg.host_deadline_wait COMMAND jfg_host_deadline_wait_tests)
+endif()
+
+add_executable(jfg_interpolation_history_tests interpolation_history_tests.cpp)
+target_include_directories(jfg_interpolation_history_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_interpolation_history_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_interpolation_history_tests)
+add_test(NAME jfg.interpolation_history COMMAND jfg_interpolation_history_tests)
+
+add_executable(jfg_video_settings_tests video_settings_tests.cpp)
+target_include_directories(jfg_video_settings_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_video_settings_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_video_settings_tests)
+add_test(NAME jfg.video_settings COMMAND jfg_video_settings_tests)
+
+if(WIN32)
+    add_executable(jfg_video_dialog_tests video_dialog_tests.cpp ../src/app/video_settings_dialog.cpp ../launcher/native/video_settings.rc)
+    target_compile_features(jfg_video_dialog_tests PRIVATE cxx_std_20)
+    target_compile_definitions(jfg_video_dialog_tests PRIVATE UNICODE _UNICODE)
+    target_link_libraries(jfg_video_dialog_tests PRIVATE user32 gdi32 comctl32)
+    jfg_set_project_warnings(jfg_video_dialog_tests)
+    add_test(NAME jfg.video_dialog COMMAND jfg_video_dialog_tests)
+endif()
+
+if(WIN32)
+    add_executable(jfg_video_frontend_tests video_frontend_tests.cpp)
+    target_include_directories(jfg_video_frontend_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+    target_compile_features(jfg_video_frontend_tests PRIVATE cxx_std_20)
+    target_compile_definitions(jfg_video_frontend_tests PRIVATE UNICODE _UNICODE)
+    target_link_libraries(jfg_video_frontend_tests PRIVATE user32)
+    jfg_set_project_warnings(jfg_video_frontend_tests)
+endif()
+
+add_executable(jfg_semantic_presentation_tests semantic_presentation_tests.cpp)
+target_include_directories(jfg_semantic_presentation_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_semantic_presentation_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_semantic_presentation_tests)
+add_test(NAME jfg.semantic_presentation COMMAND jfg_semantic_presentation_tests)
+
+add_executable(jfg_count_sample_tape_tests count_sample_tape_tests.cpp)
+target_include_directories(jfg_count_sample_tape_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_count_sample_tape_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_count_sample_tape_tests)
+add_test(NAME jfg.count_sample_tape COMMAND jfg_count_sample_tape_tests)
+
+add_executable(jfg_interpolation_trace_tests interpolation_trace_tests.cpp)
+target_include_directories(jfg_interpolation_trace_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_interpolation_trace_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_interpolation_trace_tests)
+add_test(NAME jfg.interpolation_trace COMMAND jfg_interpolation_trace_tests "${CMAKE_CURRENT_BINARY_DIR}/interpolation-trace-test.tsv")
+
+add_executable(jfg_runlink_native_identity_tests runlink_native_identity_tests.cpp)
+target_include_directories(jfg_runlink_native_identity_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_runlink_native_identity_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_runlink_native_identity_tests)
+add_test(NAME jfg.runlink_native_identity COMMAND jfg_runlink_native_identity_tests)
+
+add_executable(jfg_floating_environment_tests floating_environment_tests.cpp
+    "${PROJECT_SOURCE_DIR}/src/renderer/floating_environment.cpp")
+target_include_directories(jfg_floating_environment_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_floating_environment_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_floating_environment_tests)
+add_test(NAME jfg.floating_environment COMMAND jfg_floating_environment_tests)
+
+add_executable(jfg_function_profile_tests function_profile_tests.cpp)
+target_include_directories(jfg_function_profile_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_function_profile_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_function_profile_tests)
+add_test(NAME jfg.function_profile COMMAND jfg_function_profile_tests)
+
+add_executable(jfg_submission_profile_tests submission_profile_tests.cpp)
+target_include_directories(jfg_submission_profile_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_submission_profile_tests PRIVATE cxx_std_20)
+jfg_set_project_warnings(jfg_submission_profile_tests)
+add_test(NAME jfg.submission_profile COMMAND jfg_submission_profile_tests)
+
+add_executable(jfg_async_volume_file_tests async_volume_file_tests.cpp)
+target_include_directories(jfg_async_volume_file_tests PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_compile_features(jfg_async_volume_file_tests PRIVATE cxx_std_20)
+target_link_libraries(jfg_async_volume_file_tests PRIVATE Threads::Threads)
+jfg_set_project_warnings(jfg_async_volume_file_tests)
+add_test(NAME jfg.async_volume_file COMMAND jfg_async_volume_file_tests)

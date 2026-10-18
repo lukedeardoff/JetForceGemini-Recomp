@@ -1,0 +1,396 @@
+{
+  "schema": 1,
+  "date": "2026-10-13",
+  "status": "candidate checkpoint before owner-requested develop merge; not delivered; late cave resolution unverified",
+  "runtime_sha256": "be97ad81b09a5a03d5b2fe000f61c3fab64b725424496cd14f471362dcd7e676",
+  "validation": {
+    "compiled_entry_metadata_tests": 2,
+    "normalizer_tests": 17,
+    "focused_cpp_suites": 4,
+    "original_reference_state_exact": true,
+    "native_recorded_clock_state_exact": true,
+    "custom_non_framebuffer_bytes_equal": true
+  },
+  "initial_rigid_coverage": {
+    "801ba260/80281630/80280980": {
+      "records": 516,
+      "old_matched": 508,
+      "new_matched": 508,
+      "improved": 0,
+      "regressed": 0
+    },
+    "801bcce0/802b2820/802acaa0": {
+      "records": 1432,
+      "old_matched": 1416,
+      "new_matched": 1416,
+      "improved": 0,
+      "regressed": 0
+    },
+    "801ba230/802e2210/802e19a0": {
+      "records": 1976,
+      "old_matched": 1920,
+      "new_matched": 1920,
+      "improved": 0,
+      "regressed": 0
+    },
+    "801be8f0/8030b2f0/80309fb0": {
+      "records": 4935,
+      "old_matched": 4845,
+      "new_matched": 4845,
+      "improved": 0,
+      "regressed": 0
+    },
+    "801bc4a0/802fb290/802faea0": {
+      "records": 2046,
+      "old_matched": 2042,
+      "new_matched": 2042,
+      "improved": 0,
+      "regressed": 0
+    },
+    "801be0f0/80303c40/80301760": {
+      "records": 2985,
+      "old_matched": 2970,
+      "new_matched": 2970,
+      "improved": 0,
+      "regressed": 0
+    }
+  },
+  "rigid_geometry_rejections": {
+    "bridge-circle": {
+      "801bc030/longwoodbridge": {
+        "records": 3500,
+        "matched": 2610,
+        "screen-movement": 247,
+        "depth-ratio": 34,
+        "camera-plane-crossing": 47,
+        "entirely-behind": 562
+      },
+      "801bbc70/arrowout": {
+        "records": 232,
+        "matched": 230,
+        "missing-history": 2
+      }
+    },
+    "room-walk": {
+      "801ba230/arrowin": {
+        "records": 34,
+        "matched": 4,
+        "depth-ratio": 4,
+        "screen-movement": 16,
+        "camera-plane-crossing": 2,
+        "entirely-behind": 8
+      },
+      "801be8f0/RegionID": {
+        "records": 55,
+        "matched": 30,
+        "screen-movement": 24,
+        "depth-ratio": 1
+      },
+      "801bc4a0/ForestCrate": {
+        "records": 1060,
+        "matched": 850,
+        "screen-movement": 206,
+        "depth-ratio": 2,
+        "camera-plane-crossing": 2
+      },
+      "801be0f0/fullammo": {
+        "records": 30,
+        "matched": 18,
+        "screen-movement": 12
+      }
+    }
+  },
+  "rejected_projection_prototype": {
+    "bridge-circle": {
+      "actors": {
+        "801bc030": {
+          "records": 3500,
+          "old_matched": 2610,
+          "clipped_matched": 2410,
+          "newly_matched": 0,
+          "regressed": 200,
+          "visible_newly_matched": 0,
+          "visible_regressed": 10
+        },
+        "801bbc70": {
+          "records": 232,
+          "old_matched": 230,
+          "clipped_matched": 0,
+          "newly_matched": 0,
+          "regressed": 230,
+          "visible_newly_matched": 0,
+          "visible_regressed": 0
+        }
+      },
+      "visible_improvement_examples": []
+    },
+    "room-walk": {
+      "actors": {
+        "801ba230": {
+          "records": 34,
+          "old_matched": 4,
+          "clipped_matched": 0,
+          "newly_matched": 0,
+          "regressed": 4,
+          "visible_newly_matched": 0,
+          "visible_regressed": 0
+        },
+        "801be8f0": {
+          "records": 55,
+          "old_matched": 30,
+          "clipped_matched": 25,
+          "newly_matched": 5,
+          "regressed": 10,
+          "visible_newly_matched": 0,
+          "visible_regressed": 0
+        },
+        "801bc4a0": {
+          "records": 1060,
+          "old_matched": 850,
+          "clipped_matched": 194,
+          "newly_matched": 0,
+          "regressed": 656,
+          "visible_newly_matched": 0,
+          "visible_regressed": 2
+        },
+        "801be0f0": {
+          "records": 30,
+          "old_matched": 18,
+          "clipped_matched": 9,
+          "newly_matched": 0,
+          "regressed": 9,
+          "visible_newly_matched": 0,
+          "visible_regressed": 0
+        }
+      },
+      "visible_improvement_examples": []
+    }
+  },
+  "valid_bounded_performance": [
+    {
+      "case": "installed-120-final-a",
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.49054881242799,
+          "scenes": 29.693042189861863,
+          "interval_ms": {
+            "n": 998,
+            "median": 8.339,
+            "p99": 8.863,
+            "max": 24.565
+          },
+          "update_ms": {
+            "n": 248,
+            "median": 33.4755,
+            "p99": 38.224,
+            "max": 55.719
+          },
+          "vi_deltas": {
+            "2": 246,
+            "3": 2
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 119.6762250335183,
+          "scenes": 29.670145640589396,
+          "interval_ms": {
+            "n": 601,
+            "median": 8.339,
+            "p99": 8.604,
+            "max": 18.986
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.413,
+            "p99": 38.879,
+            "max": 47.268
+          },
+          "vi_deltas": {
+            "2": 148,
+            "3": 1
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 119.62733835468336,
+          "scenes": 29.58203187383983,
+          "interval_ms": {
+            "n": 1197,
+            "median": 8.339,
+            "p99": 8.697,
+            "max": 20.902
+          },
+          "update_ms": {
+            "n": 296,
+            "median": 33.427499999999995,
+            "p99": 48.079,
+            "max": 52.502
+          },
+          "vi_deltas": {
+            "2": 291,
+            "3": 5
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 119.65458115512139,
+          "scenes": 29.764077062336447,
+          "interval_ms": {
+            "n": 800,
+            "median": 8.337499999999999,
+            "p99": 8.581,
+            "max": 24.028
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.452,
+            "p99": 38.261,
+            "max": 48.364
+          },
+          "vi_deltas": {
+            "2": 198,
+            "3": 1
+          }
+        }
+      ],
+      "busy_ms": {
+        "n": 896,
+        "median": 25.244500000000002,
+        "p95": 30.536,
+        "max": 47.759
+      },
+      "audio_underruns": 0
+    },
+    {
+      "case": "rigid-entry-120-final-a",
+      "bins": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.42497593514791,
+          "scenes": 29.616434795162185,
+          "interval_ms": {
+            "n": 996,
+            "median": 8.339,
+            "p99": 8.825,
+            "max": 24.145
+          },
+          "update_ms": {
+            "n": 247,
+            "median": 33.38,
+            "p99": 40.637,
+            "max": 50.878
+          },
+          "vi_deltas": {
+            "2": 244,
+            "3": 3
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 119.72976651895999,
+          "scenes": 29.382764070596192,
+          "interval_ms": {
+            "n": 599,
+            "median": 8.336,
+            "p99": 8.608,
+            "max": 16.251
+          },
+          "update_ms": {
+            "n": 147,
+            "median": 33.406,
+            "p99": 45.784,
+            "max": 55.919
+          },
+          "vi_deltas": {
+            "2": 143,
+            "3": 4
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 119.81362989869257,
+          "scenes": 29.8535627830909,
+          "interval_ms": {
+            "n": 1200,
+            "median": 8.337499999999999,
+            "p99": 8.624,
+            "max": 13.833
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.437,
+            "p99": 37.825,
+            "max": 38.249
+          },
+          "vi_deltas": {
+            "2": 299
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 119.65147427388477,
+          "scenes": 29.800554919277932,
+          "interval_ms": {
+            "n": 799,
+            "median": 8.338,
+            "p99": 8.98,
+            "max": 9.897
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.44,
+            "p99": 37.552,
+            "max": 38.587
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        }
+      ],
+      "busy_ms": {
+        "n": 896,
+        "median": 22.914,
+        "p95": 28.654,
+        "max": 44.189
+      },
+      "audio_underruns": 0
+    }
+  ],
+  "limits": [
+    "No exact owner late-cave input recording or room checkpoint",
+    "Initial rigid identity trace shows no improvement in first Goldwood fixture",
+    "Visible-corner projection prototype produced no visible improvement and was rejected before source edit",
+    "Detailed geometry captures are deliberately heavy and cannot qualify FPS/audio",
+    "Two timing comparisons overlapped other task builds and were excluded",
+    "One clean baseline/candidate pair suggests less CPU bookkeeping but does not establish full-tutorial cadence"
+  ],
+  "private_evidence_id": "tutorial-investigation-20261013",
+  "public_release": false,
+  "delivered": false
+}

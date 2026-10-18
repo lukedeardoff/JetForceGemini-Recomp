@@ -27,6 +27,12 @@ APPROVED_UI_IMAGE_SHA256 = frozenset({
     "c1396dc5a1db5756fdf5ae956f836b40496e4881f1e4507752cfa55c4bbaec9d",
     "e984be1b6a23919e2d73f2d5b0c38f3b52f9999521da824717f094e9389f8163",
 })
+# Exact reviewed artwork and historical false positives. Changed bodies require
+# a fresh review; no path, extension, or credential exemption is granted.
+REVIEWED_BODIES = json.loads((Path(__file__).with_name("reviewed_hygiene_bodies.json")).read_text(encoding="utf-8"))["bodies"]
+REVIEWED_BY_SHA256 = {entry["sha256"]: entry for entry in REVIEWED_BODIES}
+REVIEWED_LARGE_GIT_BLOBS = {entry["git_blob"] for entry in REVIEWED_BODIES if "size" in entry["exceptions"]}
+
 # These are documented inventory bit identifiers, not embedded image bytes.
 INVENTORY_IDS_DECLARATION = re.compile(
     r"\b(?:int ids\[\]|int\[\] itemIds)\s*=\s*\{"
@@ -301,7 +307,7 @@ def archive_signature(data: bytes) -> str | None:
     return None
 
 
-def scan_blob(data: bytes, label: str, *, enforce_size: bool = True) -> list[str]:
+def _scan_blob(data: bytes, label: str, *, enforce_size: bool = True) -> list[str]:
     errors: list[str] = []
     if enforce_size and len(data) > MAX_TRACKED_BYTES:
         errors.append(
@@ -405,6 +411,20 @@ def scan_blob(data: bytes, label: str, *, enforce_size: bool = True) -> list[str
     return errors
 
 
+def scan_blob(data: bytes, label: str, *, enforce_size: bool = True) -> list[str]:
+    errors = _scan_blob(data, label, enforce_size=enforce_size)
+    reviewed_data = data.replace(b"\r\n", b"\n") if b"\0" not in data else data
+    reviewed = REVIEWED_BY_SHA256.get(hashlib.sha256(reviewed_data).hexdigest())
+    if reviewed is None or len(reviewed_data) != reviewed["bytes"]:
+        return errors
+    allowed = reviewed["exceptions"]
+    return [error for error in errors if not (
+        ("size" in allowed and error.startswith(label + ": tracked file is "))
+        or ("binary" in allowed and error == label + ": binary content is not allowlisted")
+        or any(error == label + ": " + kind for kind in allowed if kind not in ("size", "binary"))
+    )]
+
+
 def scan_path(root: Path, path: Path) -> list[str]:
     relative = path.relative_to(root).as_posix()
     errors = scan_relative_path(relative)
@@ -477,7 +497,7 @@ def scan_reachable_history(root: Path) -> list[str]:
         size = int(size_text)
         if object_type != "blob":
             continue
-        if size > MAX_HISTORY_SCAN_BYTES:
+        if size > MAX_HISTORY_SCAN_BYTES and object_id not in REVIEWED_LARGE_GIT_BLOBS:
             errors.append(
                 f"git-blob:{object_id}: historical blob is {size} bytes; "
                 f"scan limit is {MAX_HISTORY_SCAN_BYTES}"

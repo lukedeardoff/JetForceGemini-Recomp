@@ -159,12 +159,42 @@ internal static class FrontendBridge
 
     // Explicit diagnostic arguments are forwarded after ordinary launch environment
     // sanitization. An inherited JFG_* variable must never activate a replay.
+    // Each explicit diagnostic launch owns a fresh directory. Ordinary Play
+    // continues to strip inherited JFG_* variables and never enables recording.
+    internal static string ConfigureDiagnostics(ProcessStartInfo start, string destination)
+    {
+        string[] variables = { "JFG_GAMEPLAY_TRACE", "JFG_PHASE8_PROGRESS",
+            "JFG_PHASE9_INPUT_RECORD", "JFG_PHASE9_ACTOR_TRACE",
+            "JFG_PHASE95_NATIVE_POLL_TRACE", "JFG_PHASE8_FRAME_CAPTURE",
+            "JFG_PHASE8_RDRAM_CAPTURE", "JFG_PHASE8_INPUT_REPLAY",
+            "JFG_RT64_INTERPOLATION_TRACE" };
+        foreach (string variable in variables)
+            if (start.EnvironmentVariables.ContainsKey(variable))
+                throw new InvalidDataException("Diagnostics cannot be combined with duplicate recording or replay options.");
+        string directory = Path.Combine(LocalSetup.FullPath(destination),
+            DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        start.EnvironmentVariables["JFG_GAMEPLAY_TRACE"] = Path.Combine(directory, "gameplay.tsv");
+        start.EnvironmentVariables["JFG_PHASE8_PROGRESS"] = Path.Combine(directory, "progress.json");
+        start.EnvironmentVariables["JFG_PHASE9_INPUT_RECORD"] = Path.Combine(directory, "input.txt");
+        start.EnvironmentVariables["JFG_PHASE9_ACTOR_TRACE"] = "1";
+        start.EnvironmentVariables["JFG_RT64_INTERPOLATION_TRACE"] = Path.Combine(directory, "interpolation.tsv");
+        start.EnvironmentVariables["JFG_PHASE95_NATIVE_POLL_TRACE"] = Path.Combine(directory, "polls.tsv");
+        // Periodic GPU screenshots stall the game thread and contaminate FPS capture.
+        // Keep explicit developer framebuffer probes separate from route logging.
+        start.EnvironmentVariables["JFG_PHASE8_RDRAM_CAPTURE"] = Path.Combine(directory, "final-rdram.bin");
+        return directory;
+    }
+
     internal static void ApplyReplayOptions(ProcessStartInfo start, string[] args)
     {
         for (int i = 4; i < args.Length; i += 2)
         {
             if (args[1] != "play" || i + 1 >= args.Length)
                 throw new InvalidDataException("Replay options require a play action and a file path.");
+            if (args[i] == "--diagnostics") { ConfigureDiagnostics(start, args[i + 1]); continue; }
+            if (args[i] == "--input-replay" && start.EnvironmentVariables.ContainsKey("JFG_PHASE9_INPUT_RECORD"))
+                throw new InvalidDataException("A live diagnostic capture cannot replay inputs.");
             string variable;
             if (args[i] == "--input-replay") variable = "JFG_PHASE8_INPUT_REPLAY";
             else if (args[i] == "--progress-output") variable = "JFG_PHASE8_PROGRESS";
@@ -182,6 +212,11 @@ internal static class FrontendBridge
 
     private static async Task<int> Execute(string action, IntPtr owner, string[] args)
     {
+        if (action == "updates") {
+            var result = await Task.Run(delegate { return UpdateChecker.Check(UpdateChecker.InstalledVersion, UpdateChecker.Fetch); });
+            Write("frontend-update.txt", result.Wire());
+            return 0;
+        }
         if (action == "shortcut") { SaveShortcutDialog(owner); return 0; }
         if ((action == "play" || action == "direct-play") && InventorySession.IsActive(root))
             throw new InvalidOperationException("The game is already running for this profile.");
@@ -297,6 +332,34 @@ internal static class FrontendBridge
                         process.StartInfo.EnvironmentVariables["JFG_FRONTEND_PARENT"] =
                             owner.ToInt64().ToString(System.Globalization.CultureInfo.InvariantCulture);
                     process.StartInfo.EnvironmentVariables["JFG_SUPPORT_LOG"] = support.Session.NativePath;
+                    string gameplayTrace = process.StartInfo.EnvironmentVariables["JFG_GAMEPLAY_TRACE"];
+                    if (!String.IsNullOrEmpty(gameplayTrace))
+                    {
+                        string capture = Path.GetDirectoryName(gameplayTrace);
+                        var metadata = new StringBuilder();
+                        metadata.AppendLine("started_utc=" + DateTime.UtcNow.ToString("o"));
+                        metadata.AppendLine("runtime=" + game);
+                        metadata.AppendLine("runtime_sha256=" + SupportSession.Hash(game));
+                        metadata.AppendLine("profile=" + root);
+                        metadata.AppendLine("support=" + support.Session.DirectoryPath);
+                        metadata.AppendLine("live_tools=" + process.StartInfo.EnvironmentVariables[mods ? "JFG_MOD_OUTPUT" : "JFG_LIVE_OUTPUT"]);
+                        metadata.AppendLine("logs=gameplay,timing,actor,camera,input,polls,interpolation,support,final-frame,final-rdram");
+                        metadata.AppendLine("performance_directory=" + Path.Combine(root, "performance"));
+                        metadata.AppendLine("capture_boundary=Play starts a fresh session; launcher waiting is not recorded.");
+                        metadata.AppendLine("analysis=Exclude initial gameplay idle from active-route timing; preserve original input timestamps for replay.");
+                        metadata.AppendLine("note=Detailed logging can affect timings; compare against a normal session.");
+                        File.WriteAllText(Path.Combine(capture, "session.txt"), metadata.ToString());
+                        string initial = Path.Combine(capture, "initial-profile");
+                        Directory.CreateDirectory(initial);
+                        foreach (string source in Directory.GetFiles(root))
+                        {
+                            string name = Path.GetFileName(source);
+                            if (name.EndsWith(".ini", StringComparison.OrdinalIgnoreCase) ||
+                                name == "jfg.flash" || name == "controller-1.pak" || name == "launcher.json")
+                                File.Copy(source, Path.Combine(initial, name));
+                        }
+                        Write("frontend-diagnostics-session.txt", capture);
+                    }
                     try
                     {
                         support.Session.RuntimeDetails(game, root);
@@ -313,7 +376,8 @@ internal static class FrontendBridge
                     InventorySession.Record(mapDirectory,process);
                     var stdout = support.Session.Drain(process.StandardOutput);
                     var stderr = support.Session.Drain(process.StandardError);
-                    State("Playing. F11 fullscreen. Esc settings.");
+                    State(String.IsNullOrEmpty(gameplayTrace) ? "Playing. F11 fullscreen. Esc settings."
+                        : "Recording diagnostics. F11 fullscreen. Esc settings.");
                     string captureRequest = Path.Combine(root, "frontend-capture.request");
                     if (File.Exists(captureRequest)) File.Delete(captureRequest);
                     while (!process.HasExited)
@@ -366,7 +430,7 @@ internal static class FrontendBridge
             if (!Int64.TryParse(args[3], out handle))
                 throw new InvalidDataException("Invalid frontend owner.");
             if (Array.IndexOf(
-                    new[] { "init", "import-rom", "assets", "setup", "play", "direct-play", "shortcut", "controllers", "audio", "support", "map", "inventory", "map-data", "inventory-data", "sessions", "export" },
+                    new[] { "updates", "init", "import-rom", "assets", "setup", "play", "direct-play", "shortcut", "controllers", "audio", "support", "map", "inventory", "map-data", "inventory-data", "sessions", "export" },
                     args[1]) < 0)
                 throw new InvalidDataException("Unknown frontend action.");
             if (args[1] == "play" || args[1] == "direct-play" || args[1] == "import-rom" || args[1] == "init") {

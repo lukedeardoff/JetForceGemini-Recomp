@@ -1,12 +1,19 @@
+#include <exception>
+#include <cstdio>
 #include "jfg/runtime/snapshot_copy.hpp"
 #include "jfg/renderer/rt64_shell.hpp"
+#include "jfg/renderer/presentation_policy.hpp"
 #include "jfg/renderer/vi_presentation.hpp"
+#include "jfg/renderer/interpolation_bridge.hpp"
 
 #include "rt64_f3ddkr.hpp"
+#include "frame_diagnostics.hpp"
+#include "rt64_cpu_overlay.hpp"
 
 #include "hle/rt64_application.h"
 #include "hle/rt64_vi.h"
 #include "render/rt64_texture_cache.h"
+#include "jfg/renderer/rt64_gpu_timing_hooks.hpp"
 #include "rhi/rt64_render_hooks.h"
 
 #include "xxHash/xxhash.h"
@@ -30,6 +37,7 @@
 #include <memory>
 #include <mutex>
 #include <utility>
+#include <stdexcept>
 #include <vector>
 
 namespace RT64 {
@@ -343,12 +351,21 @@ struct CaptureContext;
 std::atomic<CaptureContext*> active_capture = nullptr;
 
 struct CaptureContext {
+    FrameDiagnostics diagnostics;
     RT64::Application* application = nullptr;
     RenderDevice* device = nullptr;
     RT64::RenderHookInit* previous_init = nullptr;
     RT64::RenderHookDraw* previous_draw = nullptr;
     RT64::RenderHookDeinit* previous_deinit = nullptr;
     std::unique_ptr<RenderBuffer> readback;
+    std::unique_ptr<RenderQueryPool> framebuffer_gpu_queries;
+    Rt64GpuTimingHook framebuffer_gpu_hook;
+    Rt64FramebufferGpuTiming framebuffer_gpu_stats;
+    Rt64FramebufferGpuTiming workload_gpu_stats;
+    const void* workload_queue_identity = nullptr;
+    std::mutex workload_gpu_mutex;
+    bool framebuffer_gpu_active = false;
+    bool framebuffer_gpu_ended = false;
     std::vector<std::byte> pixels;
     std::size_t width = 0U;
     std::size_t height = 0U;
@@ -364,6 +381,72 @@ struct CaptureContext {
     void draw(RenderCommandList* list, RenderFramebuffer* framebuffer) noexcept;
     [[nodiscard]] bool finish() noexcept;
 };
+
+void capture_gpu_timing(void* owner, Rt64GpuTimingStage stage,
+                        const void* state, void* command_list) noexcept {
+    auto& context = *static_cast<CaptureContext*>(owner);
+    if (stage == Rt64GpuTimingStage::workload_complete) {
+        // Called by the workload worker after its existing fence/query read.
+        // Application::end joins both queues before capture_deinit removes this
+        // hook. Registration is before the first submitted guest workload.
+        if (state != context.workload_queue_identity) return;
+        const std::scoped_lock lock(context.workload_gpu_mutex);
+        auto& stats = context.workload_gpu_stats;
+        const auto* times = static_cast<const std::uint64_t*>(command_list);
+        if (!times || times[0] == 0U || times[1] < times[0] ||
+            times[1]-times[0] > UINT64_MAX-stats.total_nanoseconds) {
+            stats.failed = true;
+            return;
+        }
+        ++stats.submissions;
+        stats.last_nanoseconds = times[1]-times[0];
+        stats.total_nanoseconds += stats.last_nanoseconds;
+        stats.maximum_nanoseconds = (std::max)(stats.maximum_nanoseconds, stats.last_nanoseconds);
+        return;
+    }
+    if (!context.application || state != context.application->state.get() ||
+        context.framebuffer_gpu_stats.failed) return;
+    // State::fullSync and this snapshot are serialized by the submit owner.
+    // Complete is called only after RT64's existing framebuffer worker fence.
+    try {
+        auto* list = static_cast<RenderCommandList*>(command_list);
+        if (stage == Rt64GpuTimingStage::begin) {
+            if (!context.device || !list || context.framebuffer_gpu_active)
+                throw std::runtime_error("invalid GPU timing begin");
+            if (!context.framebuffer_gpu_queries)
+                context.framebuffer_gpu_queries = context.device->createQueryPool(2);
+            if (!context.framebuffer_gpu_queries)
+                throw std::runtime_error("GPU timestamp query unavailable");
+            list->resetQueryPool(context.framebuffer_gpu_queries.get(), 0, 2);
+            list->writeTimestamp(context.framebuffer_gpu_queries.get(), 0);
+            context.framebuffer_gpu_active = true;
+            context.framebuffer_gpu_ended = false;
+        } else if (stage == Rt64GpuTimingStage::end) {
+            if (!list || !context.framebuffer_gpu_active)
+                throw std::runtime_error("invalid GPU timing end");
+            list->writeTimestamp(context.framebuffer_gpu_queries.get(), 1);
+            context.framebuffer_gpu_ended = true;
+        } else {
+            if (!context.framebuffer_gpu_active || !context.framebuffer_gpu_ended)
+                throw std::runtime_error("invalid GPU timing completion");
+            context.framebuffer_gpu_queries->queryResults();
+            const auto* times = context.framebuffer_gpu_queries->getResults();
+            if (!times || times[0] == 0U || times[1] < times[0])
+                throw std::runtime_error("invalid GPU timestamps");
+            const auto elapsed = times[1]-times[0];
+            auto& stats = context.framebuffer_gpu_stats;
+            if (elapsed > UINT64_MAX-stats.total_nanoseconds)
+                throw std::runtime_error("GPU timing accumulator overflow");
+            ++stats.submissions;
+            stats.total_nanoseconds += elapsed;
+            stats.last_nanoseconds = elapsed;
+            stats.maximum_nanoseconds = (std::max)(stats.maximum_nanoseconds, elapsed);
+            context.framebuffer_gpu_active = context.framebuffer_gpu_ended = false;
+        }
+    } catch (...) {
+        context.framebuffer_gpu_stats.failed = true;
+    }
+}
 
 void capture_init(RenderInterface* render_interface, RenderDevice* device) {
     CaptureContext* context = active_capture.load();
@@ -397,6 +480,11 @@ void capture_deinit() {
         context->previous_deinit();
     }
     const std::scoped_lock lock(context->mutex);
+    context->diagnostics.release_graphics();
+    release_cpu_overlays();
+    auto* timing_hook = &context->framebuffer_gpu_hook;
+    (void)rt64_gpu_timing_hook.compare_exchange_strong(timing_hook, nullptr);
+    context->framebuffer_gpu_queries.reset();
     context->device = nullptr;
 }
 
@@ -470,6 +558,7 @@ bool CaptureContext::activate() noexcept {
 void CaptureContext::deactivate() noexcept {
     CaptureContext* expected = this;
     if (active_capture.compare_exchange_strong(expected, nullptr)) {
+        presentation_capture_pending().store(false, std::memory_order_release);
         RT64::SetRenderHooks(previous_init, previous_draw, previous_deinit);
     }
 }
@@ -478,6 +567,7 @@ void CaptureContext::arm() noexcept {
     const std::scoped_lock lock(mutex);
     pixels.clear();
     armed = true;
+    presentation_capture_pending().store(true, std::memory_order_release);
     scheduled = false;
     failed = false;
 }
@@ -487,6 +577,13 @@ void CaptureContext::draw(
     RenderFramebuffer* framebuffer) noexcept {
     const std::scoped_lock lock(mutex);
     clear_vi_guard_texel(application, list);
+    if (application && application->swapChain) {
+        try { diagnostics.draw(list, application->swapChain->getWidth(), application->swapChain->getHeight(), device, application->shaderLibrary.get()); } catch (...) {}
+    }
+    const int requestedPhase = requested_capture_phase();
+    const auto outputSample = current_capture_output();
+    if (requestedPhase >= 0 && outputSample.frame != static_cast<unsigned>(requestedPhase))
+        return;
     if (!armed || scheduled || failed || application == nullptr ||
         application->swapChain == nullptr ||
         application->presentQueue == nullptr || device == nullptr ||
@@ -544,6 +641,10 @@ void CaptureContext::draw(
             RenderTextureCopyLocation::Subresource(texture));
         list->barriers(RenderBarrierStage::ALL,
             RenderTextureBarrier(texture, RenderTextureLayout::COLOR_WRITE));
+        if (requestedPhase >= 0)
+            trace_interpolation("capture-copy", outputSample.tick, outputSample.source,
+                0U, outputSample.frame, outputSample.count, outputSample.alpha,
+                width, height);
         scheduled = true;
     }
     catch (...) {
@@ -554,6 +655,7 @@ void CaptureContext::draw(
 bool CaptureContext::finish() noexcept {
     const std::scoped_lock lock(mutex);
     armed = false;
+    presentation_capture_pending().store(false, std::memory_order_release);
     if (!scheduled || failed || readback == nullptr || width == 0U ||
         height == 0U || row_pitch > SIZE_MAX / height) {
         return false;
@@ -636,6 +738,11 @@ struct Rt64Shell::Impl {
 
 Rt64ShellError validate_rt64_shell_configuration(
     const Rt64ShellConfiguration& configuration) noexcept {
+    if (configuration.experimental_refresh_rate != 0U &&
+        (configuration.experimental_refresh_rate < 60U ||
+         configuration.experimental_refresh_rate > 1000U)) {
+        return Rt64ShellError::invalid_refresh_rate;
+    }
     if (configuration.native_window == nullptr) {
         return Rt64ShellError::invalid_window;
     }
@@ -1119,6 +1226,8 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
         }
         impl->capture = std::make_unique<CaptureContext>();
         impl->capture->application = impl->application.get();
+        impl->capture->diagnostics.initialize(configuration.native_window,
+            configuration.experimental_refresh_rate, configuration.unlimited_presentation, configuration.vsync);
         if (!impl->capture->activate()) {
             error = Rt64ShellError::render_hook_unavailable;
             return nullptr;
@@ -1129,6 +1238,17 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
         // Skipping to a newer rendered buffer can display it before those edits.
         impl->application->enhancementConfig.presentation.mode =
             RT64::EnhancementConfiguration::Presentation::Mode::Console;
+        jfg::configure_presentation_policy(configuration.vsync, configuration.unlimited_presentation);
+        if (configuration.unlimited_presentation || (configuration.experimental_refresh_rate >= 60U &&
+            configuration.experimental_refresh_rate <= 1000U)) {
+            impl->application->userConfig.refreshRate =
+                RT64::UserConfiguration::RefreshRate::Manual;
+            impl->application->userConfig.refreshRateTarget =
+                static_cast<int>(configuration.unlimited_presentation ? 60U : configuration.experimental_refresh_rate);
+            // Prototype: CPU-composited overlays need separate qualification.
+            impl->application->enhancementConfig.presentation.mode =
+                RT64::EnhancementConfiguration::Presentation::Mode::SkipBuffering;
+        }
         impl->setup_started = true;
         const Rt64ShellError result = setup_error(
             impl->application->setup(configuration.window_thread_id));
@@ -1147,7 +1267,7 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
         load_user_texture_packs(*impl->application);
         apply_shadow_blur_setting();
         apply_color_grade_setting();
-        impl->f3ddkr = std::make_unique<Rt64F3ddkr>(*impl->application);
+        impl->f3ddkr = std::make_unique<Rt64F3ddkr>(*impl->application, configuration.experimental_refresh_rate != 0U || configuration.unlimited_presentation);
         error = Rt64ShellError::none;
         return std::unique_ptr<Rt64Shell>(
             new Rt64Shell(std::move(impl)));
@@ -1206,7 +1326,8 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
         // which also keeps the RAM-mask paths below inactive, as before v1.1.
         if (impl_->cpu_writeback && !community_shadows_enabled())
             impl_->application->emulatorConfig.framebuffer.copyWithGPU = false;
-        impl_->f3ddkr->begin(impl_->task_rdram);
+        cpu_overlay_capture_tick().store(task.vi_tick, std::memory_order_release);
+        impl_->f3ddkr->begin(impl_->task_rdram, task.vi_tick, task.presentation_scene);
         impl_->f3ddkr->install();
         const auto rdram_check_start = std::chrono::steady_clock::now();
         // Refresh CPU-owned intensity buffers when they are next drawn. Texture
@@ -1259,16 +1380,22 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
             }
         }
         application.state->checkRDRAM();
+        preserve_cpu_overlay(*application.state, task.vi_tick);
+        if (jfg::interpolation_trace_enabled()) {
+            for (const auto &op : application.state->drawFbOperations) {
+                if (op.type != RT64::FramebufferOperation::Type::WriteChanges) continue;
+                const auto *fb = application.state->framebufferManager.find(op.writeChanges.address);
+                if (fb) jfg::trace_interpolation("cpu-draw-write", task.vi_tick,
+                    op.writeChanges.address, application.state->lastScreenVI.fbAddress(),
+                    fb->lastWriteFmt, fb->siz, 0.0f, fb->width, fb->height);
+            }
+        }
         impl_->last_rdram_check_microseconds =
             static_cast<std::uint64_t>(
                 std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::steady_clock::now() - rdram_check_start)
                     .count());
-        application.processDisplayLists(
-            const_cast<std::uint8_t*>(impl_->task_rdram.data()),
-            task.command_address & 0x00FF'FFFFU,
-            0U,
-            true);
+        impl_->f3ddkr->process_display_list(task.command_address & 0x00FF'FFFFU);
         if (!impl_->f3ddkr->complete()) {
             return Rt64ShellError::unsupported_commands;
         }
@@ -1321,7 +1448,16 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
         }
         return Rt64ShellError::none;
     }
+    catch (const std::exception& error) {
+        // Preserve the underlying failure in captured stderr. The public error
+        // code remains stable, and the failure path needs no heap allocation.
+        std::fprintf(stderr, "RT64_SUBMIT_EXCEPTION vi=%llu message=%.512s\n",
+            static_cast<unsigned long long>(task.vi_tick), error.what());
+        return Rt64ShellError::renderer_exception;
+    }
     catch (...) {
+        std::fprintf(stderr, "RT64_SUBMIT_EXCEPTION vi=%llu message=unknown exception\n",
+            static_cast<unsigned long long>(task.vi_tick));
         return Rt64ShellError::renderer_exception;
     }
 }
@@ -1413,6 +1549,7 @@ Rt64ShellError Rt64Shell::present(const bool capture_frame) noexcept {
     try {
         if (capture_frame)
             impl_->capture->arm();
+        const auto previous_present_id = impl_->application->state->presentId;
         impl_->application->updateScreen();
         // Frame boundary for the developer inspector pause (see Impl).
         auto& inspector = impl_->application->state->debuggerInspector;
@@ -1438,6 +1575,22 @@ Rt64ShellError Rt64Shell::present(const bool capture_frame) noexcept {
             impl_->pause_scene_address = 0U;
             impl_->pause_wait_presents = 0U;
         }
+        if (capture_frame && previous_present_id != 0U &&
+            impl_->application->state->presentId == previous_present_id) {
+            // RT64 legitimately deduplicates an unchanged VI/framebuffer. A
+            // requested screenshot still needs a draw/readback. Reuse its
+            // paused-presentation mechanism after draining both queues; no
+            // guest workload or simulation update is repeated.
+            auto& app = *impl_->application;
+            app.workloadQueue->waitForWorkloadId(app.state->workloadId);
+            app.presentQueue->waitForPresentId(app.state->presentId);
+            app.workloadQueue->waitForIdle();
+            app.presentQueue->waitForIdle();
+            impl_->capture->arm();
+            auto& last = app.presentQueue->presents[app.presentQueue->previousWriteCursor()];
+            app.state->advancePresent(last, true);
+            app.presentQueue->repeatLastPresent();
+        }
         if (capture_frame) {
             impl_->application->presentQueue->waitForPresentId(
                 impl_->application->state->presentId);
@@ -1449,6 +1602,8 @@ Rt64ShellError Rt64Shell::present(const bool capture_frame) noexcept {
         return Rt64ShellError::none;
     }
     catch (...) {
+        if (capture_frame)
+            presentation_capture_pending().store(false, std::memory_order_release);
         return Rt64ShellError::renderer_exception;
     }
 }
@@ -1492,11 +1647,33 @@ Rt64GraphicsDiagnostics Rt64Shell::last_graphics_diagnostics()
     diagnostics.loaded_vertices_low = stats.loaded_vertices_low;
     diagnostics.loaded_vertices_high = stats.loaded_vertices_high;
     diagnostics.full_sync_microseconds = stats.full_sync_microseconds;
+    diagnostics.history_prepare_microseconds=stats.history_prepare_microseconds;
+    diagnostics.rdp_sync_microseconds=stats.rdp_sync_microseconds;
+    diagnostics.history_stage_microseconds=stats.history_stage_microseconds;
     diagnostics.rdram_check_microseconds = impl_->last_rdram_check_microseconds;
     diagnostics.display_list_branches = stats.display_list_branches;
     diagnostics.last_display_list_address = stats.last_display_list_address;
     diagnostics.last_display_list_target = stats.last_display_list_target;
     return diagnostics;
+}
+
+bool Rt64Shell::enable_framebuffer_gpu_timing() noexcept {
+    if (!impl_ || !impl_->capture || !impl_->capture->device) return false;
+    auto& context = *impl_->capture;
+    context.workload_queue_identity = context.application->workloadQueue.get();
+    context.framebuffer_gpu_hook = {&context, &capture_gpu_timing};
+    Rt64GpuTimingHook* expected = nullptr;
+    return rt64_gpu_timing_hook.compare_exchange_strong(expected, &context.framebuffer_gpu_hook);
+}
+
+Rt64FramebufferGpuTiming Rt64Shell::framebuffer_gpu_timing() const noexcept {
+    return impl_ && impl_->capture ? impl_->capture->framebuffer_gpu_stats : Rt64FramebufferGpuTiming{};
+}
+
+Rt64FramebufferGpuTiming Rt64Shell::workload_gpu_timing() const noexcept {
+    if (!impl_ || !impl_->capture) return {};
+    const std::scoped_lock lock(impl_->capture->workload_gpu_mutex);
+    return impl_->capture->workload_gpu_stats;
 }
 
 Rt64FramebufferInfo Rt64Shell::last_framebuffer() const noexcept {
@@ -1520,6 +1697,8 @@ const char* rt64_shell_error_message(const Rt64ShellError error) noexcept {
     switch (error) {
     case Rt64ShellError::none:
         return "no error";
+    case Rt64ShellError::invalid_refresh_rate:
+        return "Experimental render rate must be 0 or 60-1000";
     case Rt64ShellError::invalid_window:
         return "RT64 requires a native window";
     case Rt64ShellError::invalid_memory:

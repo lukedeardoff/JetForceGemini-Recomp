@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "status": "qualified audio and bridge changes delivered locally; owner listening and visual review pending",
+  "runtime_sha256": "8dbe521304348ecda93c9f153fbd15f95486b2050b456e37ee221562e30f6a56",
+  "runtime_source_files": {
+    "include/jfg/boot/native_audio_playback.hpp": "e91fdd1712a4453c6e1d32ad2207693c5dc1975cadd1d05895c46f56c7e43008",
+    "include/jfg/boot/original_timing_ai_dma.hpp": "3b38d7da74fa5d765684ce98e47ee6177a54af73939d6acbbecd61938bb91fde",
+    "include/jfg/renderer/presentation_identity.hpp": "2033b34d889deb0e08aa38e5e398a886bc8b57c6dac82ea4e2710362683f2b1c",
+    "include/jfg/renderer/semantic_presentation.hpp": "86454e91a95937861f5851355aad5d65c2e03cea03931f104b2fa0ac67d20fc7",
+    "src/boot/native_boot.cpp": "297b0c96a5ed22553aee63e9dbe436881cb5ce0ccdc97ca39bab97a0657c16d8",
+    "src/renderer/rt64_f3ddkr.cpp": "ddc652019e9411f3fd98a42b1d1a386325b3691a68978494fd663e450771ae10"
+  },
+  "tests": [
+    "jfg_semantic_presentation_tests",
+    "jfg_original_timing_runtime_tests",
+    "jfg_native_event_batch_tests",
+    "jfg_interpolation_history_tests",
+    "jfg_rt64_interpolation_tests",
+    "jfg_native_audio_source_tests"
+  ],
+  "original_reference": {
+    "ram_save": true,
+    "instructions": true,
+    "probe": true,
+    "hashes": true
+  },
+  "audio_runs": {
+    "clean-owner-audio": {
+      "runtime_sha256": "1e5f3863d01377b4747f6a4d4faed0939d180866ba131791ac1b7d0db50fdc22",
+      "probe": {
+        "kind": "jfg-phase8-play",
+        "status": "window-closed",
+        "vi_retraces": 22009,
+        "graphics_tasks": 20446,
+        "presented_frames": 11372,
+        "decoded_audio_tasks": 11014,
+        "audio_device_initialized": true,
+        "audio_device_started": true,
+        "audio_device_frequency": 22018,
+        "audio_device_buffers": 11013,
+        "audio_device_consumed_bytes": 32386048,
+        "audio_device_consumed_ms": 367722,
+        "audio_device_underruns": 0,
+        "audio_device_overruns": 0,
+        "frame_captured": false,
+        "controller_samples": 10871,
+        "non_neutral_controller_samples": 8767,
+        "non_neutral_controller_writes": 0,
+        "controller_disconnects": 0,
+        "controller_reconnects": 0,
+        "game_pressed_observations": 0,
+        "last_game_pressed_buttons": "0x0000",
+        "game_stick_observations": 0,
+        "last_game_stick_x": 0,
+        "last_game_stick_y": 0,
+        "menu_stick_observations": 0,
+        "last_menu_stick_x": 0,
+        "last_menu_stick_y": 0,
+        "front_mode": 16,
+        "unsupported_accesses": 0,
+        "journal_overflow": false
+      },
+      "returns": {
+        "0": 11014
+      },
+      "payloads": 11013,
+      "payload_mismatches": 0,
+      "transport_ms_max": 0.225408,
+      "queued_ms": {
+        "min": 98.10155327459351,
+        "median": 117.35852484331002,
+        "max": 138.0688527568353
+      },
+      "underruns": 0,
+      "refill_pauses": 0,
+      "missed_update_intervals": 8
+    },
+    "final-native360": {
+      "runtime_sha256": "8dbe521304348ecda93c9f153fbd15f95486b2050b456e37ee221562e30f6a56",
+      "probe": {
+        "kind": "jfg-phase8-play",
+        "status": "window-closed",
+        "vi_retraces": 6502,
+        "graphics_tasks": 5386,
+        "presented_frames": 3645,
+        "decoded_audio_tasks": 3250,
+        "audio_device_initialized": true,
+        "audio_device_started": true,
+        "audio_device_frequency": 22018,
+        "audio_device_buffers": 3249,
+        "audio_device_consumed_bytes": 9556992,
+        "audio_device_consumed_ms": 108513,
+        "audio_device_underruns": 0,
+        "audio_device_overruns": 0,
+        "frame_captured": false,
+        "controller_samples": 3141,
+        "non_neutral_controller_samples": 2234,
+        "non_neutral_controller_writes": 0,
+        "controller_disconnects": 0,
+        "controller_reconnects": 0,
+        "game_pressed_observations": 0,
+        "last_game_pressed_buttons": "0x0000",
+        "game_stick_observations": 0,
+        "last_game_stick_x": 0,
+        "last_game_stick_y": 0,
+        "menu_stick_observations": 0,
+        "last_menu_stick_x": 0,
+        "last_menu_stick_y": 0,
+        "front_mode": 16,
+        "unsupported_accesses": 0,
+        "journal_overflow": false
+      },
+      "returns": {
+        "0": 3250
+      },
+      "payloads": 3249,
+      "payload_mismatches": 0,
+      "transport_ms_max": 0.03620266666666667,
+      "queued_ms": {
+        "min": 98.8282314469979,
+        "median": 118.08520301571441,
+        "max": 135.52547915341992
+      },
+      "underruns": 0,
+      "refill_pauses": 0,
+      "missed_update_intervals": 3
+    }
+  },
+  "bridge": {
+    "capture_runtime_sha256": "1e5f3863d01377b4747f6a4d4faed0939d180866ba131791ac1b7d0db50fdc22",
+    "room": 26,
+    "counts": {
+      "2149298288": {
+        "vertices": 249876,
+        "matched": 248688,
+        "moving": 7968
+      }
+    },
+    "image_sequence_reviewed": true,
+    "scope": "Visible normal-input walk/jump after test-only exit warps; immutable endpoints and intermediate render phases. Final revision adds only AI tail-overflow admission checking to this capture build."
+  },
+  "stress": {
+    "runtime_sha256": "ee77c06a72d9579942d54db153e8e980a8320fce2ce72889963f93851b4a1e77",
+    "forced_35ms_stalls": 12,
+    "underruns": 0,
+    "rejected_buffers": 0,
+    "payload_mismatches": 0,
+    "fixture_removed_from_final": true
+  },
+  "owner_live_verified": false,
+  "no_20fps_goal_complete": false,
+  "private_evidence_root": "route-audio-bridge-20261016",
+  "delivered": true,
+  "runtime_source_commit": "ca6ef7a883b2568da9df2ff0665ec7169c9f4be1",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T08:43:47.355823+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 40,
+    "manifest_verified": 14,
+    "launcher_sha256": "60b2696f1447101809053922a1aa5b24efc94c197875a63ad22b3fb9c4dc045c",
+    "launcher_setup_runtime_protocol_passed": true
+  }
+}

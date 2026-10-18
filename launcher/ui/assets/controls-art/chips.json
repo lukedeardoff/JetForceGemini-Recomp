@@ -1,0 +1,1366 @@
+[
+  {
+    "family": "xbox",
+    "key": "LS",
+    "selected": false,
+    "rect": [
+      0,
+      0,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "LS",
+    "selected": true,
+    "rect": [
+      128,
+      0,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "RS",
+    "selected": false,
+    "rect": [
+      256,
+      0,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "RS",
+    "selected": true,
+    "rect": [
+      384,
+      0,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "A",
+    "selected": false,
+    "rect": [
+      512,
+      0,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "A",
+    "selected": true,
+    "rect": [
+      640,
+      0,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "B",
+    "selected": false,
+    "rect": [
+      768,
+      0,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "B",
+    "selected": true,
+    "rect": [
+      896,
+      0,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "X",
+    "selected": false,
+    "rect": [
+      0,
+      96,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "X",
+    "selected": true,
+    "rect": [
+      128,
+      96,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "Y",
+    "selected": false,
+    "rect": [
+      256,
+      96,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "Y",
+    "selected": true,
+    "rect": [
+      384,
+      96,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "LT",
+    "selected": false,
+    "rect": [
+      512,
+      96,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "LT",
+    "selected": true,
+    "rect": [
+      640,
+      96,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "RT",
+    "selected": false,
+    "rect": [
+      768,
+      96,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "RT",
+    "selected": true,
+    "rect": [
+      896,
+      96,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "LB",
+    "selected": false,
+    "rect": [
+      0,
+      192,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "LB",
+    "selected": true,
+    "rect": [
+      128,
+      192,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "RB",
+    "selected": false,
+    "rect": [
+      256,
+      192,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "RB",
+    "selected": true,
+    "rect": [
+      384,
+      192,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "L3",
+    "selected": false,
+    "rect": [
+      512,
+      192,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "L3",
+    "selected": true,
+    "rect": [
+      640,
+      192,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "R3",
+    "selected": false,
+    "rect": [
+      768,
+      192,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "R3",
+    "selected": true,
+    "rect": [
+      896,
+      192,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "DU",
+    "selected": false,
+    "rect": [
+      0,
+      288,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "DU",
+    "selected": true,
+    "rect": [
+      128,
+      288,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "DD",
+    "selected": false,
+    "rect": [
+      256,
+      288,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "DD",
+    "selected": true,
+    "rect": [
+      384,
+      288,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "DL",
+    "selected": false,
+    "rect": [
+      512,
+      288,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "DL",
+    "selected": true,
+    "rect": [
+      640,
+      288,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "DR",
+    "selected": false,
+    "rect": [
+      768,
+      288,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "DR",
+    "selected": true,
+    "rect": [
+      896,
+      288,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "MENU",
+    "selected": false,
+    "rect": [
+      0,
+      384,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "MENU",
+    "selected": true,
+    "rect": [
+      128,
+      384,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "VIEW",
+    "selected": false,
+    "rect": [
+      256,
+      384,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "VIEW",
+    "selected": true,
+    "rect": [
+      384,
+      384,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "LS",
+    "selected": false,
+    "rect": [
+      512,
+      384,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "LS",
+    "selected": true,
+    "rect": [
+      640,
+      384,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "RS",
+    "selected": false,
+    "rect": [
+      768,
+      384,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "RS",
+    "selected": true,
+    "rect": [
+      896,
+      384,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "A",
+    "selected": false,
+    "rect": [
+      0,
+      480,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "A",
+    "selected": true,
+    "rect": [
+      128,
+      480,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "B",
+    "selected": false,
+    "rect": [
+      256,
+      480,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "B",
+    "selected": true,
+    "rect": [
+      384,
+      480,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "X",
+    "selected": false,
+    "rect": [
+      512,
+      480,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "X",
+    "selected": true,
+    "rect": [
+      640,
+      480,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "Y",
+    "selected": false,
+    "rect": [
+      768,
+      480,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "Y",
+    "selected": true,
+    "rect": [
+      896,
+      480,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "LT",
+    "selected": false,
+    "rect": [
+      0,
+      576,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "LT",
+    "selected": true,
+    "rect": [
+      128,
+      576,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "RT",
+    "selected": false,
+    "rect": [
+      256,
+      576,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "RT",
+    "selected": true,
+    "rect": [
+      384,
+      576,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "LB",
+    "selected": false,
+    "rect": [
+      512,
+      576,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "LB",
+    "selected": true,
+    "rect": [
+      640,
+      576,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "RB",
+    "selected": false,
+    "rect": [
+      768,
+      576,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "RB",
+    "selected": true,
+    "rect": [
+      896,
+      576,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "L3",
+    "selected": false,
+    "rect": [
+      0,
+      672,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "L3",
+    "selected": true,
+    "rect": [
+      128,
+      672,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "R3",
+    "selected": false,
+    "rect": [
+      256,
+      672,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "R3",
+    "selected": true,
+    "rect": [
+      384,
+      672,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "DU",
+    "selected": false,
+    "rect": [
+      512,
+      672,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "DU",
+    "selected": true,
+    "rect": [
+      640,
+      672,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "DD",
+    "selected": false,
+    "rect": [
+      768,
+      672,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "DD",
+    "selected": true,
+    "rect": [
+      896,
+      672,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "DL",
+    "selected": false,
+    "rect": [
+      0,
+      768,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "DL",
+    "selected": true,
+    "rect": [
+      128,
+      768,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "DR",
+    "selected": false,
+    "rect": [
+      256,
+      768,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "DR",
+    "selected": true,
+    "rect": [
+      384,
+      768,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "MENU",
+    "selected": false,
+    "rect": [
+      512,
+      768,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "MENU",
+    "selected": true,
+    "rect": [
+      640,
+      768,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "VIEW",
+    "selected": false,
+    "rect": [
+      768,
+      768,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "ps",
+    "key": "VIEW",
+    "selected": true,
+    "rect": [
+      896,
+      768,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "LS",
+    "selected": false,
+    "rect": [
+      0,
+      864,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "LS",
+    "selected": true,
+    "rect": [
+      128,
+      864,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "RS",
+    "selected": false,
+    "rect": [
+      256,
+      864,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "RS",
+    "selected": true,
+    "rect": [
+      384,
+      864,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "A",
+    "selected": false,
+    "rect": [
+      512,
+      864,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "A",
+    "selected": true,
+    "rect": [
+      640,
+      864,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "B",
+    "selected": false,
+    "rect": [
+      768,
+      864,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "B",
+    "selected": true,
+    "rect": [
+      896,
+      864,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "X",
+    "selected": false,
+    "rect": [
+      0,
+      960,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "X",
+    "selected": true,
+    "rect": [
+      128,
+      960,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "Y",
+    "selected": false,
+    "rect": [
+      256,
+      960,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "Y",
+    "selected": true,
+    "rect": [
+      384,
+      960,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "LT",
+    "selected": false,
+    "rect": [
+      512,
+      960,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "LT",
+    "selected": true,
+    "rect": [
+      640,
+      960,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "RT",
+    "selected": false,
+    "rect": [
+      768,
+      960,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "RT",
+    "selected": true,
+    "rect": [
+      896,
+      960,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "LB",
+    "selected": false,
+    "rect": [
+      0,
+      1056,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "LB",
+    "selected": true,
+    "rect": [
+      128,
+      1056,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "RB",
+    "selected": false,
+    "rect": [
+      256,
+      1056,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "RB",
+    "selected": true,
+    "rect": [
+      384,
+      1056,
+      112,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "L3",
+    "selected": false,
+    "rect": [
+      512,
+      1056,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "L3",
+    "selected": true,
+    "rect": [
+      640,
+      1056,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "R3",
+    "selected": false,
+    "rect": [
+      768,
+      1056,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "R3",
+    "selected": true,
+    "rect": [
+      896,
+      1056,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "DU",
+    "selected": false,
+    "rect": [
+      0,
+      1152,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "DU",
+    "selected": true,
+    "rect": [
+      128,
+      1152,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "DD",
+    "selected": false,
+    "rect": [
+      256,
+      1152,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "DD",
+    "selected": true,
+    "rect": [
+      384,
+      1152,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "DL",
+    "selected": false,
+    "rect": [
+      512,
+      1152,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "DL",
+    "selected": true,
+    "rect": [
+      640,
+      1152,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "DR",
+    "selected": false,
+    "rect": [
+      768,
+      1152,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "DR",
+    "selected": true,
+    "rect": [
+      896,
+      1152,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "MENU",
+    "selected": false,
+    "rect": [
+      0,
+      1248,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "MENU",
+    "selected": true,
+    "rect": [
+      128,
+      1248,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "VIEW",
+    "selected": false,
+    "rect": [
+      256,
+      1248,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "generic",
+    "key": "VIEW",
+    "selected": true,
+    "rect": [
+      384,
+      1248,
+      88,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_LMB",
+    "selected": false,
+    "rect": [
+      512,
+      1248,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_LMB",
+    "selected": true,
+    "rect": [
+      640,
+      1248,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_RMB",
+    "selected": false,
+    "rect": [
+      768,
+      1248,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_RMB",
+    "selected": true,
+    "rect": [
+      896,
+      1248,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_MMB",
+    "selected": false,
+    "rect": [
+      0,
+      1344,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_MMB",
+    "selected": true,
+    "rect": [
+      128,
+      1344,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_4",
+    "selected": false,
+    "rect": [
+      256,
+      1344,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_4",
+    "selected": true,
+    "rect": [
+      384,
+      1344,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_5",
+    "selected": false,
+    "rect": [
+      512,
+      1344,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_5",
+    "selected": true,
+    "rect": [
+      640,
+      1344,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_WU",
+    "selected": false,
+    "rect": [
+      768,
+      1344,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_WU",
+    "selected": true,
+    "rect": [
+      896,
+      1344,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_WD",
+    "selected": false,
+    "rect": [
+      0,
+      1440,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_WD",
+    "selected": true,
+    "rect": [
+      128,
+      1440,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_MOVE",
+    "selected": false,
+    "rect": [
+      256,
+      1440,
+      98,
+      88
+    ]
+  },
+  {
+    "family": "xbox",
+    "key": "M_MOVE",
+    "selected": true,
+    "rect": [
+      384,
+      1440,
+      98,
+      88
+    ]
+  }
+]

@@ -1,0 +1,363 @@
+{
+  "date_utc": "2026-10-15",
+  "status": "verified and delivered as local preview; broader combat/visual limitations remain open",
+  "runtime_sha256": "e73bd0c1b6377d5bea0d941e6fa13854f8f56b54bea31a2a58b8f4a136d0f478",
+  "paired_stage_cost": {
+    "runtime": "672a8dadb0ecaa49997445063862fca6678fd3a2d486658a3f9eeb796845d007",
+    "pairs": 1337,
+    "old_us": {
+      "n": 1337,
+      "median": 460.5,
+      "p99": 681.3,
+      "max": 842.4
+    },
+    "new_us": {
+      "n": 1337,
+      "median": 305.9,
+      "p99": 464.9,
+      "max": 633.3
+    },
+    "ratio_total": 0.6638740032120029,
+    "same_inputs_matching_equal": true,
+    "scope": "Private dual-history observer with alternating measurement order. Unchanged baseline output; isolated stage cost, not game FPS or accepted production change."
+  },
+  "measurement_orders": {
+    "0": {
+      "pairs": 665,
+      "ratio_total": 0.6228851234428231
+    },
+    "2": {
+      "pairs": 672,
+      "ratio_total": 0.7062148417748189
+    }
+  },
+  "oracle": {
+    "frames": 3600,
+    "matched_transforms": 244389,
+    "all_full_hashes_collide_variant": true,
+    "CXX17_header_compatible": true
+  },
+  "dense": {
+    "runtime_sha256": "e73bd0c1b6377d5bea0d941e6fa13854f8f56b54bea31a2a58b8f4a136d0f478",
+    "equal_files": {
+      "rdram.bin": true,
+      "jfg.flash": true
+    },
+    "guest_update_records": 1847,
+    "matching_records": 17715,
+    "phase": {
+      "samples": 2807,
+      "render_source_rates": {
+        "0": 969,
+        "30": 5884,
+        "20": 676
+      },
+      "display_source_rates": {
+        "0": 6,
+        "30": 3475,
+        "20": 517
+      },
+      "completion": {
+        "dropped_chunks": 0,
+        "writer_failed": false
+      },
+      "complete": true,
+      "repeated_phases": 28,
+      "backward_phases": 0,
+      "phase_step_counts": {
+        "0.5000": 2460,
+        "2.5000": 177,
+        "4.5000": 2,
+        "2.0000": 107,
+        "3.0000": 20,
+        "3.5000": 12,
+        "0.0000": 28
+      },
+      "present_interval_ms": {
+        "median": 8.338,
+        "p99": 15.738,
+        "maximum": 22.168
+      }
+    },
+    "renderer_snapshot_captured": false,
+    "scope": "Same input and recorded clock. Exact physical RAM, save, complete guest update records and interpolation matching. No renderer snapshot exists for either dense capture."
+  },
+  "original": {
+    "retraces": 17000,
+    "hashes": {
+      "jfg.flash": "5001781e2e8de931d8858b88d39ab5482ac106f8f4db161a414b1c0530640674",
+      "rdram.bin": "68f97722feab36df8c4df8d423a477fcef4ae36a6c4908b07e22af48194e0a38",
+      "rdram.bin.rt64": "423cc7925a3d31bf56a78e0c46809ed33a121ab72ebef7032e60e340cb5dcb0d"
+    },
+    "probe_equal": true,
+    "complete_update_records": 4754,
+    "audio_underruns": 2,
+    "audio_scope": "Instruction-clock reference with final readback, not normal-play audio/performance qualification. Separate native captures each have zero underruns."
+  },
+  "native": [
+    {
+      "settings": {
+        "version": "1",
+        "mode": "custom",
+        "fps": "120",
+        "vsync": "1"
+      },
+      "retraces": 6002,
+      "audio_underruns": 0,
+      "dropped_frame_rows": 0,
+      "combat_windows": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 119.9590677131188,
+          "scenes": 29.839967892673908,
+          "interval_ms": {
+            "n": 1001,
+            "median": 8.336,
+            "p99": 8.499,
+            "max": 9.037
+          },
+          "update_ms": {
+            "n": 249,
+            "median": 33.424,
+            "p99": 35.848,
+            "max": 36.459
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 119.96427020903923,
+          "scenes": 29.741557838846663,
+          "interval_ms": {
+            "n": 601,
+            "median": 8.334,
+            "p99": 8.499,
+            "max": 8.616
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.448,
+            "p99": 34.862,
+            "max": 35.75
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 119.93709788144388,
+          "scenes": 29.83460255120775,
+          "interval_ms": {
+            "n": 1202,
+            "median": 8.338,
+            "p99": 8.497,
+            "max": 8.718
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 33.432,
+            "p99": 36.562,
+            "max": 37.345
+          },
+          "vi_deltas": {
+            "2": 299
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 119.96141465808675,
+          "scenes": 29.80314796124752,
+          "interval_ms": {
+            "n": 801,
+            "median": 8.337,
+            "p99": 8.482,
+            "max": 9.061
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.445,
+            "p99": 36.472,
+            "max": 37.072
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        }
+      ]
+    },
+    {
+      "settings": {
+        "version": "1",
+        "mode": "custom",
+        "fps": "360",
+        "vsync": "0"
+      },
+      "retraces": 6003,
+      "audio_underruns": 0,
+      "dropped_frame_rows": 0,
+      "combat_windows": [
+        {
+          "vi": [
+            4000,
+            4500
+          ],
+          "output": 359.38379897834204,
+          "scenes": 29.758658479675734,
+          "interval_ms": {
+            "n": 2995,
+            "median": 2.778,
+            "p99": 2.895,
+            "max": 14.717
+          },
+          "update_ms": {
+            "n": 248,
+            "median": 33.436,
+            "p99": 36.858,
+            "max": 48.016
+          },
+          "vi_deltas": {
+            "2": 247,
+            "3": 1
+          }
+        },
+        {
+          "vi": [
+            4500,
+            4800
+          ],
+          "output": 359.86815739324595,
+          "scenes": 29.72303517272375,
+          "interval_ms": {
+            "n": 1804,
+            "median": 2.777,
+            "p99": 2.88,
+            "max": 3.237
+          },
+          "update_ms": {
+            "n": 149,
+            "median": 33.453,
+            "p99": 34.86,
+            "max": 35.235
+          },
+          "vi_deltas": {
+            "2": 149
+          }
+        },
+        {
+          "vi": [
+            4800,
+            5400
+          ],
+          "output": 359.3408161086841,
+          "scenes": 29.728918156687357,
+          "interval_ms": {
+            "n": 3602,
+            "median": 2.777,
+            "p99": 2.924,
+            "max": 17.047
+          },
+          "update_ms": {
+            "n": 298,
+            "median": 33.427,
+            "p99": 35.09,
+            "max": 50.289
+          },
+          "vi_deltas": {
+            "2": 296,
+            "3": 2
+          }
+        },
+        {
+          "vi": [
+            5400,
+            5800
+          ],
+          "output": 358.02177484544694,
+          "scenes": 29.772809525384012,
+          "interval_ms": {
+            "n": 2393,
+            "median": 2.777,
+            "p99": 2.881,
+            "max": 8.701
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.431,
+            "p99": 34.619,
+            "max": 35.051
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Stage-cost reduction is not a controlled whole-game FPS gain.",
+    "Native replay can diverge and is not the full owner route.",
+    "Exact damage hitch, full-route visual acceptance, shadow cadence and Unlimited pacing remain open.",
+    "Hidden-window tests do not establish physical-display cadence."
+  ],
+  "private_artifacts": {
+    "shape-history-paired-cost.json": {
+      "sha256": "74cfd95f7fa365449a96a537c4c21280f106b94a76a6dbe9c6e1c88f918276f3",
+      "bytes": 136993
+    },
+    "shape-history-oracle/result.json": {
+      "sha256": "8702bea35531f41468ea00aef78706414aff3ad2a1c11c5a4c6a455e2db7a900",
+      "bytes": 271
+    },
+    "shape-history-candidate-v2/result.json": {
+      "sha256": "d07936c55559f0d3733add75f13bfba0bc0126ed3160383a8bdafe77c8412b3d",
+      "bytes": 905
+    },
+    "shape-history-dense-review.json": {
+      "sha256": "6543798ef3a603cf6eea81efc4e01f35b548fdf121b4b2ce5af5f30c8e7ab83f",
+      "bytes": 1133
+    },
+    "shape-history-full-original-review.json": {
+      "sha256": "2a53cfc98abbf46e59a631bc07e03e3ecbd504eb59c1e794069875cdcea4f41c",
+      "bytes": 4110
+    },
+    "shape-history-candidate-native-review.json": {
+      "sha256": "3a3f0449ef4030de0300406075ce74228daaa535c118f603b868e2942e70eedf",
+      "bytes": 9132
+    },
+    "dxgi-statistics-mapped-review.json": {
+      "sha256": "5dc0b35f22a3b85ff363a7227f5a9c310dd366382500f2ccab4dab879a966c30",
+      "bytes": 2892
+    },
+    "lifetime-visible-bridge-actor-review.json": {
+      "sha256": "15ce973a5b86232186ef8e52a5ff46303b259d53b53f81034b75d7cd94f95065",
+      "bytes": 1416
+    }
+  },
+  "source_commit": "80293adb33899cca03b9da8417fbeabb045dcfce",
+  "delivery": {
+    "delivered_at_utc": "2026-10-15T01:28:48.341614+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 40,
+    "manifest_verified": 14,
+    "launcher_sha256": "60b2696f1447101809053922a1aa5b24efc94c197875a63ad22b3fb9c4dc045c",
+    "launcher_setup_runtime_protocol_passed": true
+  }
+}

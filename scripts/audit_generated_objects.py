@@ -226,7 +226,12 @@ def _load_inventory(path: Path) -> dict[str, object]:
                 for right in range(left + 1, len(table_roles))
             )
             or tables != set().union(*table_roles)
-            or tuple(map(len, table_roles)) != (3, 2, 1, 5)
+            or tuple(map(len, table_roles)) != (
+                3,
+                3 if "jfg_generated_lookup_entry_offset" in table_roles[1] else 2,
+                1,
+                5,
+            )
         ):
             raise AuditFailure("inventory: support-role-partition-mismatch")
     return document

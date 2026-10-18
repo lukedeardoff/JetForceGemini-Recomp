@@ -1,0 +1,1145 @@
+{
+  "schema": 1,
+  "issue": "RENDER-003",
+  "status": "Capped presentation-window correction tested and delivered locally; owner visual confirmation pending; source-workload and Unlimited limits remain",
+  "source_parent": "32cb9921fb285a8dc9ae5fdbf403914dbde2d923",
+  "candidate_runtime_sha256": "8bd6b7635ec71a70c735055af97df5119df9f8a0b00d942825b226259ffe9cf7",
+  "implementation": [
+    "Do not truncate capped scene interpolation for queued shadow-only tasks",
+    "Acknowledge completed finite-scene VI events without scheduling another identical output window",
+    "Optional displayed-source/phase and camera-coverage diagnostics; disabled trace avoids per-frame transform scans"
+  ],
+  "before": {
+    "frames": 743,
+    "duplicates": 162,
+    "backwards": 0,
+    "phase_delta_counts": {
+      "0.5": 527,
+      "0.0": 162,
+      "1.5": 5,
+      "2.0": 45,
+      "3.0": 2,
+      "2.5": 1
+    },
+    "camera_coverage": {
+      "scenes": 185,
+      "vertices_min_max": [
+        2751,
+        2827
+      ],
+      "fully_matched": 185,
+      "zero_matched": 0,
+      "partial": 0
+    }
+  },
+  "corrected_pan": {
+    "frames": 740,
+    "duplicates": 0,
+    "backwards": 0,
+    "phase_delta_counts": {
+      "0.5": 739
+    },
+    "camera_coverage": {
+      "scenes": 185,
+      "vertices_min_max": [
+        2748,
+        2826
+      ],
+      "fully_matched": 185,
+      "zero_matched": 0,
+      "partial": 0
+    }
+  },
+  "corrected_complete_circle": {
+    "degrees": 419.0625,
+    "steps": {
+      "512": 149,
+      "0": 254
+    },
+    "frames": 1702,
+    "duplicates": 0,
+    "backwards": 0,
+    "phase_delta_counts": {
+      "0.5": 1701
+    },
+    "camera_coverage": {
+      "scenes": 410,
+      "vertices_min_max": [
+        2694,
+        2880
+      ],
+      "fully_matched": 410,
+      "zero_matched": 0,
+      "partial": 0
+    }
+  },
+  "actual_image_capture": {
+    "benchmark": false,
+    "groups": [
+      {
+        "present": 2096,
+        "frames": 4,
+        "unique": 4,
+        "adjacent_changed_pixels": [
+          14877,
+          14635,
+          14442
+        ]
+      },
+      {
+        "present": 2097,
+        "frames": 4,
+        "unique": 4,
+        "adjacent_changed_pixels": [
+          14187,
+          13979,
+          13812
+        ]
+      },
+      {
+        "present": 2098,
+        "frames": 4,
+        "unique": 4,
+        "adjacent_changed_pixels": [
+          297,
+          279,
+          293
+        ]
+      }
+    ]
+  },
+  "muted": true,
+  "hidden_owned_windows": true,
+  "copied_save_sha256": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619",
+  "reference_state_hashes": {
+    "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619",
+    "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+    "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf"
+  },
+  "normal_modes": [
+    {
+      "case": "normal-circle-120",
+      "runtime_sha256": "9649813b540eb2b5bd5ae0bb11513fe0d8a2cc3e7b1764e30dd44a7ff769dacb",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 119.63564793842309,
+          "scenes": 29.859036089133944,
+          "interval_ms": {
+            "n": 1799,
+            "median": 8.34,
+            "p99": 9.078,
+            "max": 10.78
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.431,
+            "p99": 35.419,
+            "max": 36.413
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 119.6801428502185,
+          "scenes": 29.77043553399185,
+          "interval_ms": {
+            "n": 800,
+            "median": 8.343,
+            "p99": 9.0,
+            "max": 10.298
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.448,
+            "p99": 34.53,
+            "max": 36.062
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 119.68376888620955,
+          "scenes": 29.551547873138162,
+          "interval_ms": {
+            "n": 324,
+            "median": 8.3445,
+            "p99": 8.777,
+            "max": 9.693
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.448499999999996,
+            "p99": 34.524,
+            "max": 34.53
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2251,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "drops": 0,
+      "pause": null
+    },
+    {
+      "case": "normal-combined-360",
+      "runtime_sha256": "9649813b540eb2b5bd5ae0bb11513fe0d8a2cc3e7b1764e30dd44a7ff769dacb",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 345.9924644915593,
+          "scenes": 29.85215537215798,
+          "interval_ms": {
+            "n": 5204,
+            "median": 2.782,
+            "p99": 4.849,
+            "max": 18.894
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.43,
+            "p99": 34.93,
+            "max": 35.886
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 335.8341986561235,
+          "scenes": 27.436454622352944,
+          "interval_ms": {
+            "n": 2240,
+            "median": 2.783,
+            "p99": 9.496,
+            "max": 34.097
+          },
+          "update_ms": {
+            "n": 183,
+            "median": 33.595,
+            "p99": 52.428,
+            "max": 54.085
+          },
+          "vi_deltas": {
+            "2": 152,
+            "3": 31
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 322.62687356921595,
+          "scenes": 23.884677428244917,
+          "interval_ms": {
+            "n": 878,
+            "median": 2.783,
+            "p99": 10.56,
+            "max": 34.097
+          },
+          "update_ms": {
+            "n": 65,
+            "median": 35.464,
+            "p99": 52.95,
+            "max": 54.085
+          },
+          "vi_deltas": {
+            "3": 31,
+            "2": 34
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2253,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "drops": 0,
+      "pause": null
+    },
+    {
+      "case": "normal-circle-144",
+      "runtime_sha256": "9649813b540eb2b5bd5ae0bb11513fe0d8a2cc3e7b1764e30dd44a7ff769dacb",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 139.00832903172048,
+          "scenes": 24.593271373756938,
+          "interval_ms": {
+            "n": 2097,
+            "median": 6.95,
+            "p99": 11.944,
+            "max": 48.283
+          },
+          "update_ms": {
+            "n": 371,
+            "median": 35.55,
+            "p99": 54.191,
+            "max": 102.961
+          },
+          "vi_deltas": {
+            "2": 220,
+            "3": 147,
+            "4": 3,
+            "5": 1
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 143.8509775797762,
+          "scenes": 29.819108894141113,
+          "interval_ms": {
+            "n": 960,
+            "median": 6.947,
+            "p99": 7.278,
+            "max": 8.066
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.445,
+            "p99": 36.666,
+            "max": 37.388
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 143.89284285158527,
+          "scenes": 29.66862739207944,
+          "interval_ms": {
+            "n": 388,
+            "median": 6.948,
+            "p99": 7.259,
+            "max": 7.655
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.524,
+            "p99": 37.066,
+            "max": 37.388
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2252,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1,
+        "audio-underrun": 1,
+        "audio-pause-empty": 1,
+        "audio-resume": 1
+      },
+      "drops": 0,
+      "pause": null
+    },
+    {
+      "case": "normal-circle-60",
+      "runtime_sha256": "9649813b540eb2b5bd5ae0bb11513fe0d8a2cc3e7b1764e30dd44a7ff769dacb",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 59.82796034104999,
+          "scenes": 29.880705442860336,
+          "interval_ms": {
+            "n": 899,
+            "median": 16.679,
+            "p99": 17.818,
+            "max": 18.611
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.421,
+            "p99": 34.73,
+            "max": 35.173
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 59.821668457818376,
+          "scenes": 29.835869732094878,
+          "interval_ms": {
+            "n": 399,
+            "median": 16.698,
+            "p99": 17.583,
+            "max": 18.187
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.425,
+            "p99": 34.168,
+            "max": 34.476
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 59.7931232676344,
+          "scenes": 29.8965616338172,
+          "interval_ms": {
+            "n": 160,
+            "median": 16.7065,
+            "p99": 17.558,
+            "max": 17.664
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.4345,
+            "p99": 34.063,
+            "max": 34.476
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2249,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "drops": 0,
+      "pause": null
+    },
+    {
+      "case": "normal-circle-480",
+      "runtime_sha256": "9649813b540eb2b5bd5ae0bb11513fe0d8a2cc3e7b1764e30dd44a7ff769dacb",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 443.5167963287899,
+          "scenes": 29.85145278843152,
+          "interval_ms": {
+            "n": 6671,
+            "median": 2.089,
+            "p99": 4.896,
+            "max": 19.476
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.428,
+            "p99": 35.118,
+            "max": 35.934
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 458.7900721180285,
+          "scenes": 29.777959671065776,
+          "interval_ms": {
+            "n": 3066,
+            "median": 2.086,
+            "p99": 3.851,
+            "max": 16.875
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.452,
+            "p99": 34.607,
+            "max": 35.176
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 455.083011059885,
+          "scenes": 29.574850434436065,
+          "interval_ms": {
+            "n": 1231,
+            "median": 2.086,
+            "p99": 3.702,
+            "max": 16.875
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.466499999999996,
+            "p99": 34.876,
+            "max": 35.176
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2250,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "drops": 0,
+      "pause": null
+    },
+    {
+      "case": "normal-circle-unlimited",
+      "runtime_sha256": "9649813b540eb2b5bd5ae0bb11513fe0d8a2cc3e7b1764e30dd44a7ff769dacb",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 1287.4639430646685,
+          "scenes": 19.23508314477269,
+          "interval_ms": {
+            "n": 20013,
+            "median": 0.591,
+            "p99": 3.062,
+            "max": 5.968
+          },
+          "update_ms": {
+            "n": 299,
+            "median": 50.307,
+            "p99": 66.395,
+            "max": 68.507
+          },
+          "vi_deltas": {
+            "3": 299
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 1274.769692720201,
+          "scenes": 19.134591703328013,
+          "interval_ms": {
+            "n": 8794,
+            "median": 0.592,
+            "p99": 3.071,
+            "max": 5.427
+          },
+          "update_ms": {
+            "n": 132,
+            "median": 50.2525,
+            "p99": 66.293,
+            "max": 68.72
+          },
+          "vi_deltas": {
+            "3": 132
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 1272.020677375068,
+          "scenes": 18.889631801871285,
+          "interval_ms": {
+            "n": 3569,
+            "median": 0.592,
+            "p99": 3.02,
+            "max": 5.427
+          },
+          "update_ms": {
+            "n": 53,
+            "median": 50.282,
+            "p99": 66.246,
+            "max": 66.293
+          },
+          "vi_deltas": {
+            "3": 53
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2256,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1,
+        "audio-underrun": 413,
+        "audio-pause-empty": 2,
+        "audio-resume": 2
+      },
+      "drops": 0,
+      "pause": null
+    },
+    {
+      "case": "normal-original",
+      "runtime_sha256": "9649813b540eb2b5bd5ae0bb11513fe0d8a2cc3e7b1764e30dd44a7ff769dacb",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 30.11596445276794,
+          "scenes": 29.916079732948685,
+          "interval_ms": {
+            "n": 452,
+            "median": 33.386,
+            "p99": 35.092,
+            "max": 36.897
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.427,
+            "p99": 36.681,
+            "max": 37.005
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 27.89018823178006,
+          "scenes": 27.590293734664144,
+          "interval_ms": {
+            "n": 186,
+            "median": 33.5265,
+            "p99": 51.511,
+            "max": 52.271
+          },
+          "update_ms": {
+            "n": 184,
+            "median": 33.4825,
+            "p99": 52.356,
+            "max": 52.606
+          },
+          "vi_deltas": {
+            "2": 153,
+            "3": 31
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 28.41411478629408,
+          "scenes": 28.41411478629408,
+          "interval_ms": {
+            "n": 76,
+            "median": 33.5175,
+            "p99": 50.31,
+            "max": 51.511
+          },
+          "update_ms": {
+            "n": 76,
+            "median": 33.438,
+            "p99": 52.327,
+            "max": 52.356
+          },
+          "vi_deltas": {
+            "3": 8,
+            "2": 68
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2251,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "drops": 0,
+      "pause": null
+    },
+    {
+      "case": "pause-120",
+      "runtime_sha256": "9649813b540eb2b5bd5ae0bb11513fe0d8a2cc3e7b1764e30dd44a7ff769dacb",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 119.65200753322122,
+          "scenes": 29.863119167546596,
+          "interval_ms": {
+            "n": 1799,
+            "median": 8.338,
+            "p99": 8.946,
+            "max": 9.628
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.43,
+            "p99": 33.945,
+            "max": 34.173
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 100.73033908303117,
+          "scenes": 25.088031886762458,
+          "interval_ms": {
+            "n": 799,
+            "median": 8.335,
+            "p99": 9.215,
+            "max": 1260.765
+          },
+          "update_ms": {
+            "n": 199,
+            "median": 33.458,
+            "p99": 33.907,
+            "max": 1287.043
+          },
+          "vi_deltas": {
+            "2": 199
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 119.64296760490707,
+          "scenes": 29.63293315291816,
+          "interval_ms": {
+            "n": 323,
+            "median": 8.334,
+            "p99": 8.961,
+            "max": 9.488
+          },
+          "update_ms": {
+            "n": 80,
+            "median": 33.433499999999995,
+            "p99": 33.85,
+            "max": 33.983
+          },
+          "vi_deltas": {
+            "2": 80
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2250,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 2,
+        "audio-anchor-drain-end": 2
+      },
+      "drops": 0,
+      "pause": {
+        "vi": 4104,
+        "ack_seconds": 0.015000000013969839,
+        "paused_seconds": 1.25,
+        "resume_seconds": 0.01600000000325963,
+        "owned_pid": 36800,
+        "hidden": true
+      }
+    },
+    {
+      "case": "reference-state",
+      "runtime_sha256": "8bd6b7635ec71a70c735055af97df5119df9f8a0b00d942825b226259ffe9cf7",
+      "bins": [
+        {
+          "vi": [
+            3000,
+            3900
+          ],
+          "output": 119.65598903153435,
+          "scenes": 29.84752170842162,
+          "interval_ms": {
+            "n": 1800,
+            "median": 8.341,
+            "p99": 9.114,
+            "max": 10.299
+          },
+          "update_ms": {
+            "n": 449,
+            "median": 33.417,
+            "p99": 34.95,
+            "max": 35.767
+          },
+          "vi_deltas": {
+            "2": 449
+          }
+        },
+        {
+          "vi": [
+            4000,
+            4400
+          ],
+          "output": 119.6487328839792,
+          "scenes": 24.5586886019682,
+          "interval_ms": {
+            "n": 799,
+            "median": 8.337,
+            "p99": 8.974,
+            "max": 15.801
+          },
+          "update_ms": {
+            "n": 164,
+            "median": 34.1375,
+            "p99": 51.511,
+            "max": 51.768
+          },
+          "vi_deltas": {
+            "2": 94,
+            "3": 70
+          }
+        },
+        {
+          "vi": [
+            4113,
+            4275
+          ],
+          "output": 119.58714950659159,
+          "scenes": 19.683599142389298,
+          "interval_ms": {
+            "n": 322,
+            "median": 8.334,
+            "p99": 9.221,
+            "max": 9.727
+          },
+          "update_ms": {
+            "n": 53,
+            "median": 50.183,
+            "p99": 51.511,
+            "max": 51.768
+          },
+          "vi_deltas": {
+            "3": 53
+          }
+        }
+      ],
+      "audio_events": {
+        "audio-queue": 2247,
+        "audio-start": 1,
+        "audio-anchor-drain-begin": 1,
+        "audio-anchor-drain-end": 1
+      },
+      "drops": 0,
+      "pause": null
+    }
+  ],
+  "focused_tests_log_sha256": "fefb5200fa13bf40ca2a69f9b006d8852dd3720ed42140052712996c890fce41",
+  "private_artifact_id": "high-refresh-20261011/open-issues-20261013",
+  "remaining_limits": [
+    "Physical monitor scanout and owner visual acceptance remain pending",
+    "Guest workload spikes and 30/20-Hz adaptive recovery are unchanged",
+    "Unlimited saturation, heavy combat and full-game coverage remain open",
+    "Screenshots use GPU readback and are not performance measurements"
+  ],
+  "reproducible_phase_analysis": {
+    "spin-120-output-trace": {
+      "samples": 743,
+      "repeated_phases": 162,
+      "backward_phases": 0,
+      "phase_step_counts": {
+        "0.5000": 527,
+        "0.0000": 162,
+        "1.5000": 5,
+        "2.0000": 45,
+        "3.0000": 2,
+        "2.5000": 1
+      },
+      "present_interval_ms": {
+        "median": 8.335,
+        "p99": 8.7,
+        "maximum": 17.84
+      },
+      "expected_phase_step": 0.5,
+      "uneven_phase_steps": 215
+    },
+    "spin-120-no-repeat": {
+      "samples": 740,
+      "repeated_phases": 0,
+      "backward_phases": 0,
+      "phase_step_counts": {
+        "0.5000": 739
+      },
+      "present_interval_ms": {
+        "median": 8.339,
+        "p99": 8.994,
+        "maximum": 10.984
+      },
+      "expected_phase_step": 0.5,
+      "uneven_phase_steps": 0
+    },
+    "circle-complete": {
+      "samples": 1702,
+      "repeated_phases": 0,
+      "backward_phases": 0,
+      "phase_step_counts": {
+        "0.5000": 1701
+      },
+      "present_interval_ms": {
+        "median": 8.339,
+        "p99": 9.094,
+        "maximum": 23.063
+      },
+      "expected_phase_step": 0.5,
+      "uneven_phase_steps": 0
+    }
+  },
+  "analyzer_tests": {
+    "count": 4,
+    "log_sha256": "b724a9e32ffeb215969f630e5146e0816913db54e79e29806d5820ed0c5468ce"
+  },
+  "capture_and_cpu_write_compatibility": {
+    "runtime_sha256": "8bd6b7635ec71a70c735055af97df5119df9f8a0b00d942825b226259ffe9cf7",
+    "phase": {
+      "samples": 1700,
+      "repeated_phases": 0,
+      "backward_phases": 0,
+      "phase_step_counts": {
+        "0.5000": 1699
+      },
+      "present_interval_ms": {
+        "median": 8.339,
+        "p99": 8.947,
+        "maximum": 23.356
+      },
+      "expected_phase_step": 0.5,
+      "uneven_phase_steps": 0
+    },
+    "completed_vi_events": {
+      "redundant": 36
+    },
+    "reference_state_exact": true,
+    "reference_hashes": {
+      "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619",
+      "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+      "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf"
+    },
+    "normal_bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 119.64689070053686,
+        "scenes": 29.861842092574236,
+        "interval_ms": {
+          "n": 1799,
+          "median": 8.341,
+          "p99": 9.038,
+          "max": 9.902
+        },
+        "update_ms": {
+          "n": 449,
+          "median": 33.423,
+          "p99": 34.0,
+          "max": 35.782
+        },
+        "vi_deltas": {
+          "2": 449
+        }
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 119.4321690547349,
+        "scenes": 27.457395649518197,
+        "interval_ms": {
+          "n": 796,
+          "median": 8.339,
+          "p99": 8.973,
+          "max": 23.357
+        },
+        "update_ms": {
+          "n": 183,
+          "median": 33.494,
+          "p99": 52.503,
+          "max": 52.6
+        },
+        "vi_deltas": {
+          "2": 152,
+          "3": 31
+        }
+      },
+      {
+        "vi": [
+          4113,
+          4275
+        ],
+        "output": 118.92963330029733,
+        "scenes": 26.30530830006576,
+        "interval_ms": {
+          "n": 321,
+          "median": 8.339,
+          "p99": 8.966,
+          "max": 23.357
+        },
+        "update_ms": {
+          "n": 71,
+          "median": 33.561,
+          "p99": 52.065,
+          "max": 52.503
+        },
+        "vi_deltas": {
+          "2": 54,
+          "3": 17
+        }
+      }
+    ],
+    "combined_360_bins": [
+      {
+        "vi": [
+          3000,
+          3900
+        ],
+        "output": 357.42546754854664,
+        "scenes": 29.851941021074673,
+        "interval_ms": {
+          "n": 5376,
+          "median": 2.775,
+          "p99": 3.122,
+          "max": 17.665
+        },
+        "update_ms": {
+          "n": 449,
+          "median": 33.439,
+          "p99": 34.461,
+          "max": 34.959
+        },
+        "vi_deltas": {
+          "2": 449
+        }
+      },
+      {
+        "vi": [
+          4000,
+          4400
+        ],
+        "output": 351.61749297027524,
+        "scenes": 27.451365705443845,
+        "interval_ms": {
+          "n": 2344,
+          "median": 2.778,
+          "p99": 3.937,
+          "max": 31.337
+        },
+        "update_ms": {
+          "n": 183,
+          "median": 33.591,
+          "p99": 52.936,
+          "max": 53.655
+        },
+        "vi_deltas": {
+          "2": 152,
+          "3": 31
+        }
+      },
+      {
+        "vi": [
+          4113,
+          4275
+        ],
+        "output": 351.5231367320847,
+        "scenes": 26.782715179587406,
+        "interval_ms": {
+          "n": 945,
+          "median": 2.776,
+          "p99": 3.392,
+          "max": 31.337
+        },
+        "update_ms": {
+          "n": 72,
+          "median": 33.7055,
+          "p99": 52.936,
+          "max": 53.009
+        },
+        "vi_deltas": {
+          "3": 15,
+          "2": 57
+        }
+      }
+    ],
+    "audio_underruns": {
+      "circle": 0,
+      "combined": 0
+    }
+  },
+  "final_focused_tests": {
+    "count": 9,
+    "log_sha256": "c9f76630b4123e106212a66813bb138384388c541bf8105d04a797a40f5b514f"
+  },
+  "implementation_commit": "b9c1aeee7d259f358a5a76ac22b9ba6c9b7644d6",
+  "delivered_runtime_sha256": "8bd6b7635ec71a70c735055af97df5119df9f8a0b00d942825b226259ffe9cf7",
+  "local_delivery": {
+    "manifest_verified": 14,
+    "launcher_init_passed": true,
+    "owner_profile_preserved": true,
+    "owner_live_validation_pending": true,
+    "public_release": false,
+    "delivered_at_utc": "2026-10-13T01:24:52.693660+00:00",
+    "package_name": "high-refresh-pacing-20261013"
+  }
+}

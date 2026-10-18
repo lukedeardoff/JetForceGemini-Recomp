@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "status": "qualified renderer cache correction delivered locally; owner acceptance and broader loading limits remain open",
+  "runtime_sha256": "db65b460f399b550ca8a3ad0d98f5374d5e00a95dc4a7073edfa2649fa6772c6",
+  "runtime_source_files": {
+    "CMakeLists.txt": "c1db18c9ad0d815fe5dc45a1b9cb49a4f65cb6e4275b354d5d8123a3e0e5a83d",
+    "cmake/rt64_draw_call_key.cmake": "3366a04b3ef23ef020b29c1c5d7ed72b554772eb8040f7f221fd03d74076359f",
+    "include/jfg/boot/original_timing_pi_dma.hpp": "3e57403ff17752e4c442245907c83fe12f3da3891810588ee9e7ccb2da15edfc",
+    "src/boot/native_boot.cpp": "e15f9f55adf53e182ccaa5d957971f0fa039cf0e6ea380373de8d079562a191b",
+    "tests/CMakeLists.txt": "474f5785c615c282a01c231cece100e96da36898052cc2053601469be47a9017",
+    "tests/rt64_draw_call_key_tests.cpp": "9ecccc9799057100da07c863508a536737f9d181c778c8456ef06f1cea2c96aa"
+  },
+  "delivered": true,
+  "original_correspondence": {
+    "ram_save": true,
+    "instructions": true,
+    "probe": true,
+    "hashes": true
+  },
+  "recorded_correspondence": {
+    "ram_save": true,
+    "instructions": true,
+    "interpolation": true,
+    "rom_original_policy": true,
+    "unsupported_accesses": true
+  },
+  "native_gaps": {
+    "native120": [
+      {
+        "vi": 6457,
+        "poll": 3176,
+        "interval_ms": 610.151,
+        "cold_sections": [
+          3,
+          4,
+          6,
+          12,
+          13,
+          14,
+          23,
+          25,
+          29,
+          35,
+          46,
+          69,
+          70,
+          79,
+          83,
+          85,
+          96,
+          102,
+          115,
+          131,
+          134,
+          140
+        ]
+      }
+    ],
+    "native360": [
+      {
+        "vi": 6459,
+        "poll": 3176,
+        "interval_ms": 603.584,
+        "cold_sections": [
+          3,
+          4,
+          6,
+          12,
+          13,
+          14,
+          23,
+          25,
+          29,
+          35,
+          46,
+          69,
+          70,
+          79,
+          83,
+          85,
+          96,
+          102,
+          115,
+          131,
+          134,
+          140
+        ]
+      }
+    ]
+  },
+  "late_hitch_absent": true,
+  "native_audio_underruns": {
+    "120": 0,
+    "360": 0
+  },
+  "baseline_regression_failures": 88,
+  "candidate_regression_failures": 0,
+  "owner_live_verified": false,
+  "no_20fps_goal_complete": false,
+  "private_evidence": "route-audio-bridge-20261016",
+  "runtime_source_commit": "27ddef0a5ed4afd1f1f9c26a5590b590cda5fe8e",
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T10:40:52.335405+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 40,
+    "manifest_verified": 14,
+    "launcher_sha256": "60b2696f1447101809053922a1aa5b24efc94c197875a63ad22b3fb9c4dc045c",
+    "launcher_setup_runtime_protocol_passed": true
+  }
+}

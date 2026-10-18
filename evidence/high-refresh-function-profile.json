@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "status": "opt-in diagnostics qualified in bounded tests; no slowdown fix or desktop profiler deployment",
+  "runtime_sha256": "a42b48089ba2555e92944e3f26d0c1a77e3ee759d679d4c9bed761b02f55e29a",
+  "normal_profile_default": "off",
+  "maximum_memory_trace_bytes": 268435456,
+  "recorded_overhead_observations": [
+    {
+      "case": "hyper-profile-recorded-off-a",
+      "mode": 0,
+      "active_ms": {
+        "n": 279,
+        "median": 25.073,
+        "p95": 41.666,
+        "max": 52.068
+      },
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      }
+    },
+    {
+      "case": "hyper-profile-recorded-stages",
+      "mode": 1,
+      "active_ms": {
+        "n": 279,
+        "median": 25.924,
+        "p95": 42.369,
+        "max": 50.106
+      },
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      }
+    },
+    {
+      "case": "hyper-profile-recorded-full",
+      "mode": 2,
+      "active_ms": {
+        "n": 279,
+        "median": 36.29,
+        "p95": 43.882,
+        "max": 51.421
+      },
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      }
+    },
+    {
+      "case": "hyper-profile-recorded-off-b",
+      "mode": 0,
+      "active_ms": {
+        "n": 279,
+        "median": 25.945,
+        "p95": 45.075,
+        "max": 52.549
+      },
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      }
+    }
+  ],
+  "final_disabled_checks": {
+    "ram_save": true,
+    "instructions": true,
+    "interpolation": true,
+    "cycles_off": true
+  },
+  "final_original_check": {
+    "ram_save": true,
+    "instructions": true,
+    "probe": true,
+    "hashes": true,
+    "cycles_off": true
+  },
+  "final_profile_checks": [
+    {
+      "case": "hyper-renderer-recorded-full",
+      "active_ms": {
+        "n": 279,
+        "median": 36.377,
+        "p95": 45.725,
+        "max": 49.655
+      },
+      "updates": 279,
+      "trace_bytes": 28712085,
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true
+      },
+      "audio_underruns": null
+    },
+    {
+      "case": "hyper-renderer-native120-stages",
+      "active_ms": {
+        "n": 1248,
+        "median": 23.7295,
+        "p95": 27.54,
+        "max": 45.446
+      },
+      "updates": 1248,
+      "trace_bytes": 7433427,
+      "correspondence": null,
+      "audio_underruns": 0
+    },
+    {
+      "case": "hyper-renderer-native360-stages",
+      "active_ms": {
+        "n": 1250,
+        "median": 22.753500000000003,
+        "p95": 26.633,
+        "max": 32.689
+      },
+      "updates": 1250,
+      "trace_bytes": 7256093,
+      "correspondence": null,
+      "audio_underruns": 0
+    }
+  ],
+  "private_evidence": [
+    "hyper-profile-fixtures",
+    "hyper-profile-analyzer",
+    "hyper-profile-native-gpu",
+    "hyper-profile-correlation-fix",
+    "hyper-profile-correlated-review",
+    "hyper-profile-renderer-build-fixed",
+    "hyper-profile-renderer-analyzer",
+    "hyper-profile-renderer-native",
+    "hyper-profile-final-disabled"
+  ],
+  "limits": [
+    "Full profiling materially changes timings; not native FPS acceptance.",
+    "Native paths differ.",
+    "GPU completion intervals are not root-owned GPU durations.",
+    "No full-route physical-display acceptance."
+  ]
+}

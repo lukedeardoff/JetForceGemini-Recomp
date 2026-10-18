@@ -24,5 +24,5 @@ their original timestamps when atomic work crosses a deadline.
 
 Focused tests cover clock, deadline, and interrupt behavior. Full-game timing,
 asynchronous devices, and complete parity remain separate acceptance work.
-Historical prototype trials are in [Git history](../history.md); consult
+Historical prototype trials are in [Git history](../README.md#historical-material); consult
 [OS timing](phase9-os-clock-qualification.md) for integration constraints.

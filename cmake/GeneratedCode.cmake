@@ -677,6 +677,13 @@ function(jfg_add_generated_code_tests)
     jfg_set_project_warnings(${ARG_NAME}_patch_audit)
     target_compile_features(${ARG_NAME}_patch_audit PRIVATE cxx_std_20)
 
+    # These audits retain guest bodies for linking without executing them.
+    # Original-timing generated roots need fail-closed hook definitions too.
+    foreach(audit_kind IN ITEMS link_smoke baseline_audit patch_audit)
+        target_sources(${ARG_NAME}_${audit_kind} PRIVATE
+            "${PROJECT_SOURCE_DIR}/tests/generated_timing_link_stubs.cpp")
+    endforeach()
+
     add_test(NAME ${ARG_NAME}.link_smoke COMMAND ${ARG_NAME}_link_smoke)
     add_test(NAME ${ARG_NAME}.baseline_audit COMMAND ${ARG_NAME}_baseline_audit)
     add_test(NAME ${ARG_NAME}.patch_audit COMMAND ${ARG_NAME}_patch_audit)

@@ -5,10 +5,34 @@ downloadable assets to that tag. GitHub's `/releases/tag/v1.0.0` URL is normal;
 the stable release should also appear as **Latest** and resolve at
 `https://github.com/TK22-26/JetForceGemini-Recomp/releases/latest`.
 
-The 2026-10-08 review found that all published releases were marked as
-prereleases, `/releases/latest` returned 404, and no v1.0.0 release/tag existed.
-The CI workflow built a package but did not publish one. Local version changes
-and README announcements do not create a GitHub Release.
+Local version changes and README announcements do not create a GitHub
+Release; only the tag-triggered workflow below publishes one.
+
+## Build and package the launcher
+
+```powershell
+powershell -NoProfile -File scripts/build_launcher.ps1 -Test
+python scripts/package_launcher.py
+```
+
+Use `-OutputDirectory` to build into a separate folder while another launcher
+copy is running. The C# helper uses the Windows .NET Framework compiler with no
+NuGet or game dependency; outputs stay under the ignored `build/launcher`.
+Tests cover ROM and executable validation, argument forwarding, save
+preservation, source discovery, embedded-script restoration, missing-tool
+installation plans and retries, controller profiles, crash reporting, log
+bounds and redaction, archive contents and UI rendering.
+
+Packaging requires a clean committed source tree; the build receipt binds the
+launcher to its source revision. The ZIP uses a fixed allowlist: the launcher
+executable, the [launcher guide](launcher.md) as `README.md`, the
+[ROM build guide](rom-bootstrap.md) as `BUILD-SETUP.md`, the project license and
+the retained third-party notices. Both guides are read outside the repository,
+so they use absolute GitHub links. Published packages and launcher binaries
+link these two guides, `docs/getting-started.md` and `docs/known-issues.md` on
+`main`: keep those four paths stable. The package never contains the generated game
+executable, game assets, runtime DLLs, ROMs, saves, private diagnostics or
+compiler debug symbols.
 
 ## When the release is ready
 
@@ -36,9 +60,9 @@ publishes it only after uploads succeed. A stable tag becomes a published,
 non-prerelease **Latest** release. A version with a suffix, such as
 `v1.1.0-rc.1`, is published as a prerelease without replacing Latest.
 
-The release ZIP includes third-party notices and provenance. A standalone EXE
-is not uploaded separately; users should extract the complete ZIP. Generated
-game binaries, ROMs, saves and private diagnostic data are not release inputs.
+A standalone EXE is not uploaded separately; users extract the complete ZIP.
+The workflow writes short generated release notes; curated notes for a version
+go in [`docs/releases/`](../releases/).
 
 ## Retry and verification
 

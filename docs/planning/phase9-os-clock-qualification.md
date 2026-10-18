@@ -3,7 +3,7 @@
 This is a retained implementation reference for source provenance. The latest
 recorded selected-state comparison in this investigation is the
 [1,908-update prefix](phase9-execution-frontier-1909.md). Earlier trial-by-trial
-results are available in [Git history](../history.md).
+results are available in [Git history](../README.md#historical-material).
 
 ## Guest OS integration
 

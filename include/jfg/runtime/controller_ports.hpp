@@ -4,15 +4,16 @@
 #include <cstdint>
 namespace jfg {
 // -1 automatic (sticky device), -2 disconnected, -3 keyboard; 0..3 physical
-// slots.
+// slots. Resolved SDL identities use slots 4 and above in a host catalog.
 // Availability for an explicit UI selection. Resolved automatic assignments
 // reserve their device too; refreshing discovery never changes saved mappings.
+template<std::size_t N=4>
 inline bool controller_device_available(
     std::size_t player, int device,
     const std::array<ControllerMapping, 4> &mappings,
     const std::array<int, 4> &assigned,
-    const std::array<bool, 4> &connected) {
-  if (player >= mappings.size() || device < -3 || device >= 4)
+    const std::array<bool, N> &connected) {
+  if (player >= mappings.size() || device < -3 || device >= static_cast<int>(N))
     return false;
   if (device == -1 || device == -2)
     return true;
@@ -54,17 +55,18 @@ public:
   std::array<ControllerMapping, 4> mappings{};
   std::array<ControllerPortSample, 4> samples{};
   void configure(std::size_t p, const ControllerMapping &m) {
-    if (mappings[p].device != m.device)
+    if (mappings[p].device != m.device || mappings[p].device_key != m.device_key)
       assigned_[p] = -1;
     mappings[p] = m;
   }
-  std::array<int, 4> devices(const std::array<bool, 4> &connected) {
+  template<std::size_t N=4>
+  std::array<int, 4> devices(const std::array<bool, N> &connected) {
     std::array<int, 4> result{-2, -2, -2, -2};
-    std::array<bool, 4> used{};
+    std::array<bool, N> used{};
     bool keyboard = false;
     for (std::size_t p = 0; p < 4; ++p) {
       int d = mappings[p].device;
-      if (d >= 0 && d < 4 && !used[static_cast<std::size_t>(d)]) {
+      if (d >= 0 && d < static_cast<int>(N) && !used[static_cast<std::size_t>(d)]) {
         result[p] = d;
         used[static_cast<std::size_t>(d)] = true;
       } else if (d == -3 && !keyboard) {
@@ -75,10 +77,10 @@ public:
     for (std::size_t p = 0; p < 4; ++p)
       if (mappings[p].device == -1) {
         int &d = assigned_[p];
-        if (d >= 0 && used[static_cast<std::size_t>(d)])
+        if (d >= static_cast<int>(N) || (d >= 0 && used[static_cast<std::size_t>(d)]))
           d = -1;
         if (d < 0)
-          for (int c = 0; c < 4; ++c)
+          for (int c = 0; c < static_cast<int>(N); ++c)
             if (connected[static_cast<std::size_t>(c)] &&
                 !used[static_cast<std::size_t>(c)]) {
               d = c;

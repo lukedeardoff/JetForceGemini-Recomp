@@ -1,0 +1,38 @@
+{
+  "runtime_sha256": "1381e018fa2ec2cc8cc0e9c64c785753485b4068a81a08b7f29f8ca0cee2e4f8",
+  "input_header": "jfg-phase8-input-v8",
+  "files": {
+    "final-rdram.bin": 4194304,
+    "gameplay.tsv": 4559470,
+    "input.txt": 81047,
+    "interpolation.tsv": 2450739,
+    "last-frame.ppm": 921615,
+    "polls.tsv": 97465,
+    "progress.json": 19152,
+    "progress.json.timing.tsv": 484103,
+    "session.txt": 1008
+  },
+  "interpolation_events": {
+    "render": 10488,
+    "billboard": 2638,
+    "semantic": 2638,
+    "coverage": 2638,
+    "display": 10485,
+    "present": 10485,
+    "rigid": 8592
+  },
+  "smoke_exit": 0,
+  "muted": true,
+  "owner_route_pending": true,
+  "no_jitter_fix_claimed": true,
+  "smoke_harness_correction": "Native play runs a supervised child; initial close lookup used wrapper PID. Recovered by verified descendant PID and closed normally.",
+  "schema": 1,
+  "launcher_checks": 640,
+  "setup_checks": 15,
+  "graphics_checks": 6,
+  "viewport_checks_passed": true,
+  "ordinary_play_strips_diagnostics": true,
+  "raw_inputs_preserved": true,
+  "initial_idle_excluded_from_active_analysis": true,
+  "smoke_limit": "Render child used Default desktop; logging plumbing only, not isolated performance or visual acceptance."
+}

@@ -286,3 +286,28 @@ selectarrow { width:6dp; height:6dp; margin-right:7dp; margin-top:5dp; border-ri
 
 /* One-time import leaves the home screen focused on Play. */
 .rom-imported #rom-card { display: none; }
+
+/* Reference update card below Play, using JFG amber and dark surfaces. */
+#update-notice { display:none; box-sizing:border-box; width:100%; max-width:700dp; min-height:78dp; margin-top:28dp; padding:14dp 16dp 14dp 18dp; align-items:center; gap:14dp; background:#121826; color:#e8ecf4; border:2dp #ffb23e; border-radius:16dp; }
+.has-update #update-notice { display:flex; }
+.update-icon { display:block; position:relative; flex-shrink:0; width:40dp; height:40dp; border-radius:20dp; background:#302515; }
+.update-icon span { display:block; position:absolute; background:#ffb23e; }
+.download-stem { left:19dp; top:8dp; width:3dp; height:16dp; }
+.download-left { left:13dp; top:20dp; width:10dp; height:3dp; transform:rotate(45deg); }
+.download-right { left:19dp; top:20dp; width:10dp; height:3dp; transform:rotate(-45deg); }
+.download-base { left:12dp; top:29dp; width:17dp; height:3dp; }
+.update-copy { display:block; flex:1; min-width:0; }
+.update-title { display:block; font-size:16dp; font-weight:bold; }
+#update-version { display:inline-block; margin-left:8dp; padding:2dp 8dp; background:#302515; color:#ffb23e; border-radius:5dp; font-size:11dp; }
+.update-summary { display:block; margin-top:3dp; font-size:13dp; color:#a7b0c2; }
+.update-actions { display:flex; align-items:center; flex-shrink:0; gap:8dp; }
+.update-actions button { height:38dp; line-height:34dp; text-align:center; padding:0 14dp; border-radius:19dp; border-width:2dp; font-size:13dp; font-weight:bold; }
+#update-notes { background:transparent; color:#c5ccda; border-color:#3b4863; }
+#update-notes:hover, #update-notes:focus { background:#222d43; border-color:#ffb23e; color:#e8ecf4; }
+#update-download { background:#ffb23e; border-color:#ffb23e; color:#1a1206; }
+#update-download:hover, #update-download:focus { background:#ffc872; border-color:#ffc872; }
+.has-update .content { top:22%; bottom:52dp; overflow-y:auto; padding-right:4dp; }
+@media (max-width:700dp) { #update-notice { padding:12dp; gap:10dp; } .update-actions { gap:6dp; } .update-actions button { padding:0 10dp; } .update-icon { display:none; } }
+@media (max-width:500dp) { #update-notice { flex-wrap:wrap; } .update-copy { min-width:100%; } .update-actions { margin-left:auto; } }
+@media (max-height:560dp) { .has-update .content { top:12%; } .has-update h1 { margin-bottom:16dp; } .has-update #update-notice { margin-top:16dp; } }
+.updates .panel-actions { display:flex; gap:12dp; margin-top:24dp; }

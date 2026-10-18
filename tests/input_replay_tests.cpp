@@ -150,6 +150,83 @@ void test_independent_look() {
 }
 
 
+void test_modern_action_recording() {
+    const TemporaryReplay valid("jfg-phase8-input-v5\n100,120,1,2010,80,-40,5,6144,-18432,129\n120,121,1,8000,0,0,0,0,0,128\n");
+    jfg::DeterministicInputReplay replay;
+    check(jfg::DeterministicInputReplay::load(valid.path(),replay)==jfg::InputReplayError::none,"v5 modern actions load");
+    check(replay.sample_at(110).modern_flags==129 && replay.sample_at(110).look_y==-18432,"v5 scope commands and precise look survive");
+    check(replay.sample_at(120).modern_flags==128 && replay.sample_at(120).buttons==0x8000,"modern menus do not require captured mouse look");
+    check(replay.sample_at(121).neutral(),"modern actions release at EOF");
+    const auto before=replay.events();
+    for(const auto *row:{"1,2,1,0,0,0,0,0,0,1","1,2,1,0,0,0,0,0,0,136",
+        "1,2,0,0,0,0,0,0,0,128","1,2,1,0,0,0,0,0,0,256",
+        "1,2,1,0,0,0,0,0,0","1,2,1,0,0,0,0,0,0,128,0"}) {
+        const TemporaryReplay bad(std::string("jfg-phase8-input-v5\n")+row+"\n");
+        check(jfg::DeterministicInputReplay::load(bad.path(),replay)==jfg::InputReplayError::invalid_record && replay.events()==before,"invalid modern flags reject atomically");
+    }
+    const TemporaryReplay old("jfg-phase8-input-v4\n1,2,1,0,0,0,0,0,0,128\n");
+    check(jfg::DeterministicInputReplay::load(old.path(),replay)==jfg::InputReplayError::invalid_record,"v4 does not accept action semantics");
+    const TemporaryReplay compatible("jfg-phase8-input-v5\n1,2,1,0,0,0,5,80,0,0\n");
+    check(jfg::DeterministicInputReplay::load(compatible.path(),replay)==jfg::InputReplayError::none && replay.sample_at(1).modern_flags==0,"v5 retains legacy mapping semantics when disabled");
+}
+
+void test_native_menu_recording() {
+
+  {
+    const TemporaryReplay valid("jfg-phase8-input-v8\n1,2,1,8000,0,0,0,0,0,128,8,8\n");
+    jfg::DeterministicInputReplay replay;
+    check(jfg::DeterministicInputReplay::load(valid.path(),replay)==jfg::InputReplayError::none && replay.sample_at(1).menu_kind==8,"v8 Options direct selection survives recording");
+    for(const auto *row:{"1,2,1,0,0,0,0,0,0,128,8,9","1,2,1,0,0,0,0,0,0,128,6,1","1,2,1,0,0,0,0,0,0,128,7,1","1,2,1,0,0,0,0,0,0,128,9,1"}) {
+      const TemporaryReplay bad(std::string("jfg-phase8-input-v8\n")+row+"\n");
+      check(jfg::DeterministicInputReplay::load(bad.path(),replay)==jfg::InputReplayError::invalid_record,"nonselection pages and invalid Options targets reject");
+    }
+    const TemporaryReplay old("jfg-phase8-input-v7\n1,2,1,8000,0,0,0,0,0,128,8,1\n");
+    check(jfg::DeterministicInputReplay::load(old.path(),replay)==jfg::InputReplayError::invalid_record,"v7 does not reinterpret Options events");
+  }
+  {
+    const TemporaryReplay validPause("jfg-phase8-input-v7\n100,101,1,0,0,0,0,0,0,128,5,7\n101,102,1,2000,0,0,0,0,0,128,5,9\n");
+    jfg::DeterministicInputReplay replay;
+    check(jfg::DeterministicInputReplay::load(validPause.path(),replay)==jfg::InputReplayError::none,"v7 pause events load");
+    check(replay.sample_at(100).menu_target==7&&replay.sample_at(101).buttons==0x2000,"pause hover and native Save survive recording");
+    const TemporaryReplay invalidPause("jfg-phase8-input-v7\n100,101,1,2000,0,0,0,0,0,128,5,10\n");
+    check(jfg::DeterministicInputReplay::load(invalidPause.path(),replay)==jfg::InputReplayError::invalid_record,"invalid pause target rejected");
+  }
+    const TemporaryReplay valid("jfg-phase8-input-v6\n100,101,1,0,0,0,0,0,0,128,3,5\n101,102,1,8000,0,0,0,0,0,128,3,5\n");
+    jfg::DeterministicInputReplay replay;
+    check(jfg::DeterministicInputReplay::load(valid.path(),replay)==jfg::InputReplayError::none,"v6 direct menu selection loads");
+    const auto hover=replay.sample_at(100);
+    check(hover.menu_kind==3&&hover.menu_target==5&&!hover.buttons&&!hover.stick_x&&!hover.stick_y&&!hover.neutral(),"hover carries slot five without controller movement");
+    check(replay.sample_at(101).buttons==0x8000&&replay.sample_at(101).menu_target==5,"click records selection and activation together");
+    check(replay.sample_at(102).neutral(),"semantic event releases at EOF");
+    const auto before=replay.events();
+    for(const auto *row:{"1,2,1,0,0,0,0,0,0,0,3,7","1,2,1,0,0,0,0,0,0,0,2,4",
+        "1,2,1,0,0,0,0,0,0,0,0,1","1,2,1,0,0,0,0,0,0,0,3,0",
+        "1,2,1,0,0,0,0,0,0,0,1,1","1,2,1,0,0,0,0,0,0,0,4,2",
+        "1,2,0,0,0,0,0,0,0,0,3,1","1,2,1,0,0,0,0,0,0,0,3"}) {
+        const TemporaryReplay bad(std::string("jfg-phase8-input-v6\n")+row+"\n");
+        check(jfg::DeterministicInputReplay::load(bad.path(),replay)==jfg::InputReplayError::invalid_record&&replay.events()==before,"invalid menu semantics reject atomically");
+    }
+}
+
+void test_precise_stick_recording() {
+    const TemporaryReplay valid("jfg-phase8-input-v4\n100,120,1,2010,80,-40,5,6144,-18432\n120,121,1,0,0,0,3,32000,0\n");
+    jfg::DeterministicInputReplay replay;
+    check(jfg::DeterministicInputReplay::load(valid.path(),replay)==jfg::InputReplayError::none,"v4 precise stick and mouse load");
+    const auto sample=replay.sample_at(110);
+    check(sample.pc_mode==5&&sample.look_x==6144&&sample.look_y==-18432&&sample.stick_x==80,"v4 preserves modern rate independently from movement");
+    check(replay.sample_at(121).neutral(),"v4 look releases at EOF");
+    const auto before=replay.events();
+    for(const auto* row:{"1,2,1,0,0,0,5,18433,0","1,2,1,0,0,0,5,0,-18433",
+        "1,2,0,0,0,0,5,1,0","1,2,1,0,0,0,6,0,0","1,2,1,0,0,0,4,128,0"}) {
+      const TemporaryReplay bad(std::string("jfg-phase8-input-v4\n")+row+"\n");
+      check(jfg::DeterministicInputReplay::load(bad.path(),replay)==jfg::InputReplayError::invalid_record&&replay.events()==before,"invalid v4 is rejected atomically");
+    }
+    const TemporaryReplay old("jfg-phase8-input-v3\n1,2,1,0,0,0,5,1,0\n");
+    check(jfg::DeterministicInputReplay::load(old.path(),replay)==jfg::InputReplayError::invalid_record,"v3 never reinterprets precise rate mode");
+    const TemporaryReplay compatible("jfg-phase8-input-v4\n1,2,1,0,0,0,4,80,0\n");
+    check(jfg::DeterministicInputReplay::load(compatible.path(),replay)==jfg::InputReplayError::none&&replay.sample_at(1).look_x==80,"legacy mode keeps units in a v4 recording");
+}
+
 void test_repeated_poll_records() {
     const TemporaryReplay fixture(
         "jfg-phase8-input-v3\n"
@@ -201,6 +278,9 @@ void test_rejects_invalid_records() {
 int main() {
     test_valid_replay();
     test_independent_look();
+    test_precise_stick_recording();
+    test_modern_action_recording();
+    test_native_menu_recording();
     test_long_manual_recording();
     test_connection_transitions();
     test_poll_replay_eof_is_neutral();

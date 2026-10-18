@@ -101,6 +101,8 @@ public:
   }
   [[nodiscard]] std::uint32_t current() const { return current_; }
   [[nodiscard]] std::uint64_t handoffs() const { return handoffs_; }
+  void enable_timing(bool enabled) { executor_.enable_timing(enabled); }
+  [[nodiscard]] BatonExecutor::Timing timing() { return executor_.timing(); }
 private:
   static void require(bool valid, const char* reason) {
     if (!valid) throw std::logic_error(reason);

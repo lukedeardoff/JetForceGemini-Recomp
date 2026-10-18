@@ -15,6 +15,8 @@
 #include <vector>
 #include "../../launcher/native/graphics_check.hpp"
 #include "../../launcher/native/game_viewport.hpp"
+#include "../../launcher/native/video_settings_dialog.hpp"
+#include "../../launcher/native/video_settings_protocol.hpp"
 #ifdef JFG_RML_UI
 #include "native_ui.hpp"
 #endif
@@ -40,7 +42,8 @@ enum : UINT {
   Saves,
   Guide,
   Quit,
-  Mods
+  Mods,
+  Video
 };
 struct Process {
   HANDLE handle = nullptr, job = nullptr;
@@ -66,14 +69,14 @@ struct App {
   HFONT font = nullptr, titleFont = nullptr;
   HBRUSH background = CreateSolidBrush(RGB(18, 27, 40));
   fs::path profile, helper;
-  std::wstring inputReplay, progressOutput;
-  bool quickPlay = false;
+  std::wstring inputReplay, progressOutput, diagnosticsDirectory;
+  bool quickPlay = false, previewUpdate = false;
   Process session, dialog;
   std::vector<std::unique_ptr<Process>> tools;
   std::vector<HWND> liveModals;
   bool playing = false, setting = false, fullscreen = false, closing = false,
        mods = false, pauseInactive = false, manualPause = false;
-  bool stopRequested = false, initializing = true;
+  bool stopRequested = false, initializing = true, videoDialogOpen = false;
   ULONGLONG startedAt = 0;
   UINT dpi = 96;
   WINDOWPLACEMENT placement{sizeof(WINDOWPLACEMENT)};
@@ -165,10 +168,12 @@ bool launch(Process &process, const wchar_t *action, HWND owner) {
       command += L" --input-replay " + quote(app.inputReplay);
     if (!app.progressOutput.empty())
       command += L" --progress-output " + quote(app.progressOutput);
+    if (!app.diagnosticsDirectory.empty())
+      command += L" --diagnostics " + quote(app.diagnosticsDirectory);
   }
   fs::path executable=app.helper;
 #ifdef JFG_RML_UI
-  if(std::wstring(action)==L"map" || std::wstring(action)==L"inventory" || std::wstring(action)==L"controllers") {
+  if(std::wstring(action)==L"map" || std::wstring(action)==L"inventory" || std::wstring(action)==L"controllers" || std::wstring(action)==L"video") {
     wchar_t module[32768]{};GetModuleFileNameW(nullptr,module,32768);executable=module;
     command=quote(executable.wstring())+L" --live-tool "+action+L" --profile "+quote(app.profile.wstring())+L" --helper "+quote(app.helper.wstring())+L" --owner "+std::to_wstring(reinterpret_cast<std::uintptr_t>(owner));
   }
@@ -230,6 +235,11 @@ void fonts() {
   if (oldTitle)
     DeleteObject(oldTitle);
 }
+jfg::frontend::GameViewport renderViewport(int width,int height) {
+  const auto aw=static_cast<int>(reinterpret_cast<UINT_PTR>(GetPropW(app.render,L"JfgGameAspectWidth")));
+  const auto ah=static_cast<int>(reinterpret_cast<UINT_PTR>(GetPropW(app.render,L"JfgGameAspectHeight")));
+  return jfg::frontend::game_viewport(width,height,aw,ah);
+}
 void layout() {
   RECT area{};
   GetClientRect(app.window, &area);
@@ -238,7 +248,7 @@ void layout() {
   MoveWindow(app.viewport, 0, top, std::max<LONG>(1, area.right),
              std::max<LONG>(1, area.bottom - top), TRUE);
   if (app.render && IsWindow(app.render)) {
-    const auto game = jfg::frontend::game_viewport(area.right, area.bottom - top);
+    const auto game = renderViewport(area.right, area.bottom - top);
     MoveWindow(app.render, game.x, game.y, game.width, game.height, TRUE);
   }
   if (app.shield)
@@ -257,7 +267,7 @@ void layout() {
   MoveWindow(app.viewport, 0, 0, std::max<LONG>(1, area.right),
              std::max<LONG>(1, area.bottom - scaled(footer)), TRUE);
   if (app.render && IsWindow(app.render)) {
-    const auto game = jfg::frontend::game_viewport(area.right, area.bottom - scaled(footer));
+    const auto game = renderViewport(area.right, area.bottom - scaled(footer));
     MoveWindow(app.render, game.x, game.y, game.width, game.height, TRUE);
   }
   if (app.home.size() >= 10) {
@@ -408,6 +418,30 @@ void persist() {
                                     std::to_wstring(r.bottom - r.top) + L" " +
                                     (app.fullscreen ? L"1" : L"0"));
 }
+bool applyVideo(const jfg::frontend::VideoDialogSettings &settings,
+                std::wstring &error) {
+  if (!write(L"video.ini",
+             wide(jfg::serialize_video_settings(settings.rendering))) ||
+      !write(L"frontend-pause-inactive.txt",
+             settings.pause_inactive ? L"1" : L"0")) {
+    error = L"Could not save video settings. Check access to your save folder.";
+    return false;
+  }
+  app.pauseInactive = settings.pause_inactive;
+  if (app.fullscreen != settings.fullscreen)
+    fullscreen();
+  if (!settings.fullscreen && settings.window_size) {
+    const auto size = jfg::frontend::video_sizes[settings.window_size];
+    RECT rect{0, 0, size[0], size[1] + 24};
+    AdjustWindowRectExForDpi(&rect, WS_OVERLAPPEDWINDOW, FALSE, 0, app.dpi);
+    SetWindowPos(app.window, nullptr, 0, 0, rect.right - rect.left,
+                 rect.bottom - rect.top,
+                 SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+  }
+  persist();
+  return true;
+}
+
 void stop() {
   app.manualPause = false;
   RemovePropW(app.window, L"JfgFrontendPause");
@@ -448,7 +482,7 @@ void menus() {
                  {Quit, L"&Quit"}});
   add(L"&Controllers",
       {{Controllers, L"Player 1-4 assignments and mappings"}});
-  add(L"&Video", {{Fullscreen, L"&Fullscreen\tF11"}});
+  add(L"&Video", {{Video, L"Video &settings..."}, {Fullscreen, L"&Fullscreen\tF11"}});
   add(L"&Audio", {{Audio, L"&Volume and mute"}});
   add(L"&Tools", {{Map, L"Live map"},
                   {Inventory, L"Live inventory"},
@@ -470,6 +504,17 @@ void uiAction(const std::string &a) {
     if (write(L"frontend-pause-inactive.txt", app.pauseInactive ? L"0" : L"1"))
       app.pauseInactive = !app.pauseInactive;
     else status(L"Cannot save the pause preference.");
+    return;
+  }
+  if (a == "updates") {
+    auto tool = std::make_unique<Process>();
+    write(L"frontend-update.txt", L"");
+    if (launch(*tool, L"updates", app.window)) app.tools.push_back(std::move(tool));
+    else write(L"frontend-update.txt", L"error\n\nCould not start the update checker. Try again.\n");
+    return;
+  }
+  if (a == "releases") {
+    ShellExecuteW(app.window, L"open", L"https://github.com/TK22-26/JetForceGemini-Recomp/releases/latest", nullptr, nullptr, SW_SHOWNORMAL);
     return;
   }
   if (a == "play") {
@@ -494,6 +539,8 @@ void uiAction(const std::string &a) {
     command = Rom;
   else if (a == "fullscreen")
     command = Fullscreen;
+  else if (a == "video")
+    command = Video;
   else if (a == "controllers")
     command = Controllers;
   else if (a == "map")
@@ -542,7 +589,7 @@ void syncUiCapture() {
     if (shortcutFocus && !app.muteShortcutRegistered)
       status(L"Ctrl+M is already in use. Mute is available in the Audio menu.");
   }
-  bool enabled = FrontendUiCapturing() || app.dialog.running();
+  bool enabled = FrontendUiCapturing() || app.dialog.running() || app.videoDialogOpen;
   if (enabled != app.setting) {
     capture(enabled);
     ShowWindow(app.shield, enabled ? SW_SHOW : SW_HIDE);
@@ -556,7 +603,7 @@ void syncUiCapture() {
   // must not resume a game while a settings dialog is still open.
   const bool inactive = GetForegroundWindow() != app.window || IsIconic(app.window);
   app.liveModals.erase(std::remove_if(app.liveModals.begin(),app.liveModals.end(),[](HWND w){return !IsWindow(w)||!GetPropW(w,L"JfgLiveModal");}),app.liveModals.end());
-  if (app.manualPause || FrontendUiModalOpen() || app.dialog.running() || !app.liveModals.empty() || (app.pauseInactive && inactive))
+  if (app.manualPause || FrontendUiModalOpen() || app.dialog.running() || app.videoDialogOpen || !app.liveModals.empty() || (app.pauseInactive && inactive))
     SetPropW(app.window, L"JfgFrontendPause", reinterpret_cast<HANDLE>(1));
   else
     RemovePropW(app.window, L"JfgFrontendPause");
@@ -582,6 +629,22 @@ LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM wparam,
                            LPARAM lparam) {
   if(message==WM_APP+22) {HWND tool=reinterpret_cast<HWND>(wparam);if(IsWindow(tool)&&GetPropW(tool,L"JfgLiveModal")&&std::find(app.liveModals.begin(),app.liveModals.end(),tool)==app.liveModals.end())app.liveModals.push_back(tool);return 0;}
   if(message==WM_APP+23) {PostMessageW(window,WM_COMMAND,Inventory,0);return 0;}
+  if(message==jfg::frontend::kVideoState)
+    return (app.fullscreen?1:0)|(app.pauseInactive?2:0)|((app.render&&IsWindow(app.render))?4:0);
+  if(message==WM_COPYDATA) {
+    const auto* packet=reinterpret_cast<const COPYDATASTRUCT*>(lparam);
+    HWND sender=reinterpret_cast<HWND>(wparam);DWORD pid=0;GetWindowThreadProcessId(sender,&pid);
+    if(!app.videoDialogOpen || !app.dialog.running() || pid!=GetProcessId(app.dialog.handle) ||
+       GetWindow(sender,GW_OWNER)!=window || !packet || packet->dwData!=jfg::frontend::kVideoApply ||
+       packet->cbData!=sizeof(jfg::frontend::VideoRequest) || !packet->lpData)return 0;
+    const auto request=*static_cast<const jfg::frontend::VideoRequest*>(packet->lpData);
+    if(!jfg::frontend::valid_video_request(request))return 0;
+    jfg::frontend::VideoDialogSettings settings;
+    settings.rendering={static_cast<jfg::FrameRateMode>(request.mode),request.fps,request.vsync!=0};
+    settings.fullscreen=request.fullscreen!=0;settings.window_size=request.window_size;settings.pause_inactive=request.pause_inactive!=0;
+    std::wstring error;return applyVideo(settings,error)?1:0;
+  }
+  if(message==WM_APP+24) {if(reinterpret_cast<HWND>(wparam)==app.render && IsWindow(app.render))layout();return 0;}
 #ifdef JFG_RML_UI
   if (app.uiReady &&
       ((message >= WM_MOUSEFIRST && message <= WM_MOUSELAST) ||
@@ -646,7 +709,7 @@ LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM wparam,
     app.shield =
         CreateWindowExW(0, shieldClass.lpszClassName, L"", WS_CHILD, 0, 0, 1, 1,
                         window, nullptr, shieldClass.hInstance, nullptr);
-    if (!FrontendUiInit(window, app.profile, uiAction))
+    if (!FrontendUiInit(window, app.profile, uiAction, "", app.previewUpdate))
       return -1;
     app.uiReady = true;
     SetTimer(window, 2, 16, nullptr);
@@ -780,6 +843,7 @@ LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM wparam,
         PostMessageW(window, WM_COMMAND, Play, 0);
     }
     if (app.dialog.handle && !app.dialog.running()) {
+      if(app.videoDialogOpen){app.videoDialogOpen=false;EnableWindow(window,TRUE);}
       app.dialog.release();
       capture(false);
     }
@@ -832,6 +896,41 @@ LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM wparam,
         write(L"frontend-status.txt", L"Setup cancelled. You can retry.");
       }
       break;
+    case Video: {
+#ifdef JFG_RML_UI
+      if(!app.dialog.running()) {
+        app.videoDialogOpen=true;settings(L"video");
+        if(!app.dialog.running())app.videoDialogOpen=false;
+      }
+      break;
+#else
+      if (app.videoDialogOpen || app.dialog.running()) break;
+      auto saved = jfg::load_video_settings(app.profile / L"video.ini");
+      if (!saved) {
+        MessageBoxW(window,L"The saved video settings could not be read. Check video.ini in your save folder.",L"Video Settings",MB_OK|MB_ICONERROR);
+        break;
+      }
+      jfg::frontend::VideoDialogModel model;
+      model.settings = {*saved,app.fullscreen,app.pauseInactive,0};
+      model.apply = applyVideo;
+      app.videoDialogOpen=true;
+      capture(true);
+      SetPropW(window,L"JfgFrontendPause",reinterpret_cast<HANDLE>(1));
+#ifdef JFG_RML_UI
+      syncUiCapture();
+#endif
+      const auto result=jfg::frontend::show_video_settings(window,model);
+      app.videoDialogOpen=false;
+      capture(false);
+#ifdef JFG_RML_UI
+      syncUiCapture();
+#else
+      RemovePropW(window,L"JfgFrontendPause");
+#endif
+      if (result==-1) status(L"Could not open Video Settings.");
+      break;
+#endif
+    }
     case Fullscreen:
       fullscreen();
       break;
@@ -925,7 +1024,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
 #ifdef JFG_RML_UI
   int liveResult=FrontendLiveToolEntry(instance,show);if(liveResult>=0)return liveResult;
 #endif
+#ifdef JFG_VIDEO_DIALOG_TEST
+  // Integration fixtures must coexist with the owner's normal launcher.
+  const std::wstring instanceName=L"Local\\JFGVideoDialogTest-"+std::to_wstring(GetCurrentProcessId());
+  HANDLE singleton = CreateMutexW(nullptr, TRUE, instanceName.c_str());
+#else
   HANDLE singleton = CreateMutexW(nullptr, TRUE, L"Local\\JFGUnifiedFrontend");
+#endif
   if (!singleton || GetLastError() == ERROR_ALREADY_EXISTS) {
     if (singleton)
       CloseHandle(singleton);
@@ -955,19 +1060,23 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
     const std::wstring option = argv[i];
     if (option == L"--play" && !app.quickPlay)
       app.quickPlay = true;
+    else if (option == L"--preview-update" && !app.previewUpdate)
+      app.previewUpdate = true;
     else if (option == L"--profile" && i + 1 < argc)
       app.profile = fs::absolute(fs::path(argv[++i]));
     else if (option == L"--input-replay" && i + 1 < argc && app.inputReplay.empty())
       app.inputReplay = fs::absolute(fs::path(argv[++i])).wstring();
     else if (option == L"--progress-output" && i + 1 < argc && app.progressOutput.empty())
       app.progressOutput = fs::absolute(fs::path(argv[++i])).wstring();
+    else if (option == L"--diagnostics" && i + 1 < argc && app.diagnosticsDirectory.empty())
+      app.diagnosticsDirectory = fs::absolute(fs::path(argv[++i])).wstring();
     else
       validArguments = false;
   }
   LocalFree(argv);
   if (!validArguments || (!app.quickPlay && (!app.inputReplay.empty() || !app.progressOutput.empty()))) {
     MessageBoxW(nullptr,
-                L"Use JFG-Launcher.exe [--play] [--profile <folder>]. "
+                L"Use JFG-Launcher.exe [--play] [--profile <folder>] [--diagnostics <folder>] [--preview-update]. "
                 L"Diagnostic --input-replay <file> and --progress-output <file> require --play.",
                 L"Jet Force Gemini", MB_OK | MB_ICONERROR);
     return 2;

@@ -9,7 +9,7 @@ Dependency attribution remains in [third-party notices](THIRD_PARTY_NOTICES.md).
 - Reported and investigated the opening asteroid texture corruption, including
   the stale texture-offset addresses reproduced in [PR #9](https://github.com/TK22-26/JetForceGemini-Recomp/pull/9).
   His trace identified the incorrect texture addresses and guided the correction.
-  See [findings](docs/planning/phase7-renderer-integration.md#opening-asteroid-texture-corruption-2026-10-08).
+  See [findings](docs/development/boot-gameplay-fix.md#opening-asteroid-textures).
 - Reported the fresh-build recovery failure and proposed allowing external build
   caches while retaining restrictions inside the checkout, in his
   [community branch](https://github.com/lukedeardoff/JetForceGemini-Recomp/tree/c8253db8b70c7e2fd166bc9efcd7d101f2d3c819).
@@ -18,4 +18,4 @@ Dependency attribution remains in [third-party notices](THIRD_PARTY_NOTICES.md).
 - Shared a lens-flare depth-check diagnostic in his community branch. An
   adaptation helped identify missing CPU-visible depth data in the opening
   cinematic; the effective-RDP-state correction was implemented independently.
-  See [depth findings](docs/planning/phase7-renderer-integration.md#opening-lens-flare-occlusion-2026-10-09).
+  See [depth findings](docs/development/boot-gameplay-fix.md#opening-lens-flare-occlusion).

@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "date_utc": "2026-10-12",
+  "source_commit": "bbaa5c01857dc8daf2095e3b68b397a39a4fd028",
+  "status": "open; no new character-thigh remedy established or delivered",
+  "owner_report": {
+    "character": "Juno",
+    "area": "thighs",
+    "symptom": "thin see-through line between parts",
+    "fps": "also reported in Original",
+    "vsync": true,
+    "still_or_moving": "owner unsure"
+  },
+  "modern_replay": {
+    "mode": 3,
+    "modern_flags": 128,
+    "trace_confirms_modern_path": true,
+    "vi": 4500,
+    "captures_per_mode": 200,
+    "modes": [
+      "Original/VSync",
+      "Custom 360/VSync"
+    ],
+    "final_guest_renderer_save_equal": true,
+    "hashes": {
+      "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+      "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+      "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+    }
+  },
+  "dense_body_check": {
+    "snapshots": 430,
+    "body_observed": 215,
+    "body_not_observed": 215,
+    "interpolation_separation_events": 0,
+    "frames_with_matched_body_worlds": 0,
+    "frames_with_near_boundary_pairs": 8
+  },
+  "material_check": {
+    "snapshots": 17,
+    "observed_snapshots": 12,
+    "empty_snapshots": [
+      "4150",
+      "4180",
+      "4210",
+      "4230",
+      "4240"
+    ],
+    "all_sampled_vertex_alpha_255": true,
+    "sampled_modes": [
+      "0xc8112078"
+    ]
+  },
+  "interpretation": "No separating shared body vertices found in the observed modern route. This does not establish GPU coverage parity, reproduce the owner's exact pixel/pose, or resolve the report.",
+  "failed_or_invalid_diagnostics": {
+    "05-high-resolution": "MSAA4 altered guest/renderer hashes and failed the full-memory assertion; no qualified remedy.",
+    "06-interpolated-joints": "Diagnostic C++ newline syntax failed to build; corrected in 08.",
+    "07-joint-continuity": "Empty input was incorrectly accepted; invalid evidence. Corrected in 09 with required snapshot count.",
+    "12-material-review": "Old draw-call offsets were not initialized. Empty material conclusions invalid; pixel comparison still usable.",
+    "13-owner-window": "Python quoting failed before replay; corrected in 14.",
+    "15-materials-v2": "Overstrict assertion rejected expected frames without the selected actor. Corrected qualification in 19.",
+    "16-motion-variants": "Instrumentation source slicing failed before replay; corrected in 17."
+  },
+  "cleanup": {
+    "temporary_instrumentation_removed": true,
+    "source_matches_existing_commit": [
+      "src/renderer/rt64_shell.cpp",
+      "src/renderer/rt64_f3ddkr.cpp",
+      "src/boot/native_boot.cpp"
+    ],
+    "clean_build_succeeded": true,
+    "muted_replay_passed": true,
+    "vi": 4500,
+    "mode": "custom",
+    "fps": 360,
+    "vsync": true,
+    "hashes": {
+      "rdram.bin": "7f44f4193d7caed406be3c94d3e94ca6a7eb8dab9bf662bbdebb152aac808679",
+      "rdram.bin.rt64": "3da5a590c7b792181018b1ec923763b7feaf1db6e88b193e6817f01313526cbf",
+      "jfg.flash": "05585a6e11e843b48288c7a4a6154a996b8f6c9814bd6c3d9cd68a7586324619"
+    },
+    "clean_runtime_sha256": "2fa5bb4f6951d8417c78dcf33dab49152543ec654b150efd747d18639e8b53d9",
+    "delivered_package_unchanged": true,
+    "manifest_verified_files": 14,
+    "delivered_runtime_sha256": "59d828e38c409ce87c2b082d29786d63a72dc901c4b2f298abae9f5a3e07619f"
+  },
+  "private_receipts": {
+    "character-modern-camera/result.json": "07f80ef1f3b4ec9e7e167252a6d213989848ccf8ff924d5e5c3de94461c77948",
+    "character-dense-skin/result.json": "7cbb26da415ee88e7bd6d18d4bf59ee4ee303947da2f4c6fb2d90eef18fd1f76",
+    "character-dense-analysis/summary.json": "e9fe724cdbad36c023035b6673e782d884b3d1328d9283372604635cb2fd009e",
+    "character-modern-geometry/materials-qualification.json": "68ba2d8e61d94c9c9cf578bc6c7bf130eda36737fd7db08351309f465f3bc4dc",
+    "character-clean-qualification/result.json": "ab6078e9f7f8ca21042ee9cb2ffd1c19ae4400562df355e62c5d14c3fec20c10"
+  },
+  "guard": {
+    "same_investigation": "high-refresh-rendering-20261011",
+    "same_root": "high-refresh-rendering-20261011-discover",
+    "guard_enabled": true,
+    "counters_reset": false,
+    "all_execution_guarded": true
+  },
+  "released": false
+}

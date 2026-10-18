@@ -110,6 +110,6 @@ if __name__=='__main__':
     parser.add_argument('--runtime',required=True,type=Path)
     parser.add_argument('--output',required=True,type=Path)
     parser.add_argument('--vc-runtime',required=True,type=Path,help='x64 Microsoft.VC143.CRT from the maintainer Visual Studio redist directory')
-    parser.add_argument('--version',default='1.1.0')
+    parser.add_argument('--version',default='1.2.0')
     args=parser.parse_args()
     print(package(args.launcher.resolve(),args.runtime.resolve(),args.output.resolve(),args.version,args.vc_runtime.resolve()))

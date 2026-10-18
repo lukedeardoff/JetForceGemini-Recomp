@@ -1,0 +1,435 @@
+{
+  "schema": 1,
+  "status": "qualified component improvement delivered locally; no-20-FPS goal remains open",
+  "runtime_source_commit": "73b8b977b3e940728efa6c5fa0efab2ad741bfd5",
+  "runtime_sha256": "f0bf36e7be10a47504fee4444f8cc979172448430b96deb94ae3786a12039c46",
+  "runtime_bytes": 145955328,
+  "scope": "Compact Original timing helper; native instruction/span checks unchanged. Includes prior qualified MI-mask bridge and parallel interpolation-history work.",
+  "controlled_combat_median_ms": {
+    "baseline": [
+      29.486,
+      29.509
+    ],
+    "compact": [
+      25.852,
+      25.765
+    ]
+  },
+  "recorded_checks": [
+    {
+      "case": "compact-final-recorded-off",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true,
+        "cycles_off": true
+      }
+    },
+    {
+      "case": "compact-final-recorded-cycles",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "interpolation": true,
+        "cycle_rows": true
+      }
+    },
+    {
+      "case": "compact-final-full-original",
+      "correspondence": {
+        "ram_save": true,
+        "instructions": true,
+        "probe": true,
+        "hashes": true,
+        "cycles_off": true
+      }
+    }
+  ],
+  "native_checks": [
+    {
+      "case": "compact-final-native120-cycles-a",
+      "code": 0,
+      "audio_underruns": 0,
+      "unsupported_accesses": 0,
+      "measurements": {
+        "combat": {
+          "active_ms": {
+            "n": 242,
+            "median": 27.4315,
+            "p95": 33.739,
+            "max": 42.2,
+            "mean": 27.94662396694215
+          },
+          "known_wait_ms": {
+            "n": 242,
+            "median": 6.3095,
+            "p95": 9.95,
+            "max": 15.175,
+            "mean": 6.364053719008265
+          },
+          "instructions": {
+            "n": 242,
+            "median": 1650238.5,
+            "p95": 1827072,
+            "max": 2268737,
+            "mean": 1641598.2768595042
+          },
+          "thread_cycles": {
+            "n": 242,
+            "median": 44873440.0,
+            "p95": 60292320,
+            "max": 69088940,
+            "mean": 46262859.75206611
+          },
+          "cycles_per_instruction": {
+            "n": 242,
+            "median": 27.15703633213235,
+            "p95": 34.877335478529616,
+            "max": 44.30183936569617,
+            "mean": 28.193221860714345
+          },
+          "submit_ms": {
+            "n": 242,
+            "median": 8.4145,
+            "p95": 11.757,
+            "max": 17.368,
+            "mean": 8.82662396694215
+          },
+          "full_sync_ms": {
+            "n": 242,
+            "median": 4.8555,
+            "p95": 7.553,
+            "max": 12.474,
+            "mean": 5.196359504132231
+          },
+          "vi_deltas": {
+            "2": 226,
+            "3": 15
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1193,
+            "median": 27.279,
+            "p95": 36.685,
+            "max": 69.946,
+            "mean": 28.1865180217938
+          },
+          "known_wait_ms": {
+            "n": 1193,
+            "median": 6.595,
+            "p95": 11.345,
+            "max": 16.929,
+            "mean": 6.612614417435037
+          },
+          "instructions": {
+            "n": 1193,
+            "median": 1667196,
+            "p95": 2055283,
+            "max": 2665159,
+            "mean": 1684564.5054484494
+          },
+          "thread_cycles": {
+            "n": 1193,
+            "median": 45881960,
+            "p95": 60473960,
+            "max": 110938720,
+            "mean": 47161669.72338642
+          },
+          "cycles_per_instruction": {
+            "n": 1193,
+            "median": 26.693401255503165,
+            "p95": 36.020513032538524,
+            "max": 61.81620398794496,
+            "mean": 28.11161340522761
+          },
+          "submit_ms": {
+            "n": 1193,
+            "median": 8.331,
+            "p95": 12.166,
+            "max": 25.217,
+            "mean": 8.685256496227996
+          },
+          "full_sync_ms": {
+            "n": 1193,
+            "median": 4.738,
+            "p95": 8.033,
+            "max": 16.291,
+            "mean": 5.084523889354569
+          },
+          "vi_deltas": {
+            "2": 1096,
+            "3": 79,
+            "4": 16,
+            "5": 1
+          }
+        }
+      }
+    },
+    {
+      "case": "compact-final-native120-cycles-b",
+      "code": 0,
+      "audio_underruns": 0,
+      "unsupported_accesses": 0,
+      "measurements": {
+        "combat": {
+          "active_ms": {
+            "n": 250,
+            "median": 24.781,
+            "p95": 28.427,
+            "max": 40.921,
+            "mean": 24.970544
+          },
+          "known_wait_ms": {
+            "n": 250,
+            "median": 8.7335,
+            "p95": 11.165,
+            "max": 12.435,
+            "mean": 8.446956
+          },
+          "instructions": {
+            "n": 250,
+            "median": 1493107.5,
+            "p95": 1691437,
+            "max": 2135416,
+            "mean": 1502109.036
+          },
+          "thread_cycles": {
+            "n": 250,
+            "median": 38697870.0,
+            "p95": 45446480,
+            "max": 73337340,
+            "mean": 39156656.16
+          },
+          "cycles_per_instruction": {
+            "n": 250,
+            "median": 25.795867856390977,
+            "p95": 29.35027033143726,
+            "max": 50.95471646986483,
+            "mean": 26.11081246236342
+          },
+          "submit_ms": {
+            "n": 250,
+            "median": 7.819,
+            "p95": 10.411,
+            "max": 13.487,
+            "mean": 8.154768
+          },
+          "full_sync_ms": {
+            "n": 250,
+            "median": 4.507,
+            "p95": 6.984,
+            "max": 10.114,
+            "mean": 4.883016
+          },
+          "vi_deltas": {
+            "2": 248,
+            "3": 1
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1246,
+            "median": 24.394,
+            "p95": 28.745,
+            "max": 42.469,
+            "mean": 24.60047030497592
+          },
+          "known_wait_ms": {
+            "n": 1246,
+            "median": 8.9535,
+            "p95": 12.306,
+            "max": 15.471,
+            "mean": 8.791301765650081
+          },
+          "instructions": {
+            "n": 1246,
+            "median": 1520768.0,
+            "p95": 1721330,
+            "max": 2203123,
+            "mean": 1515434.5337078653
+          },
+          "thread_cycles": {
+            "n": 1246,
+            "median": 39598660.0,
+            "p95": 47371180,
+            "max": 80231680,
+            "mean": 40011513.836276084
+          },
+          "cycles_per_instruction": {
+            "n": 1246,
+            "median": 26.027286703467936,
+            "p95": 30.089750632723973,
+            "max": 54.38399870939841,
+            "mean": 26.422668743443875
+          },
+          "submit_ms": {
+            "n": 1246,
+            "median": 7.563000000000001,
+            "p95": 10.544,
+            "max": 13.844,
+            "mean": 7.848689406099519
+          },
+          "full_sync_ms": {
+            "n": 1246,
+            "median": 4.343500000000001,
+            "p95": 6.97,
+            "max": 10.114,
+            "mean": 4.652884430176565
+          },
+          "vi_deltas": {
+            "2": 1237,
+            "3": 8
+          }
+        }
+      }
+    },
+    {
+      "case": "compact-final-native360-cycles",
+      "code": 0,
+      "audio_underruns": 0,
+      "unsupported_accesses": 0,
+      "measurements": {
+        "combat": {
+          "active_ms": {
+            "n": 250,
+            "median": 23.9325,
+            "p95": 27.664,
+            "max": 30.981,
+            "mean": 24.17678
+          },
+          "known_wait_ms": {
+            "n": 250,
+            "median": 9.019,
+            "p95": 11.44,
+            "max": 12.72,
+            "mean": 8.887908
+          },
+          "instructions": {
+            "n": 250,
+            "median": 1504372.5,
+            "p95": 1675309,
+            "max": 2113822,
+            "mean": 1506175.872
+          },
+          "thread_cycles": {
+            "n": 250,
+            "median": 37727540.0,
+            "p95": 43590180,
+            "max": 58302260,
+            "mean": 37752560.72
+          },
+          "cycles_per_instruction": {
+            "n": 250,
+            "median": 24.893649196217865,
+            "p95": 27.954706924449113,
+            "max": 38.79115995044505,
+            "mean": 25.088135833902154
+          },
+          "submit_ms": {
+            "n": 250,
+            "median": 7.5105,
+            "p95": 9.981,
+            "max": 12.633,
+            "mean": 7.812428
+          },
+          "full_sync_ms": {
+            "n": 250,
+            "median": 4.3134999999999994,
+            "p95": 6.452,
+            "max": 9.328,
+            "mean": 4.59912
+          },
+          "vi_deltas": {
+            "2": 249
+          }
+        },
+        "extended": {
+          "active_ms": {
+            "n": 1249,
+            "median": 23.708,
+            "p95": 27.678,
+            "max": 37.005,
+            "mean": 23.790216973578865
+          },
+          "known_wait_ms": {
+            "n": 1249,
+            "median": 9.384,
+            "p95": 12.72,
+            "max": 15.687,
+            "mean": 9.342281825460368
+          },
+          "instructions": {
+            "n": 1249,
+            "median": 1515924,
+            "p95": 1715019,
+            "max": 2164044,
+            "mean": 1507105.1224979984
+          },
+          "thread_cycles": {
+            "n": 1249,
+            "median": 38286900,
+            "p95": 45544900,
+            "max": 71852300,
+            "mean": 38314791.20896717
+          },
+          "cycles_per_instruction": {
+            "n": 1249,
+            "median": 25.166999553260492,
+            "p95": 28.30336281841034,
+            "max": 46.515646171305455,
+            "mean": 25.426430944726956
+          },
+          "submit_ms": {
+            "n": 1249,
+            "median": 7.357,
+            "p95": 10.088,
+            "max": 13.689,
+            "mean": 7.5625932746196955
+          },
+          "full_sync_ms": {
+            "n": 1249,
+            "median": 4.246,
+            "p95": 6.859,
+            "max": 10.028,
+            "mean": 4.503880704563651
+          },
+          "vi_deltas": {
+            "2": 1247,
+            "3": 1
+          }
+        }
+      }
+    }
+  ],
+  "delivery": {
+    "delivered_at_utc": "2026-10-16T01:06:27.652304+00:00",
+    "shortcuts": [
+      "JFG - High Refresh Preview.lnk",
+      "JFG - Jitter Capture.lnk"
+    ],
+    "profile_files_unchanged": 40,
+    "manifest_verified": 14,
+    "launcher_sha256": "60b2696f1447101809053922a1aa5b24efc94c197875a63ad22b3fb9c4dc045c",
+    "launcher_setup_runtime_protocol_passed": true
+  },
+  "limits": [
+    "Native replay paths may differ.",
+    "Hidden windows do not qualify monitor scanout or full owner-route visual behavior.",
+    "20-FPS updates remain; CPU cycles are not milliseconds.",
+    "Synthetic special-value matrix comparisons retain documented NaN sign/payload differences; exact game capture matches do not establish universal bit equivalence."
+  ],
+  "unselected": [
+    "Private angle replacement",
+    "Native Count-store removal",
+    "Clang compiler swap",
+    "Rejected scene-age queue policy"
+  ],
+  "private_evidence": [
+    "compact-clock-all-functions",
+    "compact-final-recorded-qualification",
+    "compact-final-native-cycle-review",
+    "compact-preview-package",
+    "compact-preview-delivery"
+  ]
+}

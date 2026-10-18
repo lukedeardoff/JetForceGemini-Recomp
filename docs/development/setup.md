@@ -67,24 +67,19 @@ python scripts/check_repository_hygiene.py --history
 
 [CI](https://github.com/TK22-26/JetForceGemini-Recomp/actions/workflows/ci.yml)
 records the exact checks used for public pull requests. See
-[test quarantine](../tests/quarantine.md) for the documented Linux test exclusion.
+[test quarantine](test-quarantine.md) for the documented Linux test exclusion.
 
-## RT64 shader header changes
+## RT64 shader dependencies
 
-The pinned RT64 build originally tracked shader entry files but omitted their
-shared include files. Following [Luke Deardoff's report in issue #4](https://github.com/TK22-26/JetForceGemini-Recomp/issues/4#issuecomment-5985126218),
-the host build now adds the shared .h and shader .hlsli dependency set
-to the existing shader-generation commands. It leaves the upstream checkout
-and shader contents unchanged. A header edit conservatively rebuilds shader
-outputs; unchanged builds remain incremental. Added headers are discovered
-at build time.
+The pinned RT64 build tracked shader entry files but not their shared
+includes. Following [Luke Deardoff's report in issue #4](https://github.com/TK22-26/JetForceGemini-Recomp/issues/4#issuecomment-5985126218),
+the host build adds the shared `.h` and `.hlsli` dependency set to the existing
+shader-generation commands, leaving the upstream checkout unchanged. A header
+edit rebuilds shader outputs; unchanged builds stay incremental.
 
-The jfg.rt64_shader_dependencies test uses synthetic files to check shared,
-nested and newly added headers, downstream generated files, and unchanged
-builds. It exercises DXIL, SPIR-V, Metal's shared SPIR-V input, and preprocessed
-shader-source rules without requiring a ROM or shader compiler. Keep its
-Visual Studio fixture outside Windows Temp and AppData: MSBuild excludes
-both from dependency tracking. If the build cache lives there, the test uses
-the source checkout's ignored build/shader-tests directory instead. Source
-checkouts also inside those directories require an explicit --work-root
-outside them when running the fixture directly.
+The `jfg.rt64_shader_dependencies` test checks shared, nested and newly added
+headers with synthetic files across DXIL, SPIR-V, Metal and preprocessed
+shader rules, without a ROM or shader compiler. MSBuild ignores Windows Temp
+and AppData for dependency tracking, so the fixture runs in the checkout's
+ignored `build/shader-tests` when the build cache lives there; a checkout
+inside those directories needs an explicit `--work-root` elsewhere.
