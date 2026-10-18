@@ -5,7 +5,10 @@ This branch is upstream `main` plus Luke's local fixes, diagnostics and enhancem
 contribution; focused fixes are sent upstream separately (for example PR #9).
 No ROM data, game assets or generated game code are included. Build it yourself from your own ROM.
 
-Base: TK22-26/JetForceGemini-Recomp `v1.1.0`.
+Base: TK22-26/JetForceGemini-Recomp `v1.2.1` (merged into this branch; earlier work was on `v1.1.0`).
+
+The game runs in the original 60 Hz presentation unless `JFG_VIDEO_CONFIG` points at a `video.ini`.
+Upstream's high-refresh modes (Custom FPS, Unlimited) have not been checked with the community changes yet.
 
 ## What it adds on top of main
 
@@ -23,6 +26,7 @@ Base: TK22-26/JetForceGemini-Recomp `v1.1.0`.
 | Actor shadows | Shadow buffers stay on the GPU at HD and are softened by an RT64 pass (`patches/rt64/jfg-shadow-soften.patch`, `JFG_SHADOW_BLUR`, default 1.5, max 2). They use the game's own grey opacity (8/14 of the silhouette, `JFG_SHADOW_OPACITY`, 0-1). RT64's shadow bytes are kept only where the game did not change memory, so reused shadow memory no longer shows as garbage textures. `JFG_SHADOW_MODE=upstream` restores main's CPU-mask writeback for comparison |
 | Menu icons in widescreen | Scaled 1-cycle icon texrects get alpha-compare threshold, so the alpha-0 ring is dropped as in 4:3 copy mode (`JFG_MENU_ICON_ALPHA=0` off) |
 | Colour grade | Slightly darker and more contrast to match the console: `JFG_GAMMA` (1.08), `JFG_CONTRAST` (1.04), `patches/rt64/jfg-color-grade.patch` |
+| Save backups | `play-community.ps1` copies `jfg.flash` to `profiles\default\backups` before each session (newest 30 kept) |
 | Diagnostics | Effect-activity log, frame capture, texture-image log, lens-flare depth trace (`JFG_ZB_TRACE`), translucent-effect log (`JFG_RIPPLE_LOG`) |
 
 Dropped compared with the old `community/cosmetic-vignette-shadows` branch: the backported widescreen

@@ -11,6 +11,15 @@ $env:JFG_PHASE9_RENDERER_WRITEBACK_PROBE = "1"
 $env:JFG_RT64_DEVELOPER = "1"
 $p = Join-Path $env:LOCALAPPDATA "JFGRecomp\profiles\default"
 $rom = "C:\Users\Owner\Downloads\Jet Force Gemini (USA).z64"
+# Keep a copy of the save from before each session (newest 30), so progress can be rewound.
+$saveFile = Join-Path $p 'jfg.flash'
+if (Test-Path $saveFile) {
+    $backups = Join-Path $p 'backups'
+    New-Item -ItemType Directory -Force -Path $backups | Out-Null
+    Copy-Item $saveFile (Join-Path $backups ("jfg.flash." + (Get-Date -Format 'yyyy-MM-dd_HH-mm-ss') + ".bak"))
+    Get-ChildItem $backups -Filter 'jfg.flash.*.bak' | Sort-Object Name -Descending |
+        Select-Object -Skip 30 | Remove-Item -ErrorAction SilentlyContinue
+}
 # Test settings set earlier in this window stay on until the window closes.
 $leftover = Get-ChildItem Env: | Where-Object {
     $_.Name -like 'JFG_*' -and $_.Name -notin @('JFG_PHASE9_RENDERER_WRITEBACK_PROBE', 'JFG_RT64_DEVELOPER') }
