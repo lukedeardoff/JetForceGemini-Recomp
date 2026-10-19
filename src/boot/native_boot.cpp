@@ -88,6 +88,7 @@
 #include <iterator>
 #include "jfg/runtime/rt64_overlay_address.hpp"
 #include "jfg/renderer/rt64_f3ddkr_address.hpp"
+#include "../renderer/rt64_f3ddkr.hpp"
 #include "jfg/runtime/cic_nus_6105.hpp"
 #include "jfg/testkernel/sha256.hpp"
 #if defined(JFG_PHASE8_LIVE_RUNTIME)
@@ -8221,6 +8222,10 @@ void community_hotkey_poll(State &state) {
   state.community_hotkey_on = !state.community_hotkey_on;
   if (state.community_hotkey_on) {
     ++state.community_hotkey_presses;
+    // JFG_GEOMDUMP=N: also write the next N graphics tasks' geometry.
+    if (const auto tasks = (std::min)(community_env_number("JFG_GEOMDUMP", 0U), 20U);
+        tasks != 0U)
+      jfg::request_geometry_dump(tasks);
     if (state.community_hotkey_every != 0U) {
       // A new frames folder per recording, up to 1800 frames.
       state.community_capture_dir.clear();

@@ -54,6 +54,10 @@ inline constexpr std::uint32_t kF3ddkrRejectReturnStackUnderflow = 7U;
 inline constexpr std::uint32_t kF3ddkrRejectTextureShiftWrap = 9U;
 inline constexpr std::uint32_t kF3ddkrRejectMoveMemRange = 10U;
 
+// Community geometry dump: write the next `tasks` graphics tasks to
+// diag\geometry (see rt64_f3ddkr.cpp). Called when F9 starts a recording.
+void request_geometry_dump(unsigned tasks) noexcept;
+
 class Rt64F3ddkr final {
 public:
     explicit Rt64F3ddkr(RT64::Application& application, bool interpolate = false);

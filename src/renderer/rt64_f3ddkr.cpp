@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cstdint>
+#include <atomic>
 #include <mutex>
 #include <future>
 #include "jfg/renderer/floating_environment.hpp"
@@ -25,6 +26,7 @@
 #include <unordered_set>
 #include <cstdio>
 #include <share.h>
+#include <direct.h>
 #include <cstdlib>
 #include <string>
 
@@ -190,6 +192,74 @@ struct TmemSource {
 std::array<TmemSource, 512U> tmem_sources{};
 std::unordered_set<std::uint32_t> ripple_dumped;
 std::uint32_t ripple_vertex_source = 0U;
+
+// Community geometry dump (2026-10-19, title-screen hallway). When the game is
+// started with JFG_GEOMDUMP=N, pressing F9 (recording start) asks for the next
+// N graphics tasks to be written to diag\geometry\task-<task>-vi<tick>.tsv:
+//   T  task vi_tick
+//   CI address fmt siz width                       set color image
+//   X  seq fbpair proj calls flags cull skipped clip omL omH geom ccL ccH
+//      texsrc fmt/siz/width, then per corner: x y z w (clip) sx sy sz (screen)
+//   R  w0 w1 w2/w3 w4/w5 omL omH ccL ccH texsrc      texture rectangle
+//   F  w0 w1 omL omH                                 fill rectangle
+//   B  first last clip                               0xBE (ignored)
+// fbpair/proj/calls are RT64's counters when the triangle is decoded; the
+// inspector's "Framebuffers #f - <type> #p - Call #c" numbering follows them.
+std::atomic<unsigned> geomdump_pending{0U};
+struct GeomDump {
+    std::FILE* file = nullptr;
+    std::uint64_t task = 0U;
+    std::uint64_t seq = 0U;
+};
+GeomDump geomdump;
+
+void geomdump_begin_task(const std::uint64_t task, const std::uint64_t vi_tick) {
+    if (geomdump.file != nullptr) {
+        std::fclose(geomdump.file);
+        geomdump.file = nullptr;
+    }
+    unsigned pending = geomdump_pending.load();
+    while (pending != 0U &&
+           !geomdump_pending.compare_exchange_weak(pending, pending - 1U)) {
+    }
+    if (pending == 0U)
+        return;
+    wchar_t* base = nullptr;
+    std::size_t length = 0U;
+    if (_wdupenv_s(&base, &length, L"LOCALAPPDATA") == 0 && base != nullptr) {
+        const std::wstring folder = std::wstring(base) + L"\\JFGRecomp\\diag\\geometry";
+        (void)_wmkdir(folder.c_str());
+        const std::wstring path = folder + L"\\task-" + std::to_wstring(task) +
+            L"-vi" + std::to_wstring(vi_tick) + L".tsv";
+        geomdump.file = _wfsopen(path.c_str(), L"w", _SH_DENYNO);
+    }
+    std::free(base);
+    geomdump.task = task;
+    geomdump.seq = 0U;
+    if (geomdump.file != nullptr)
+        std::fprintf(geomdump.file, "T\t%llu\t%llu\n",
+            static_cast<unsigned long long>(task),
+            static_cast<unsigned long long>(vi_tick));
+}
+
+struct GeomDumpCounters {
+    unsigned fbpair = 0U, proj = 0U, calls = 0U;
+};
+
+GeomDumpCounters geomdump_counters(RT64::State& state) {
+    GeomDumpCounters counters{};
+    const RT64::Workload& workload =
+        state.ext.workloadQueue->workloads[state.ext.workloadQueue->writeCursor];
+    if (workload.fbPairCount == 0U || workload.fbPairCount > workload.fbPairs.size())
+        return counters;
+    counters.fbpair = workload.fbPairCount - 1U;
+    const RT64::FramebufferPair& pair = workload.fbPairs[counters.fbpair];
+    if (pair.projectionCount == 0U || pair.projectionCount > pair.projections.size())
+        return counters;
+    counters.proj = pair.projectionCount - 1U;
+    counters.calls = pair.projections[counters.proj].gameCallCount;
+    return counters;
+}
 
 void ripple_group_flush() {
     if (!ripple_group.active) return;
@@ -535,6 +605,11 @@ void set_color_image(RT64::State* state, RT64::DisplayList** dl) {
         segmented_physical(*state, (*dl)->w1);
     state->rdp->setColorImage(
         format, size, width, context->stats.color_image_address);
+    if (geomdump.file != nullptr)
+        std::fprintf(geomdump.file, "CI\t%06x\t%u\t%u\t%u\n",
+            static_cast<unsigned>(context->stats.color_image_address),
+            static_cast<unsigned>(format), static_cast<unsigned>(size),
+            static_cast<unsigned>(width));
 }
 
 void set_depth_image(RT64::State* state, RT64::DisplayList** dl) {
@@ -632,6 +707,19 @@ void texture_rectangle_with_icon_alpha(
     if (patch) {
         rdp.setOtherMode(high, low | 0x1U);  // G_AC_THRESHOLD
     }
+    if (geomdump.file != nullptr) {
+        const auto& cc = rdp.colorCombinerStack[rdp.colorCombinerStackSize - 1];
+        const TmemSource& source = tmem_sources[rdp.tiles[((*dl)->w1 >> 24U) & 7U].tmem & 511U];
+        std::fprintf(geomdump.file,
+            "R\t%08x\t%08x\t%08x\t%08x\t%08x\t%08x\t%08x\t%08x\t%08x\t%06x\t%u/%u/%u\t%u\n",
+            static_cast<unsigned>((*dl)->w0), static_cast<unsigned>((*dl)->w1),
+            static_cast<unsigned>((*dl)[1].w1), static_cast<unsigned>((*dl)[2].w1),
+            static_cast<unsigned>(low), static_cast<unsigned>(high),
+            static_cast<unsigned>(cc.L), static_cast<unsigned>(cc.H),
+            static_cast<unsigned>(rdp.colorImage.address),
+            static_cast<unsigned>(source.address), source.fmt, source.siz, source.width,
+            flip ? 1U : 0U);
+    }
     if (flip) {
         RT64::GBI_RDP::texrectFlip(state, dl);
     }
@@ -645,6 +733,16 @@ void texture_rectangle_with_icon_alpha(
 
 void texture_rectangle(RT64::State* state, RT64::DisplayList** dl) {
     texture_rectangle_with_icon_alpha(state, dl, false);
+}
+
+void fill_rectangle(RT64::State* state, RT64::DisplayList** dl) {
+    if (geomdump.file != nullptr)
+        std::fprintf(geomdump.file, "F\t%08x\t%08x\t%08x\t%08x\t%06x\n",
+            static_cast<unsigned>((*dl)->w0), static_cast<unsigned>((*dl)->w1),
+            static_cast<unsigned>(state->rdp->otherMode.L),
+            static_cast<unsigned>(state->rdp->otherMode.H),
+            static_cast<unsigned>(state->rdp->colorImage.address));
+    RT64::GBI_RDP::fillRect(state, dl);
 }
 
 void texture_rectangle_flip(RT64::State* state, RT64::DisplayList** dl) {
@@ -691,7 +789,7 @@ void load_block(RT64::State* state, RT64::DisplayList** dl) {
             ++context->texture_count;
         }
     }
-    if (ripple_log_file() != nullptr) {
+    if (ripple_log_file() != nullptr || geomdump.file != nullptr) {
         const RT64::RDP& rdp = *state->rdp;
         const unsigned tile_index = ((*dl)->w1 >> 24U) & 7U;
         const std::uint32_t texels = static_cast<std::uint32_t>(lrs) + 1U;
@@ -707,7 +805,7 @@ void load_block(RT64::State* state, RT64::DisplayList** dl) {
 }
 
 void load_tile(RT64::State* state, RT64::DisplayList** dl) {
-    if (ripple_log_file() != nullptr) {
+    if (ripple_log_file() != nullptr || geomdump.file != nullptr) {
         const RT64::RDP& rdp = *state->rdp;
         const std::uint32_t w0 = (*dl)->w0;
         const std::uint32_t w1 = (*dl)->w1;
@@ -1097,6 +1195,46 @@ void capture_loaded_vertices(Context& context) noexcept {
     }
 }
 
+void geomdump_triangle(RT64::State& state, const std::uint8_t flags,
+    const std::array<std::uint32_t, 3U>& globals, const bool skipped,
+    const std::uint8_t clip) {
+    if (geomdump.file == nullptr)
+        return;
+    const GeomDumpCounters counters = geomdump_counters(state);
+    const RT64::RDP& rdp = *state.rdp;
+    const auto& cc = rdp.colorCombinerStack[rdp.colorCombinerStackSize - 1];
+    const std::uint32_t geometry =
+        state.rsp->geometryModeStack[state.rsp->geometryModeStackSize - 1];
+    const TmemSource& source = tmem_sources[rdp.tiles[0].tmem & 511U];
+    std::fprintf(geomdump.file,
+        "X\t%llu\t%u\t%u\t%u\t%02x\t%x\t%u\t%02x\t%08x\t%08x\t%08x\t%08x\t%08x\t%06x\t%u/%u/%u",
+        static_cast<unsigned long long>(geomdump.seq++), counters.fbpair,
+        counters.proj, counters.calls, static_cast<unsigned>(flags),
+        static_cast<unsigned>(geometry & state.rsp->cullBothMask),
+        skipped ? 1U : 0U, static_cast<unsigned>(clip),
+        static_cast<unsigned>(rdp.otherMode.L), static_cast<unsigned>(rdp.otherMode.H),
+        static_cast<unsigned>(geometry), static_cast<unsigned>(cc.L),
+        static_cast<unsigned>(cc.H), static_cast<unsigned>(source.address),
+        source.fmt, source.siz, source.width);
+    const RT64::Workload& workload =
+        state.ext.workloadQueue->workloads[state.ext.workloadQueue->writeCursor];
+    for (const std::uint32_t global : globals) {
+        if (global >= workload.drawData.posTransformed.size() ||
+            global >= workload.drawData.posScreen.size()) {
+            std::fputs("\t?", geomdump.file);
+            continue;
+        }
+        const hlslpp::float4 p = workload.drawData.posTransformed[global];
+        const hlslpp::float3 q = workload.drawData.posScreen[global];
+        std::fprintf(geomdump.file, "\t%.3f %.3f %.3f %.3f %.3f %.3f %.5f",
+            static_cast<double>(float(p.x)), static_cast<double>(float(p.y)),
+            static_cast<double>(float(p.z)), static_cast<double>(float(p.w)),
+            static_cast<double>(float(q.x)), static_cast<double>(float(q.y)),
+            static_cast<double>(float(q.z)));
+    }
+    std::fputc('\n', geomdump.file);
+}
+
 void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     if (context == nullptr) {
@@ -1163,8 +1301,13 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
         // still sees this triangle. Clip interpolated scene geometry on the
         // GPU at its presentation pose; keep original/offscreen behavior.
         if (common_clip != 0U &&
-            !(context->interpolate && context->semantic_target))
+            !(context->interpolate && context->semantic_target)) {
+            if (geomdump.file != nullptr)
+                geomdump_triangle(*state, flags,
+                    {state->rsp->indices[vertices[0]], state->rsp->indices[vertices[1]],
+                     state->rsp->indices[vertices[2]]}, true, common_clip);
             continue;
+        }
         // JFG's microcode (DMA-triangle handler IMEM 0x1754-0x1770, triangle
         // setup 0x1B18-0x1BF8): a triangle without flag 0x40 gets G_CULL_BACK.
         // If the game has set G_CULL_FRONT, that bit turns the test round, so
@@ -1181,6 +1324,10 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
                 : state->rsp->cullBothMask ^ state->rsp->cullFrontMask);
         state->rsp->modifyGeometryMode(
             ~state->rsp->cullBothMask, cull_mode);
+        if (geomdump.file != nullptr)
+            geomdump_triangle(*state, flags,
+                {state->rsp->indices[vertices[0]], state->rsp->indices[vertices[1]],
+                 state->rsp->indices[vertices[2]]}, false, common_clip);
         for (std::size_t corner = 0U; corner < vertices.size(); ++corner) {
             const std::uint32_t coordinate =
                 (static_cast<std::uint32_t>(static_cast<std::uint16_t>(
@@ -1359,8 +1506,29 @@ void cull_display_list(RT64::State* state, RT64::DisplayList** dl) {
         return;
     }
     ++context->commands;
-    if (!display_list_cull_enabled())
+    if (!display_list_cull_enabled()) {
+        if (geomdump.file != nullptr) {
+            // Would-be decision of the old cull, for comparison only.
+            const std::size_t from = ((*dl)->w0 & 0x00FF'FFFFU) / 40U;
+            const std::size_t to = (*dl)->w1 >= 40U ? ((*dl)->w1 / 40U) - 1U : from;
+            std::uint8_t clip = 0x1FU;
+            const RT64::Workload& workload =
+                state->ext.workloadQueue->workloads[state->ext.workloadQueue->writeCursor];
+            for (std::size_t vertex = (std::min)(from, to);
+                 vertex <= (std::max)(from, to) && vertex < context->loaded_vertices.size(); ++vertex) {
+                const std::uint32_t global = state->rsp->indices[vertex];
+                if (!context->loaded_vertices.test(vertex) ||
+                    global >= workload.drawData.posTransformed.size()) {
+                    clip = 0xFFU;
+                    break;
+                }
+                clip &= vertex_clip_code(workload.drawData.posTransformed[global]);
+            }
+            std::fprintf(geomdump.file, "B\t%zu\t%zu\t%02x\n", from, to,
+                static_cast<unsigned>(clip));
+        }
         return;
+    }
     std::size_t first = ((*dl)->w0 & 0x00FF'FFFFU) / 40U;
     if ((*dl)->w1 < 40U) {
         reject(state, dl);
@@ -2119,6 +2287,7 @@ void Rt64F3ddkr::begin(
     texlog.now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - texlog.start).count();
     ++texlog.task;
+    geomdump_begin_task(texlog.task, vi_tick);
     if (std::FILE* ripple = ripple_log_file(); ripple != nullptr) {
         ripple_group_flush();
         const double ms = std::chrono::duration<double, std::milli>(
@@ -2177,6 +2346,7 @@ void Rt64F3ddkr::install() noexcept {
     context.gbi.map[G_LOADBLOCK] = &load_block;
     context.gbi.map[G_LOADTILE] = &load_tile;
     context.gbi.map[G_TEXRECT] = &texture_rectangle;
+    context.gbi.map[G_FILLRECT] = &fill_rectangle;
     context.gbi.map[G_TEXRECTFLIP] = &texture_rectangle_flip;
     context.gbi.map[F3D_G_MOVEMEM] = &move_mem;
     context.gbi.map[G_RDPSETOTHERMODE] = &set_other_mode_full;
@@ -2204,6 +2374,11 @@ std::size_t Rt64F3ddkr::command_count() const noexcept {
 
 Rt64F3ddkrStats Rt64F3ddkr::stats() const noexcept {
     return impl_ == nullptr ? Rt64F3ddkrStats{} : impl_->context.stats;
+}
+
+// Community geometry dump: called when F9 starts a recording (native_boot).
+void request_geometry_dump(const unsigned tasks) noexcept {
+    geomdump_pending.store(tasks);
 }
 
 }  // namespace jfg
