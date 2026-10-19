@@ -224,6 +224,16 @@ public:
     [[nodiscard]] Rt64ShellError replace_rdram_snapshot(
         std::span<const std::byte> rdram,
         Rt64MemoryLayout layout) noexcept;
+    // Community (2026-10-19): import only the listed byte ranges of a
+    // host_word_swapped snapshot while full CPU writeback is active. The
+    // caller guarantees that every byte outside the ranges already equals
+    // RT64's copy. Other modes and layouts fall back to the full import.
+    // True when replace_rdram_snapshot_ranges honours its ranges.
+    [[nodiscard]] bool ranged_import_available() const noexcept;
+    [[nodiscard]] Rt64ShellError replace_rdram_snapshot_ranges(
+        std::span<const std::byte> rdram,
+        Rt64MemoryLayout layout,
+        std::span<const Rt64RdramRange> ranges) noexcept;
     [[nodiscard]] Rt64ShellError copy_private_rdram_snapshot(
         std::span<std::byte> rdram,
         Rt64MemoryLayout layout) const noexcept;

@@ -1415,6 +1415,11 @@ struct PendingLiveGraphicsTask final {
   std::array<std::uint32_t, 6U> descriptor{};
   std::vector<std::byte> rdram;
   bool skipped = false;
+  // Community ranged import (see community_upper_ranges): one flag per
+  // graphics overlay shadow, set when this snapshot's copy of that shadow
+  // may differ from the initial overlay image; the extra last flag means a
+  // display-list patch landed outside every shadow. Empty = unknown.
+  std::vector<std::uint8_t> community_upper_dirty;
 };
 
 struct LiveGraphicsOverlayShadow final {
@@ -1840,6 +1845,20 @@ struct State : JfgOriginalTimingFast {
   // display-list traversal still patches that task's private snapshot.
   std::vector<std::byte> graphics_overlay_initial_data;
   std::vector<std::vector<std::byte>> graphics_snapshot_pool;
+  // Community ranged import: dirty flags travelling with each pooled
+  // snapshot (same order as graphics_snapshot_pool), the flags of the
+  // snapshot RT64 imported last, and whether RT64's upper half is known.
+  std::vector<std::vector<std::uint8_t>> community_snapshot_pool_dirty;
+  std::vector<std::uint8_t> community_rt64_upper_dirty;
+  bool community_rt64_upper_known = false;
+  bool community_ranged_import = true;
+  // Community profile counters (PF lines, written once a second).
+  std::uint64_t community_prof_prepare_us = 0U, community_prof_import_us = 0U,
+                community_prof_rt64_us = 0U, community_prof_writeback_us = 0U,
+                community_prof_tasks = 0U, community_prof_ranged = 0U,
+                community_prof_import_kb = 0U, community_prof_present_us = 0U;
+  std::array<std::uint64_t, 8U> community_prof_last{};
+  std::chrono::steady_clock::time_point community_prof_time{};
   HostAudioDevice host_audio;
   std::uint64_t audio_task_microseconds = 0U;
   std::uint64_t graphics_prepare_microseconds = 0U;
@@ -4784,10 +4803,34 @@ std::uint32_t translate_live_graphics_address(
   return address;
 }
 
+// Index of the graphics overlay shadow holding snapshot byte `offset`, or
+// the shadow count when no shadow holds it. Shadows are sorted by base.
+std::size_t community_shadow_index(const State &state, const std::uint64_t offset) {
+  const auto &shadows = state.graphics_overlay_shadows;
+  const auto after = std::upper_bound(shadows.begin(), shadows.end(), offset,
+      [](const std::uint64_t value, const LiveGraphicsOverlayShadow &shadow) {
+        return value < shadow.physical_base;
+      });
+  if (after == shadows.begin()) return shadows.size();
+  const auto &shadow = *(after - 1);
+  if (offset - shadow.physical_base >= shadow.extent) return shadows.size();
+  return static_cast<std::size_t>((after - 1) - shadows.begin());
+}
+
 bool materialize_live_graphics_overlays(
     State &state, std::vector<std::byte> &snapshot,
     const std::uint32_t command_address,
-    const std::uint32_t command_count) {
+    const std::uint32_t command_count,
+    std::vector<std::uint8_t> *community_dirty = nullptr) {
+  // Community ranged import: flags must cover every shadow plus the
+  // "outside all shadows" slot; anything else means unknown = all dirty.
+  const std::size_t shadow_count = state.graphics_overlay_shadows.size();
+  if (community_dirty != nullptr && community_dirty->size() != shadow_count + 1U)
+    community_dirty->assign(shadow_count + 1U, 1U);
+  const auto mark_dirty = [&](const std::uint64_t offset) {
+    if (community_dirty == nullptr || offset < kRdramSize) return;
+    (*community_dirty)[community_shadow_index(state, offset)] = 1U;
+  };
   state.materialize_reject_reason = 0U;
   state.materialize_reject_address = 0U;
   state.materialize_reject_word0 = 0U;
@@ -4858,8 +4901,17 @@ bool materialize_live_graphics_overlays(
     }
     state.graphics_overlay_initial_data.assign(snapshot.begin() + kRdramSize,
                                                 snapshot.end());
+    if (community_dirty != nullptr)
+      community_dirty->assign(shadow_count + 1U, 0U);
   } else {
-    for (const auto &shadow : state.graphics_overlay_shadows) {
+    for (std::size_t shadow_index = 0U; shadow_index < shadow_count; ++shadow_index) {
+      const auto &shadow = state.graphics_overlay_shadows[shadow_index];
+      // Community: a shadow this buffer never changed since its last
+      // restore already holds the initial image.
+      if (community_dirty != nullptr && (*community_dirty)[shadow_index] == 0U)
+        continue;
+      if (community_dirty != nullptr)
+        (*community_dirty)[shadow_index] = 0U;
       if (shadow.physical_base < kRdramSize ||
           shadow.physical_base - kRdramSize > state.graphics_overlay_initial_data.size() ||
           shadow.extent > state.graphics_overlay_initial_data.size() -
@@ -4877,6 +4929,9 @@ bool materialize_live_graphics_overlays(
   for (const auto &shadow : state.graphics_overlay_shadows) {
     if (!state.active_overlay_sections.contains(shadow.section))
       continue;
+    if (community_dirty != nullptr)
+      (*community_dirty)[static_cast<std::size_t>(
+          &shadow - state.graphics_overlay_shadows.data())] = 1U;
     JfgGeneratedSectionMetadata metadata{};
     if (jfg_generated_section_metadata(shadow.section, &metadata) == 0 ||
         metadata.text_size > shadow.extent ||
@@ -5020,6 +5075,7 @@ bool materialize_live_graphics_overlays(
           !configured_segments[segment])
         words[1] = materialized_address;
       std::memcpy(snapshot.data() + offset, words, sizeof(words));
+      mark_dirty(offset);
     }
 
     if (!frame.counted_dma && (opcode == 0x06U || opcode == 0x07U)) {
@@ -5311,11 +5367,21 @@ bool execute_live_graphics_task(State &state, hle::GuestMemory &memory) {
   state.last_graphics_command_address = command_address;
   if (!memory.read_u32(command_address, state.last_graphics_command_word))
     return false;
+  const auto community_prepare_start = std::chrono::steady_clock::now();
   std::vector<std::byte> snapshot;
+  std::vector<std::uint8_t> community_dirty;
   if (!state.graphics_snapshot_pool.empty()) {
     snapshot = std::move(state.graphics_snapshot_pool.back());
     state.graphics_snapshot_pool.pop_back();
+    if (!state.community_snapshot_pool_dirty.empty()) {
+      community_dirty = std::move(state.community_snapshot_pool_dirty.back());
+      state.community_snapshot_pool_dirty.pop_back();
+    }
   }
+  // A snapshot without matching flags (new, or pools out of step) is
+  // restored in full by materialize (flags of the wrong size = all dirty).
+  if (state.community_snapshot_pool_dirty.size() != state.graphics_snapshot_pool.size())
+    state.community_snapshot_pool_dirty.clear();
   snapshot.resize(jfg::kRt64RequiredRdramBytes);
   PendingLiveGraphicsTask pending{
       {ucode_address, ucode_data_address, command_address, state.vi_retraces},
@@ -5323,7 +5389,8 @@ bool execute_live_graphics_task(State &state, hle::GuestMemory &memory) {
   jfg::copy_changed_snapshot_bytes(std::span(reinterpret_cast<const std::byte *>(state.rdram), kRdramSize),
       std::span(pending.rdram).first(kRdramSize));
   if (!materialize_live_graphics_overlays(
-          state, pending.rdram, command_address, command_size)) {
+          state, pending.rdram, command_address, command_size,
+          state.community_ranged_import ? &community_dirty : nullptr)) {
     (void)write_private_rdram_capture(state);
     (void)write_private_rt64_snapshot(state, pending.rdram);
     return false;
@@ -5333,7 +5400,13 @@ bool execute_live_graphics_task(State &state, hle::GuestMemory &memory) {
         state.presentation_identities.capture(
             {reinterpret_cast<const std::uint8_t*>(pending.rdram.data()),pending.rdram.size()},
             state.vi_retraces));
+  if (state.community_ranged_import)
+    pending.community_upper_dirty = std::move(community_dirty);
   state.pending_graphics_tasks.push_back(std::move(pending));
+  state.community_prof_prepare_us += static_cast<std::uint64_t>(
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now() - community_prepare_start).count());
+  ++state.community_prof_tasks;
   return true;
 }
 #endif
@@ -6777,6 +6850,41 @@ void complete_guest_sp_status(State &state, const std::uint32_t target) {
   state.mmio_trace->sp_status.acknowledge_interrupt();
 }
 
+// Community ranged import (2026-10-19). Every graphics task used to import
+// the whole 8 MiB snapshot into RT64 (a 4 MiB guest half and a 4 MiB half of
+// overlay shadows), and every present imported a snapshot whose upper half
+// was zero, so the shadows were wiped and re-copied each frame. RT64 only
+// writes framebuffers (guest half). Outside the shadows flagged dirty in the
+// new snapshot or in the one RT64 imported last, both upper halves equal the
+// initial overlay image, so those bytes need no comparison.
+// JFG_RANGED_IMPORT=0 restores the full imports.
+bool community_upper_ranges(const State &state, const PendingLiveGraphicsTask &pending,
+                            std::vector<jfg::Rt64RdramRange> &ranges) {
+  const std::size_t count = state.graphics_overlay_shadows.size();
+  if (!state.community_ranged_import || !state.community_rt64_upper_known ||
+      state.rt64_shell == nullptr || !state.rt64_shell->ranged_import_available() ||
+      pending.community_upper_dirty.size() != count + 1U ||
+      state.community_rt64_upper_dirty.size() != count + 1U ||
+      pending.community_upper_dirty[count] != 0U ||
+      state.community_rt64_upper_dirty[count] != 0U)
+    return false;
+  ranges.clear();
+  ranges.push_back({0U, kRdramSize});
+  for (std::size_t index = 0U; index < count; ++index) {
+    if (pending.community_upper_dirty[index] == 0U &&
+        state.community_rt64_upper_dirty[index] == 0U)
+      continue;
+    const auto &shadow = state.graphics_overlay_shadows[index];
+    const std::size_t begin = shadow.physical_base;
+    const std::size_t end = begin + shadow.extent;
+    if (!ranges.empty() && ranges.back().end >= begin)
+      ranges.back().end = (std::max)(ranges.back().end, end);
+    else
+      ranges.push_back({begin, end});
+  }
+  return true;
+}
+
 void complete_pending_live_graphics_tasks(
     State &state, const std::uint32_t target,
     const bool require_offscreen_target = false) {
@@ -6830,12 +6938,42 @@ void complete_pending_live_graphics_tasks(
     const auto submit_start = std::chrono::steady_clock::now();
     jfg::SubmissionProfileScope sync_scope(state.diagnostic_function_profile!=0U);
     const auto sync_stamp=[&]{return sync_scope.enabled ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};};
-    state.last_rt64_error = state.rt64_shell->replace_rdram_snapshot(
-        pending.rdram, jfg::Rt64MemoryLayout::host_word_swapped);
+    const auto community_import_start = std::chrono::steady_clock::now();
+    thread_local std::vector<jfg::Rt64RdramRange> community_ranges;
+    const bool community_ranged = community_upper_ranges(state, pending, community_ranges);
+    if (community_ranged) {
+      state.last_rt64_error = state.rt64_shell->replace_rdram_snapshot_ranges(
+          pending.rdram, jfg::Rt64MemoryLayout::host_word_swapped, community_ranges);
+      ++state.community_prof_ranged;
+      for (const auto &range : community_ranges)
+        state.community_prof_import_kb += (range.end - range.begin) / 1024U;
+    } else {
+      state.last_rt64_error = state.rt64_shell->replace_rdram_snapshot(
+          pending.rdram, jfg::Rt64MemoryLayout::host_word_swapped);
+      state.community_prof_import_kb += jfg::kRt64RequiredRdramBytes / 1024U;
+    }
+    // RT64's upper half now equals this snapshot's upper half (both import
+    // kinds); remember its flags, or mark it unknown when there are none.
+    if (state.last_rt64_error == jfg::Rt64ShellError::none) {
+      state.community_rt64_upper_known =
+          state.community_ranged_import &&
+          pending.community_upper_dirty.size() == state.graphics_overlay_shadows.size() + 1U;
+      state.community_rt64_upper_dirty = pending.community_upper_dirty;
+    } else {
+      state.community_rt64_upper_known = false;
+    }
+    const auto community_import_end = std::chrono::steady_clock::now();
+    state.community_prof_import_us += static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            community_import_end - community_import_start).count());
     const auto snapshot_done=sync_stamp();
     const auto snapshot_thread=sample_submit_thread();
     if (state.last_rt64_error == jfg::Rt64ShellError::none)
       state.last_rt64_error = state.rt64_shell->submit(pending.task);
+    const auto community_rt64_end = std::chrono::steady_clock::now();
+    state.community_prof_rt64_us += static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            community_rt64_end - community_import_end).count());
     const auto decode_done=sync_stamp();
     const auto decode_thread=sample_submit_thread();
     // Return completed intensity masks before delivering DP/SP completion:
@@ -6843,6 +6981,9 @@ void complete_pending_live_graphics_tasks(
     if (state.last_rt64_error == jfg::Rt64ShellError::none)
       state.last_rt64_error = state.rt64_shell->commit_cpu_writeback(pending.rdram,
           std::as_writable_bytes(std::span(state.rdram, kRdramSize)));
+    state.community_prof_writeback_us += static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - community_rt64_end).count());
     const auto writeback_done=sync_stamp();
     const auto writeback_thread=sample_submit_thread();
     const jfg::Rt64GraphicsDiagnostics submission_graphics =
@@ -6966,6 +7107,7 @@ void complete_pending_live_graphics_tasks(
     // Submission and writeback have consumed this snapshot. RT64 owns the
     // resident render targets; keeping a snapshot is not proof of residency.
     state.graphics_snapshot_pool.push_back(std::move(pending.rdram));
+    state.community_snapshot_pool_dirty.push_back(std::move(pending.community_upper_dirty));
     if (state.guest_os_probe) continue; // device event owns status/IRQ; original OS owns messages
     complete_guest_sp_status(state, target);
     if (state.scheduler->send(sp->second.first, sp->second.second, false) !=
@@ -7385,6 +7527,8 @@ std::ofstream *community_effect_log(State &state) {
         (std::min)(community_env_number("JFG_CAPTURE_EVERY", 0U), 600U);
     state.community_hotkey_every =
         (std::min)(community_env_number("JFG_RECORD_EVERY", 2U), 60U);
+    state.community_ranged_import =
+        community_env_number("JFG_RANGED_IMPORT", 1U) != 0U;
     state.community_capture_from_ms =
         static_cast<std::int64_t>(community_env_number("JFG_CAPTURE_FROM_S", 105U)) * 1000;
     state.community_capture_to_ms =
@@ -8109,6 +8253,36 @@ void community_audio_watch(State &state, const std::int64_t late_us) {
                             state.host_audio.current_queued_bytes()) *
                             1000U / (frequency * 4U);
   const bool counted = underruns != state.community_audio_underruns;
+  if ((state.vi_frames % 60U) == 0U) {
+    // PF line: work per second since the last PF line, in ms: task prepare
+    // (snapshot + overlay materialisation), RT64 import, RT64 submit (DL +
+    // fullSync), CPU writeback, present import; then tasks, ranged imports,
+    // imported MiB and wall ms.
+    const auto now = std::chrono::steady_clock::now();
+    const std::array<std::uint64_t, 8U> current{
+        state.community_prof_prepare_us, state.community_prof_import_us,
+        state.community_prof_rt64_us, state.community_prof_writeback_us,
+        state.community_prof_present_us, state.community_prof_tasks,
+        state.community_prof_ranged, state.community_prof_import_kb};
+    if (state.community_prof_time != std::chrono::steady_clock::time_point{}) {
+      const auto &last = state.community_prof_last;
+      state.community_effect_stream
+          << "PF\t" << state.community_effect_frame << '\t'
+          << community_elapsed_ms(state) << '\t' << state.vi_frames << '\t'
+          << (current[0] - last[0]) / 1000U << '\t'
+          << (current[1] - last[1]) / 1000U << '\t'
+          << (current[2] - last[2]) / 1000U << '\t'
+          << (current[3] - last[3]) / 1000U << '\t'
+          << (current[4] - last[4]) / 1000U << '\t'
+          << (current[5] - last[5]) << '\t' << (current[6] - last[6]) << '\t'
+          << (current[7] - last[7]) / 1024U << '\t'
+          << std::chrono::duration_cast<std::chrono::milliseconds>(
+                 now - state.community_prof_time).count()
+          << '\n';
+    }
+    state.community_prof_last = current;
+    state.community_prof_time = now;
+  }
   if (!counted && queued_ms >= 30U && late_us <= 20000 &&
       (state.vi_frames % 60U) != 0U)
     return;
@@ -8264,8 +8438,22 @@ void present_completed_video(State &state, const std::uint32_t target) {
       // Refresh the displayed pixels before RT64 tests its framebuffer hash.
       // Preserve the upper RDRAM scratch space used by captured display lists.
       std::memcpy(state.rt64_rdram.data(), state.rdram, kRdramSize);
-      state.last_rt64_error = state.rt64_shell->replace_rdram_snapshot(
-          state.rt64_rdram, jfg::Rt64MemoryLayout::host_word_swapped);
+      // Community ranged import: the present needs only the guest half.
+      // The full import used to replace RT64's overlay shadows with this
+      // buffer's zero upper half every frame.
+      const auto community_present_start = std::chrono::steady_clock::now();
+      if (state.community_ranged_import && state.rt64_shell->ranged_import_available()) {
+        static const jfg::Rt64RdramRange guest_half[1]{{0U, kRdramSize}};
+        state.last_rt64_error = state.rt64_shell->replace_rdram_snapshot_ranges(
+            state.rt64_rdram, jfg::Rt64MemoryLayout::host_word_swapped, guest_half);
+      } else {
+        state.last_rt64_error = state.rt64_shell->replace_rdram_snapshot(
+            state.rt64_rdram, jfg::Rt64MemoryLayout::host_word_swapped);
+        state.community_rt64_upper_known = false;
+      }
+      state.community_prof_present_us += static_cast<std::uint64_t>(
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::steady_clock::now() - community_present_start).count());
       if (state.last_rt64_error != jfg::Rt64ShellError::none)
         fail_closed_dispatch(state, "renderer", "present-cpu-import", target);
       write_private_progress(state, "graphics-present-begin");

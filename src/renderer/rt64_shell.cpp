@@ -707,6 +707,9 @@ struct Rt64Shell::Impl {
     bool cpu_writeback = false;
     bool cpu_mask_writeback = false;
     bool writeback_pending = false;
+    // replace_rdram_snapshot_ranges: restrict the next import to these ranges.
+    std::span<const Rt64RdramRange> import_ranges;
+    bool import_ranges_active = false;
     bool last_submit_paused = false;
     // Developer inspector pause (community). A JFG frame is several RT64
     // workloads (shadow masks, the 3D scene, effects, overlays) and RT64's
@@ -1026,6 +1029,33 @@ Rt64Shell::Rt64Shell(std::unique_ptr<Impl> impl) noexcept
 
 Rt64Shell::~Rt64Shell() = default;
 
+bool Rt64Shell::ranged_import_available() const noexcept {
+    return impl_ != nullptr && impl_->initialized && impl_->cpu_writeback &&
+           impl_->rdram.size() == kRt64RequiredRdramBytes;
+}
+
+Rt64ShellError Rt64Shell::replace_rdram_snapshot_ranges(
+    const std::span<const std::byte> rdram,
+    const Rt64MemoryLayout layout,
+    const std::span<const Rt64RdramRange> ranges) noexcept {
+    if (impl_ == nullptr || !impl_->initialized ||
+        impl_->application == nullptr) {
+        return Rt64ShellError::not_initialized;
+    }
+    // Only the full-writeback import has the "import every byte" contract
+    // that a ranged import can shorten; everything else stays unchanged.
+    if (!impl_->cpu_writeback || layout != Rt64MemoryLayout::host_word_swapped ||
+        rdram.size() != kRt64RequiredRdramBytes ||
+        impl_->rdram.size() != kRt64RequiredRdramBytes)
+        return replace_rdram_snapshot(rdram, layout);
+    impl_->import_ranges = ranges;
+    impl_->import_ranges_active = true;
+    const Rt64ShellError result = replace_rdram_snapshot(rdram, layout);
+    impl_->import_ranges_active = false;
+    impl_->import_ranges = {};
+    return result;
+}
+
 Rt64ShellError Rt64Shell::replace_rdram_snapshot(
     const std::span<const std::byte> rdram,
     const Rt64MemoryLayout layout) noexcept {
@@ -1069,9 +1099,23 @@ Rt64ShellError Rt64Shell::replace_rdram_snapshot(
             }
             catch (...) { return Rt64ShellError::renderer_exception; }
         }
-        const auto copied = copy_rt64_rdram_snapshot(rdram,
-            std::as_writable_bytes(std::span(impl_->rdram)), layout);
-        if (copied != Rt64ShellError::none) return copied;
+        if (impl_->import_ranges_active) {
+            // Ranged import (community): bytes outside the ranges are equal
+            // by the caller's contract, so only these are compared/copied.
+            const auto destination = std::as_writable_bytes(std::span(impl_->rdram));
+            for (const auto& range : impl_->import_ranges) {
+                if (range.begin >= range.end || range.end > rdram.size() ||
+                    range.end > destination.size())
+                    return Rt64ShellError::invalid_memory;
+                copy_changed_snapshot_bytes(
+                    rdram.subspan(range.begin, range.end - range.begin),
+                    destination.subspan(range.begin, range.end - range.begin));
+            }
+        } else {
+            const auto copied = copy_rt64_rdram_snapshot(rdram,
+                std::as_writable_bytes(std::span(impl_->rdram)), layout);
+            if (copied != Rt64ShellError::none) return copied;
+        }
         const bool same_layout = layout == Rt64MemoryLayout::host_word_swapped &&
             impl_->simulation_rdram.size() == impl_->rdram.size();
         for (const auto& [begin, bytes] : kept) {
