@@ -1336,6 +1336,22 @@ void set_perspective_normalization(
     state->rsp->setPerspNorm((*dl)->p1(16U, 16U));
 }
 
+// Community (2026-10-19, title-screen hallway "cutting into the building"):
+// JFG's own RSP microcode treats 0xBE as a no-op. Its immediate-command table
+// (DMEM 0x76 + opcode*2) sends 0xB0, 0xB5, 0xBD and 0xBE straight back to the
+// command loop (IMEM 0x10CC); see diag\ucode_f3d_text.bin/ucode_f3d_data.bin.
+// The console therefore never skips a display list here, and the vertex
+// ranges the game passes need not bound anything. Culling on them can drop
+// geometry the console draws; the title hallway draws without a depth test,
+// so such a hole keeps the previous frames' pixels. That is the suspected
+// cause of the straight-edged panel Luke saw (it vanishes when the RT64
+// inspector re-renders the frame). JFG_CULLDL=1 restores the F3D-style cull
+// below for comparison.
+bool display_list_cull_enabled() noexcept {
+    static const bool enabled = texlog_env("JFG_CULLDL", 0) != 0;
+    return enabled;
+}
+
 void cull_display_list(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     if (context == nullptr || dl == nullptr || *dl == nullptr) {
@@ -1343,6 +1359,8 @@ void cull_display_list(RT64::State* state, RT64::DisplayList** dl) {
         return;
     }
     ++context->commands;
+    if (!display_list_cull_enabled())
+        return;
     std::size_t first = ((*dl)->w0 & 0x00FF'FFFFU) / 40U;
     if ((*dl)->w1 < 40U) {
         reject(state, dl);
