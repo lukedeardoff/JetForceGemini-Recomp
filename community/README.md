@@ -27,6 +27,7 @@ Upstream's high-refresh modes (Custom FPS, Unlimited) have not been checked with
 | Menu icons in widescreen | Scaled 1-cycle icon texrects get alpha-compare threshold, so the alpha-0 ring is dropped as in 4:3 copy mode (`JFG_MENU_ICON_ALPHA=0` off) |
 | Colour grade | Slightly darker and more contrast to match the console: `JFG_GAMMA` (1.08), `JFG_CONTRAST` (1.04), `patches/rt64/jfg-color-grade.patch` |
 | Save backups | `play-community.ps1` copies `jfg.flash` to `profiles\default\backups` before each session (newest 30 kept) |
+| F9 recording | In the game window, F9 starts and F9 again stops a recording: every 2nd frame is saved to `%LOCALAPPDATA%\JFGRecomp\diag\frames\run-<time>\` (`JFG_RECORD_EVERY`, 0 = timing only) and start/stop marks go into the effect log, so the frame timing of that stretch can be checked. The old timed and shrink-beam captures are now off unless `JFG_EFFECT_CAPTURE`/`JFG_CAPTURE_EVERY` are set |
 | Diagnostics | Effect-activity log, frame capture, texture-image log, lens-flare depth trace (`JFG_ZB_TRACE`), translucent-effect log (`JFG_RIPPLE_LOG`) |
 
 Dropped compared with the old `community/cosmetic-vignette-shadows` branch: the backported widescreen

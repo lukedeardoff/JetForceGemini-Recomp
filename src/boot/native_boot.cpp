@@ -1932,6 +1932,11 @@ struct State : JfgOriginalTimingFast {
   bool community_hide_splats = true;
   bool community_hide_reflections = false;
   std::uint32_t community_capture_every = 0U;
+  // F9 recording (community_hotkey_poll): every Nth presented frame while on.
+  bool community_hotkey_down = false;
+  bool community_hotkey_on = false;
+  std::uint32_t community_hotkey_every = 2U;
+  std::uint32_t community_hotkey_presses = 0U;
   std::int64_t community_capture_from_ms = 0;
   std::int64_t community_capture_to_ms = 0;
   std::uint64_t community_blur_state = ~0ULL;
@@ -7228,6 +7233,15 @@ void advance_legacy_vi_clock(State &state, const std::uint32_t target) {
 // presented frame is saved, shrunk to about 640 pixels wide, as a PPM in
 // %LOCALAPPDATA%\JFGRecomp\diag\frames\run-<time>\. While beams exist but
 // are not charged, every 16th presented frame is saved for context.
+// Since 2026-10-18 the beam and timed captures are off unless
+// JFG_EFFECT_CAPTURE and JFG_CAPTURE_EVERY are set.
+//
+// F9 recording (2026-10-18): F9 in the game window starts a recording, F9
+// again stops it. The effect log gets "K" lines (frame, ms, VI, 1 = start /
+// 0 = stop, recording number), so the present timings (P lines) of that
+// stretch can be read out. While recording, every Nth presented frame is
+// saved (JFG_RECORD_EVERY, default 2; 0 = timing marks only) into a new
+// frames\run-<time>\ folder per recording, at most 1800 frames each.
 // ---------------------------------------------------------------------------
 // Overlays are matched by link address (overlay N is linked at N MiB). The
 // dispatcher's section number is an index into the generated section table,
@@ -7354,7 +7368,7 @@ std::ofstream *community_effect_log(State &state) {
     state.community_beam_strand_percent =
         (std::min)(community_env_number("JFG_BEAM_STRAND_SPEED", 100U), 400U);
     state.community_capture_limit =
-        (std::min)(community_env_number("JFG_EFFECT_CAPTURE", 450U), 2000U);
+        (std::min)(community_env_number("JFG_EFFECT_CAPTURE", 0U), 2000U);
     state.community_skip_stale_presents =
         community_env_number("JFG_SKIP_STALE_PRESENTS", 1U) != 0U;
     state.community_hide_splats =
@@ -7364,7 +7378,9 @@ std::ofstream *community_effect_log(State &state) {
     // Timed capture (elevator investigation): every Nth presented frame
     // between JFG_CAPTURE_FROM_S and JFG_CAPTURE_TO_S seconds of the run.
     state.community_capture_every =
-        (std::min)(community_env_number("JFG_CAPTURE_EVERY", 3U), 600U);
+        (std::min)(community_env_number("JFG_CAPTURE_EVERY", 0U), 600U);
+    state.community_hotkey_every =
+        (std::min)(community_env_number("JFG_RECORD_EVERY", 2U), 60U);
     state.community_capture_from_ms =
         static_cast<std::int64_t>(community_env_number("JFG_CAPTURE_FROM_S", 105U)) * 1000;
     state.community_capture_to_ms =
@@ -8038,8 +8054,45 @@ void community_effect_present(State &state,
       << std::dec << '\n';
 }
 
+// F9 recording (see the header comment). Polled once per presented frame,
+// only while a window of this process has the focus.
+void community_hotkey_poll(State &state) {
+  DWORD owner = 0U;
+  const HWND foreground = GetForegroundWindow();
+  if (foreground != nullptr)
+    (void)GetWindowThreadProcessId(foreground, &owner);
+  const bool down = owner == GetCurrentProcessId() &&
+                    (GetAsyncKeyState(VK_F9) & 0x8000) != 0;
+  const bool pressed = down && !state.community_hotkey_down;
+  state.community_hotkey_down = down;
+  if (!pressed)
+    return;
+  state.community_hotkey_on = !state.community_hotkey_on;
+  if (state.community_hotkey_on) {
+    ++state.community_hotkey_presses;
+    if (state.community_hotkey_every != 0U) {
+      // A new frames folder per recording, up to 1800 frames.
+      state.community_capture_dir.clear();
+      state.community_capture_limit = state.community_capture_count + 1800U;
+    }
+  }
+  if (state.community_effect_stream.is_open()) {
+    state.community_effect_stream
+        << "K\t" << state.community_effect_frame << '\t'
+        << community_elapsed_ms(state) << '\t' << state.vi_retraces << '\t'
+        << (state.community_hotkey_on ? 1 : 0) << '\t'
+        << state.community_hotkey_presses << '\n';
+    state.community_effect_stream.flush();
+  }
+  std::fprintf(stderr, "F9 recording %u %s\n", state.community_hotkey_presses,
+               state.community_hotkey_on ? "started" : "stopped");
+}
+
 // Frame capture around the shrink beam (see the header comment).
 bool community_capture_wanted(const State &state) {
+  if (state.community_hotkey_on && state.community_hotkey_every != 0U &&
+      state.community_capture_count < state.community_capture_limit)
+    return (state.presented_frames % state.community_hotkey_every) == 0U;
   if (state.community_capture_limit == 0U ||
       state.community_capture_count >= state.community_capture_limit)
     return false;
@@ -8168,6 +8221,8 @@ void present_completed_video(State &state, const std::uint32_t target) {
     if (presentation_ready &&
         community_skip_stale_present(state, selected_vi_framebuffer))
       presentation_ready = false;
+    if (presentation_ready)
+      community_hotkey_poll(state);
     if (presentation_ready) {
       state.rt64_vi.current_line =
           state.rt64_vi.current_line == 0U ? 2U : 0U;
