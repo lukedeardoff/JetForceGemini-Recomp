@@ -812,6 +812,9 @@ public:
     return underruns_;
   }
   [[nodiscard]] std::uint64_t overruns() const noexcept { return overruns_; }
+  [[nodiscard]] std::uint32_t current_queued_bytes() const noexcept {
+    return current_queued_bytes_;
+  }
   [[nodiscard]] std::uint64_t consumed_milliseconds() const noexcept {
     return frequency_ == 0U
                ? 0U
@@ -1937,6 +1940,7 @@ struct State : JfgOriginalTimingFast {
   bool community_hotkey_on = false;
   std::uint32_t community_hotkey_every = 2U;
   std::uint32_t community_hotkey_presses = 0U;
+  std::uint64_t community_audio_underruns = 0U;
   std::int64_t community_capture_from_ms = 0;
   std::int64_t community_capture_to_ms = 0;
   std::uint64_t community_blur_state = ~0ULL;
@@ -8088,6 +8092,34 @@ void community_hotkey_poll(State &state) {
                state.community_hotkey_on ? "started" : "stopped");
 }
 
+// Audio watch (2026-10-19). Called once per VI from the original-clock host
+// pacing, after the audio device was polled, so it also runs while the game
+// is loading and presents nothing. AU lines: game frame, ms, VI, underruns,
+// overruns, queued audio in ms, host lateness against the VI deadline in ms.
+// Written when an underrun is counted, when less than 30 ms of audio is
+// queued, when the host is more than 20 ms late, and once a second.
+void community_audio_watch(State &state, const std::int64_t late_us) {
+  if (!state.community_effect_stream.is_open())
+    return;
+  const std::uint64_t underruns = state.host_audio.underruns();
+  const std::uint64_t frequency = state.host_audio.frequency();
+  const std::uint64_t queued_ms =
+      frequency == 0U ? 0U
+                      : static_cast<std::uint64_t>(
+                            state.host_audio.current_queued_bytes()) *
+                            1000U / (frequency * 4U);
+  const bool counted = underruns != state.community_audio_underruns;
+  if (!counted && queued_ms >= 30U && late_us <= 20000 &&
+      (state.vi_frames % 60U) != 0U)
+    return;
+  state.community_audio_underruns = underruns;
+  state.community_effect_stream
+      << "AU\t" << state.community_effect_frame << '\t'
+      << community_elapsed_ms(state) << '\t' << state.vi_frames << '\t'
+      << underruns << '\t' << state.host_audio.overruns() << '\t'
+      << queued_ms << '\t' << late_us / 1000 << '\n';
+}
+
 // Frame capture around the shrink beam (see the header comment).
 bool community_capture_wanted(const State &state) {
   if (state.community_hotkey_on && state.community_hotkey_every != 0U &&
@@ -12703,6 +12735,9 @@ extern "C" JFG_EXECUTION_NOINLINE void jfg_phase9_execution_probe_slow(unsigned 
             if (before_wait < target_time)
               std::this_thread::sleep_until(target_time);
             const auto now = std::chrono::steady_clock::now();
+            community_audio_watch(state, static_cast<std::int64_t>(
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    before_wait - target_time).count()));
             if (state.gameplay_trace) {
               state.profile_host_wait_us += static_cast<std::uint64_t>(
                   std::chrono::duration_cast<std::chrono::microseconds>(now-before_wait).count());
