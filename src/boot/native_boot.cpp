@@ -1852,12 +1852,15 @@ struct State : JfgOriginalTimingFast {
   std::vector<std::uint8_t> community_rt64_upper_dirty;
   bool community_rt64_upper_known = false;
   bool community_ranged_import = true;
+  // Community native romCopy: 0 = not decided yet, 1 = on, 2 = off.
+  std::uint8_t community_native_romcopy = 0U;
+  std::uint64_t community_romcopy_calls = 0U, community_romcopy_bytes = 0U;
   // Community profile counters (PF lines, written once a second).
   std::uint64_t community_prof_prepare_us = 0U, community_prof_import_us = 0U,
                 community_prof_rt64_us = 0U, community_prof_writeback_us = 0U,
                 community_prof_tasks = 0U, community_prof_ranged = 0U,
                 community_prof_import_kb = 0U, community_prof_present_us = 0U;
-  std::array<std::uint64_t, 8U> community_prof_last{};
+  std::array<std::uint64_t, 10U> community_prof_last{};
   std::chrono::steady_clock::time_point community_prof_time{};
   HostAudioDevice host_audio;
   std::uint64_t audio_task_microseconds = 0U;
@@ -8257,13 +8260,14 @@ void community_audio_watch(State &state, const std::int64_t late_us) {
     // PF line: work per second since the last PF line, in ms: task prepare
     // (snapshot + overlay materialisation), RT64 import, RT64 submit (DL +
     // fullSync), CPU writeback, present import; then tasks, ranged imports,
-    // imported MiB and wall ms.
+    // imported MiB, wall ms, native romCopy calls and native romCopy KiB.
     const auto now = std::chrono::steady_clock::now();
-    const std::array<std::uint64_t, 8U> current{
+    const std::array<std::uint64_t, 10U> current{
         state.community_prof_prepare_us, state.community_prof_import_us,
         state.community_prof_rt64_us, state.community_prof_writeback_us,
         state.community_prof_present_us, state.community_prof_tasks,
-        state.community_prof_ranged, state.community_prof_import_kb};
+        state.community_prof_ranged, state.community_prof_import_kb,
+        state.community_romcopy_calls, state.community_romcopy_bytes};
     if (state.community_prof_time != std::chrono::steady_clock::time_point{}) {
       const auto &last = state.community_prof_last;
       state.community_effect_stream
@@ -8278,7 +8282,8 @@ void community_audio_watch(State &state, const std::int64_t late_us) {
           << (current[7] - last[7]) / 1024U << '\t'
           << std::chrono::duration_cast<std::chrono::milliseconds>(
                  now - state.community_prof_time).count()
-          << '\n';
+          << '\t' << (current[8] - last[8]) << '\t'
+          << (current[9] - last[9]) / 1024U << '\n';
     }
     state.community_prof_last = current;
     state.community_prof_time = now;
@@ -8292,6 +8297,91 @@ void community_audio_watch(State &state, const std::int64_t late_us) {
       << community_elapsed_ms(state) << '\t' << state.vi_frames << '\t'
       << underruns << '\t' << state.host_audio.overruns() << '\t'
       << queued_ms << '\t' << late_us / 1000 << '\n';
+}
+
+// Community native romCopy (2026-10-19, loading-transition audio hitch).
+// romCopy(romOffset, ramAddress, numBytes) at 0x8004D640 reads cartridge ROM
+// with osPiStartDma + osRecvMesg. On this host one call costs roughly
+// 150-250 us (guarded-page MMIO exceptions for the PI/MI registers, the PI
+// interrupt and about five guest thread switches, each two baton hand-offs),
+// for a copy that usually moves a few dozen bytes. A level load makes about
+// 2000 of these calls. The ~1100 tiny object reads at its end
+// (objGetControlNo, texLoadTexture) run the guest at half speed for 0.1-0.3 s,
+// and the audio queue runs dry.
+// This copies the same bytes directly and drops the matching lines from the
+// modelled D-cache (osInvalDCache). It skips the mainPreNMI poll: this port
+// has no reset/pre-NMI source, so mainResetPressed always returns false.
+// The DMA time is not modelled, so loads finish sooner in game time.
+// Play mode only, after an exact check of the routine's code. Anything
+// unexpected falls back to the original routine. JFG_NATIVE_ROMCOPY=0
+// restores the original path.
+bool community_native_romcopy(State &state, const recomp_context &context) {
+  if (state.community_native_romcopy == 0U) {
+    static constexpr std::array<std::pair<std::uint32_t, std::uint32_t>, 6U>
+        kCode{{{0x4D640U, 0x27BDFFB0U},   // addiu sp, sp, -0x50
+               {0x4D644U, 0xAFB30030U},   // sw s3, 0x30(sp)
+               {0x4D678U, 0x0C0260ACU},   // jal osInvalDCache
+               {0x4D6C8U, 0x0C025C20U},   // jal osPiStartDma
+               {0x4D6D8U, 0x0C025A44U},   // jal osRecvMesg
+               {0x4D6F0U, 0x0C011308U}}}; // jal mainPreNMI
+    bool identical = state.rdram != nullptr && state.rom != nullptr;
+    for (const auto &[offset, expected] : kCode) {
+      std::uint32_t word = 0U;
+      if (identical)
+        std::memcpy(&word, state.rdram + offset, sizeof(word));
+      identical = identical && word == expected;
+    }
+    const bool wanted = community_env_number("JFG_NATIVE_ROMCOPY", 1U) != 0U;
+    state.community_native_romcopy =
+        identical && wanted && state.play_mode ? 1U : 2U;
+  }
+  if (state.community_native_romcopy != 1U)
+    return false;
+  const auto rom_address = static_cast<std::uint32_t>(context.r4);
+  const auto ram_address = static_cast<std::uint32_t>(context.r5);
+  const auto length = static_cast<std::int32_t>(context.r6);
+  if (length <= 0)
+    return true; // osInvalDCache and the copy loop both do nothing.
+  const std::uint64_t size = static_cast<std::uint32_t>(length);
+  const std::uint32_t segment = ram_address & 0xE0000000U;
+  const std::uint64_t physical = ram_address & 0x1FFFFFFFU;
+  if (rom_address >= 0x10000000U ||
+      (segment != 0x80000000U && segment != 0xA0000000U) ||
+      physical > kRdramSize || size > kRdramSize - physical ||
+      rom_address > state.rom_size || size > state.rom_size - rom_address)
+    return false;
+  std::uint8_t *const destination = state.rdram;
+  const std::uint8_t *const source = state.rom + rom_address;
+  std::uint64_t index = 0U;
+  if ((physical & 3U) == 0U) {
+    for (; index + 4U <= size; index += 4U) {
+      const std::uint32_t word = (std::uint32_t{source[index]} << 24U) |
+                                 (std::uint32_t{source[index + 1U]} << 16U) |
+                                 (std::uint32_t{source[index + 2U]} << 8U) |
+                                 std::uint32_t{source[index + 3U]};
+      std::memcpy(destination + physical + index, &word, sizeof(word));
+    }
+  }
+  for (; index < size; ++index)
+    destination[(physical + index) ^ 3U] = source[index];
+  if (state.data_cache != nullptr) {
+    // Same effect on the model as osInvalDCache: whole cache from 8 KiB up,
+    // otherwise the lines of the range (16-byte lines, 512 entries).
+    if (size >= 8192U) {
+      for (std::size_t line = 0U; line < 512U; ++line)
+        state.data_cache[line].valid = state.data_cache[line].dirty = 0U;
+    } else {
+      for (std::uint64_t line = physical & ~std::uint64_t{15U};
+           line < physical + size; line += 16U) {
+        auto &entry = state.data_cache[(line >> 4U) & 511U];
+        if (entry.valid != 0U && entry.tag == (line & ~std::uint64_t{0xFFFU}))
+          entry.valid = entry.dirty = 0U;
+      }
+    }
+  }
+  ++state.community_romcopy_calls;
+  state.community_romcopy_bytes += size;
+  return true;
 }
 
 // Frame capture around the shrink beam (see the header comment).
@@ -9493,6 +9583,12 @@ int dispatch(void *opaque, std::int32_t address, std::uint8_t *rdram,
     if(target==0x80049D80U && jfg_native_angle_diff_try(rdram,context)) {
       ++state.generated_calls;++state.pure_diff_calls;return 1;
     }
+  }
+  // Community: romCopy without the PI/thread round trip (see
+  // community_native_romcopy).
+  if (target == 0x8004D640U && community_native_romcopy(state, *context)) {
+    ++state.generated_calls;
+    return 1;
   }
 #endif
   if (target == jfg::boot::kSyncPrintSink) {
