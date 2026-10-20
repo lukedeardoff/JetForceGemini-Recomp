@@ -361,6 +361,11 @@ struct Context {
     std::array<bool,kMatrixCount> model_finite{};
     bool semantic_target = false;
     std::vector<SemanticVertexState> semantic_vertices;
+    // Title-layer depth (see TitleLayerDepth): active in this task, and the
+    // texture image of the outside wall once its first batch was seen.
+    bool title_depth = false;
+    bool title_wall_known = false;
+    std::uint32_t title_wall_texture = 0U;
     bool billboard = false;
     bool failed = false;
 };
@@ -1235,6 +1240,90 @@ void geomdump_triangle(RT64::State& state, const std::uint8_t flags,
     std::fputc('\n', geomdump.file);
 }
 
+// Title hallway: the outside wall covers what lies behind it (a port
+// choice, not console behaviour).
+// Before the glass and the depth-buffered geometry, the title draws, without
+// the depth buffer and each simply over the one before: the "outside" wall
+// seen through the glass, then the outside floor (same render state,
+// another texture), then a few thin hallway pieces. The floor's far tip and
+// two thin hallway pieces lie behind the wall but still show on top of it:
+// a thin dark line inside the wall next to Vela and a floor tip by Juno's
+// hand. On the title and menus the wall now writes depth and the floor and
+// the hallway pieces test against it, so the wall hides what is behind it
+// and the near floor (in front of the wall) stays. The floor and the
+// pieces write no depth, so the depth-buffered characters are tested
+// against the wall only, which is always further away than they are.
+// JFG_TITLE_DEPTH=0 turns it off.
+constexpr std::uint32_t kTitleOutsideOtherModeL = 0x0C192048U;
+constexpr std::uint32_t kTitleOutsideOtherModeH = 0x00192CCFU;
+constexpr std::uint32_t kTitleOutsideCombineW0 = 0xFC26A004U;
+constexpr std::uint32_t kTitleOutsideCombineW1 = 0x1FFC93F8U;
+constexpr std::uint32_t kTitlePieceOtherModeL = 0xC8112048U;
+constexpr std::uint32_t kTitlePieceOtherModeH = 0x00182C0FU;
+constexpr std::uint32_t kTitlePieceCombineW0 = 0xFC121603U;
+constexpr std::uint32_t kTitlePieceCombineW1 = 0xFFFFFFF8U;
+constexpr std::uint32_t kOtherModeZCompare = 0x10U;
+constexpr std::uint32_t kOtherModeZUpdate = 0x20U;
+constexpr std::uint32_t kFrontModeAddress = 0x000A51B0U;
+constexpr std::uint8_t kFrontModeTitle = 0x03U;
+constexpr std::uint8_t kFrontModeMenus = 0x18U;
+
+[[nodiscard]] bool title_depth_task(const Context& context, const RT64::State& state) noexcept {
+    static const bool enabled = texlog_env("JFG_TITLE_DEPTH", 1) != 0;
+    if (!enabled)
+        return false;
+    const std::uint8_t front = guest_byte(context, state, kFrontModeAddress);
+    return front == kFrontModeTitle || front == kFrontModeMenus;
+}
+
+// Adds depth compare (and, for the wall, depth update) to a matching batch
+// and restores the game's other mode when the batch ends, on every return
+// path. RT64 captures a draw call's state at its first triangle, so the
+// change covers exactly this batch. Only the RDP copy changes; the RSP's
+// other-mode stack (the base for partial G_SETOTHERMODE updates) keeps the
+// game's value. The wall is the first outside-layer texture of the task.
+class TitleLayerDepth {
+public:
+    TitleLayerDepth(RT64::State& state, Context& context) noexcept {
+        if (!context.title_depth)
+            return;
+        RT64::RDP& rdp = *state.rdp;
+        const auto& cc = rdp.colorCombinerStack[rdp.colorCombinerStackSize - 1];
+        std::uint32_t added = 0U;
+        if (rdp.otherMode.L == kTitleOutsideOtherModeL &&
+            rdp.otherMode.H == kTitleOutsideOtherModeH &&
+            cc.L == kTitleOutsideCombineW0 && cc.H == kTitleOutsideCombineW1) {
+            if (!context.title_wall_known) {
+                context.title_wall_known = true;
+                context.title_wall_texture = rdp.texture.address;
+            }
+            added = rdp.texture.address == context.title_wall_texture
+                ? kOtherModeZCompare | kOtherModeZUpdate
+                : kOtherModeZCompare;
+        } else if (rdp.otherMode.L == kTitlePieceOtherModeL &&
+            rdp.otherMode.H == kTitlePieceOtherModeH &&
+            cc.L == kTitlePieceCombineW0 && cc.H == kTitlePieceCombineW1) {
+            added = kOtherModeZCompare;
+        }
+        if (added == 0U)
+            return;
+        state_ = &state;
+        mode_h_ = rdp.otherMode.H;
+        mode_l_ = rdp.otherMode.L;
+        rdp.setOtherMode(mode_h_, mode_l_ | added);
+    }
+    ~TitleLayerDepth() {
+        if (state_ != nullptr)
+            state_->rdp->setOtherMode(mode_h_, mode_l_);
+    }
+    TitleLayerDepth(const TitleLayerDepth&) = delete;
+    TitleLayerDepth& operator=(const TitleLayerDepth&) = delete;
+
+private:
+    RT64::State* state_ = nullptr;
+    std::uint32_t mode_h_ = 0U, mode_l_ = 0U;
+};
+
 void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     if (context == nullptr) {
@@ -1260,6 +1349,7 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
     // setTexture() would incorrectly increment an unrelated field on every
     // DMA triangle batch.
     state->rsp->textureState.on = texture;
+    const TitleLayerDepth title_depth(*state, *context);
     for (std::size_t triangle = 0U; triangle < count; ++triangle) {
         const std::uint32_t source =
             address + static_cast<std::uint32_t>(triangle * 16U);
@@ -2282,6 +2372,10 @@ void Rt64F3ddkr::begin(
     impl_->context.commands = 0U;
     impl_->context.stats = {};
     impl_->context.failed = false;
+    impl_->context.title_wall_known = false;
+    impl_->context.title_wall_texture = 0U;
+    impl_->context.title_depth =
+        title_depth_task(impl_->context, *impl_->context.application->state);
     texlog_init();
     if (!texlog.started) { texlog.started = true; texlog.start = std::chrono::steady_clock::now(); }
     texlog.now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
