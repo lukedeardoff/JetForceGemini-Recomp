@@ -361,6 +361,8 @@ struct Context {
     std::array<bool,kMatrixCount> model_finite{};
     bool semantic_target = false;
     std::vector<SemanticVertexState> semantic_vertices;
+    // Title glass drawn as a wall in this task (see title_glass_mode).
+    bool title_glass = false;
     bool billboard = false;
     bool failed = false;
 };
@@ -1235,6 +1237,73 @@ void geomdump_triangle(RT64::State& state, const std::uint8_t flags,
     std::fputc('\n', geomdump.file);
 }
 
+// Title hallway glass as a wall (a port choice, not console behaviour).
+// The title hallway's walls and ceiling are translucent glass (blender:
+// fog, then PIXEL * A + MEM * (1 - A)). Behind them the game draws an
+// "outside" layer and a background panorama, and the outside layer's
+// geometry ends on a straight edge that shows through the glass between
+// Juno and Vela ("the hallway cutting into the building"). On the title
+// and menus the glass's second blender cycle no longer reads the
+// framebuffer, so nothing behind the glass shows:
+// JFG_TITLE_GLASS=1 (default) solid glass: PIXEL * A + PIXEL * (1 - A).
+// JFG_TITLE_GLASS=2 glass over the scene's fog colour: PIXEL * A + FOG * (1 - A).
+// JFG_TITLE_GLASS=0 see-through glass, as the game draws it.
+constexpr std::uint32_t kTitleGlassOtherModeL = 0xC81041C8U;
+constexpr std::uint32_t kTitleGlassOtherModeH = 0x00182C0FU;
+constexpr std::uint32_t kTitleGlassCombineW0 = 0xFC121603U;
+constexpr std::uint32_t kTitleGlassCombineW1 = 0xFFFFFFF8U;
+constexpr std::uint32_t kFrontModeAddress = 0x000A51B0U;
+constexpr std::uint8_t kFrontModeTitle = 0x03U;
+constexpr std::uint8_t kFrontModeMenus = 0x18U;
+
+[[nodiscard]] unsigned title_glass_mode() noexcept {
+    static const unsigned mode = static_cast<unsigned>(
+        std::clamp<long long>(texlog_env("JFG_TITLE_GLASS", 1), 0, 2));
+    return mode;
+}
+
+[[nodiscard]] bool title_glass_task(const Context& context, const RT64::State& state) noexcept {
+    if (title_glass_mode() == 0U)
+        return false;
+    const std::uint8_t front = guest_byte(context, state, kFrontModeAddress);
+    return front == kFrontModeTitle || front == kFrontModeMenus;
+}
+
+// Changes the blender of a title-glass batch and restores the game's other
+// mode when the batch ends, on every return path. RT64 captures a draw
+// call's state at its first triangle, so the change covers exactly this
+// batch. Only the RDP copy changes; the RSP's other-mode stack (the base for
+// partial G_SETOTHERMODE updates) keeps the game's value.
+class TitleGlassWall {
+public:
+    TitleGlassWall(RT64::State& state, const bool enabled) noexcept {
+        if (!enabled)
+            return;
+        RT64::RDP& rdp = *state.rdp;
+        const auto& cc = rdp.colorCombinerStack[rdp.colorCombinerStackSize - 1];
+        if (rdp.otherMode.L != kTitleGlassOtherModeL ||
+            rdp.otherMode.H != kTitleGlassOtherModeH ||
+            cc.L != kTitleGlassCombineW0 || cc.H != kTitleGlassCombineW1)
+            return;
+        state_ = &state;
+        mode_h_ = rdp.otherMode.H;
+        mode_l_ = rdp.otherMode.L;
+        // Second-cycle M input (bits 20-21): 0 = the pixel itself, 3 = fog.
+        const std::uint32_t input_m = title_glass_mode() == 2U ? 3U : 0U;
+        rdp.setOtherMode(mode_h_, (mode_l_ & ~(3U << 20U)) | (input_m << 20U));
+    }
+    ~TitleGlassWall() {
+        if (state_ != nullptr)
+            state_->rdp->setOtherMode(mode_h_, mode_l_);
+    }
+    TitleGlassWall(const TitleGlassWall&) = delete;
+    TitleGlassWall& operator=(const TitleGlassWall&) = delete;
+
+private:
+    RT64::State* state_ = nullptr;
+    std::uint32_t mode_h_ = 0U, mode_l_ = 0U;
+};
+
 void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     if (context == nullptr) {
@@ -1260,6 +1329,7 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
     // setTexture() would incorrectly increment an unrelated field on every
     // DMA triangle batch.
     state->rsp->textureState.on = texture;
+    const TitleGlassWall title_glass(*state, context->title_glass);
     for (std::size_t triangle = 0U; triangle < count; ++triangle) {
         const std::uint32_t source =
             address + static_cast<std::uint32_t>(triangle * 16U);
@@ -2282,6 +2352,8 @@ void Rt64F3ddkr::begin(
     impl_->context.commands = 0U;
     impl_->context.stats = {};
     impl_->context.failed = false;
+    impl_->context.title_glass =
+        title_glass_task(impl_->context, *impl_->context.application->state);
     texlog_init();
     if (!texlog.started) { texlog.started = true; texlog.start = std::chrono::steady_clock::now(); }
     texlog.now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
