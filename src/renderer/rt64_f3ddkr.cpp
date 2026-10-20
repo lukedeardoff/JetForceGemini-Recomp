@@ -361,12 +361,6 @@ struct Context {
     std::array<bool,kMatrixCount> model_finite{};
     bool semantic_target = false;
     std::vector<SemanticVertexState> semantic_vertices;
-    // Title-layer fade (see title_fade_mode): whether it runs in this task,
-    // the global vertices of drawn layer triangles (paired with their
-    // texture image as a strip key) and those of every other drawn triangle.
-    bool title_fade = false;
-    std::vector<std::pair<std::uint32_t, std::uint32_t>> title_fade_layer;
-    std::vector<std::uint32_t> title_fade_other;
     bool billboard = false;
     bool failed = false;
 };
@@ -1241,152 +1235,6 @@ void geomdump_triangle(RT64::State& state, const std::uint8_t flags,
     std::fputc('\n', geomdump.file);
 }
 
-// Title hallway "outside" layer fade (a port choice, not console behaviour).
-// The title hallway draws an outside layer early in the frame: two textured
-// strips, 2-cycle mip lerp, no Z, opaque. It is seen through the translucent
-// glass walls. The first strip curves away from the camera, so its far part
-// is squeezed into a narrow bright slab between Juno and Vela whose left
-// side (the strip's fold and far end) is a straight edge cutting into the
-// building. Here the layer is drawn with blending and its vertex alpha
-// falls to zero towards each strip's far end (largest w), so the slab melts
-// into the panorama drawn before it instead of ending on an edge.
-// JFG_TITLE_FADE: 0 off, 1 title and menus (default), 2 wherever the
-// layer's exact render state appears. JFG_TITLE_FADE_PERCENT: fade length
-// as a percentage of each strip's depth range (default 75, 1-100). On the
-// title's first strip, 75 leaves the near half almost opaque and the
-// straight edge at about a quarter of its opacity.
-constexpr std::uint32_t kTitleLayerOtherModeL = 0x0C192048U;
-constexpr std::uint32_t kTitleLayerOtherModeH = 0x00192CCFU;
-constexpr std::uint32_t kTitleLayerCombineW0 = 0xFC26A004U;
-constexpr std::uint32_t kTitleLayerCombineW1 = 0x1FFC93F8U;
-constexpr std::uint32_t kFrontModeAddress = 0x000A51B0U;
-constexpr std::uint8_t kFrontModeTitle = 0x03U;
-constexpr std::uint8_t kFrontModeMenus = 0x18U;
-
-[[nodiscard]] unsigned title_fade_mode() noexcept {
-    static const unsigned mode = static_cast<unsigned>(
-        std::clamp<long long>(texlog_env("JFG_TITLE_FADE", 1), 0, 2));
-    return mode;
-}
-
-[[nodiscard]] float title_fade_fraction() noexcept {
-    static const float fraction = static_cast<float>(
-        std::clamp<long long>(texlog_env("JFG_TITLE_FADE_PERCENT", 75), 1, 100)) / 100.0F;
-    return fraction;
-}
-
-[[nodiscard]] bool title_fade_task(const Context& context, const RT64::State& state) noexcept {
-    switch (title_fade_mode()) {
-    case 0U:
-        return false;
-    case 2U:
-        return true;
-    default: {
-        const std::uint8_t front = guest_byte(context, state, kFrontModeAddress);
-        return front == kFrontModeTitle || front == kFrontModeMenus;
-    }
-    }
-}
-
-// Switches the RDP state of a title-layer batch to a blended variant and
-// restores the game's state when the batch ends, on every return path.
-// RT64 captures a draw call's state at its first triangle, so the change
-// covers exactly this batch; only the RDP copies are touched, so the RSP's
-// other-mode stack (the base for partial G_SETOTHERMODE updates) keeps the
-// game's values.
-class TitleLayerBlend {
-public:
-    TitleLayerBlend(RT64::State& state, const bool enabled) noexcept {
-        if (!enabled)
-            return;
-        RT64::RDP& rdp = *state.rdp;
-        const auto& cc = rdp.colorCombinerStack[rdp.colorCombinerStackSize - 1];
-        if (rdp.otherMode.L != kTitleLayerOtherModeL ||
-            rdp.otherMode.H != kTitleLayerOtherModeH ||
-            cc.L != kTitleLayerCombineW0 || cc.H != kTitleLayerCombineW1)
-            return;
-        state_ = &state;
-        mode_h_ = rdp.otherMode.H;
-        mode_l_ = rdp.otherMode.L;
-        combine_w0_ = cc.L;
-        combine_w1_ = cc.H;
-        group_ = rdp.texture.address;
-        // Cycle-2 alpha (1 - 0) * SHADE + 0: the vertex alpha alone, so the
-        // texels' own 1-bit alpha stays without effect, as before.
-        const std::uint32_t alpha_fields = (7U << 21U) | (7U << 18U) | (7U << 3U) | 7U;
-        const std::uint32_t combine_w1 =
-            (combine_w1_ & ~alpha_fields) | (6U << 21U) | (4U << 18U) | (7U << 3U) | 7U;
-        rdp.setCombine((static_cast<std::uint64_t>(combine_w1) << 32U) | combine_w0_);
-        // FORCE_BL, alpha from the combiner instead of coverage, and the
-        // cycle-2 blender PIXEL * A + MEM * (1 - A).
-        rdp.setOtherMode(mode_h_, (mode_l_ & ~(0x2000U | (3U << 16U))) | 0x4000U);
-    }
-    ~TitleLayerBlend() {
-        if (state_ == nullptr)
-            return;
-        state_->rdp->setCombine(
-            (static_cast<std::uint64_t>(combine_w1_) << 32U) | combine_w0_);
-        state_->rdp->setOtherMode(mode_h_, mode_l_);
-    }
-    TitleLayerBlend(const TitleLayerBlend&) = delete;
-    TitleLayerBlend& operator=(const TitleLayerBlend&) = delete;
-    [[nodiscard]] bool active() const noexcept { return state_ != nullptr; }
-    [[nodiscard]] std::uint32_t group() const noexcept { return group_; }
-
-private:
-    RT64::State* state_ = nullptr;
-    std::uint32_t mode_h_ = 0U, mode_l_ = 0U;
-    std::uint32_t combine_w0_ = 0U, combine_w1_ = 0U;
-    std::uint32_t group_ = 0U;
-};
-
-// Runs before full sync, while the workload's vertex data can still change.
-void apply_title_fade(Context& context, RT64::State& state) {
-    auto& layer = context.title_fade_layer;
-    auto& other = context.title_fade_other;
-    if (!layer.empty()) {
-        auto& draw = state.ext.workloadQueue->workloads[
-            state.ext.workloadQueue->writeCursor].drawData;
-        std::sort(other.begin(), other.end());
-        std::sort(layer.begin(), layer.end());
-        layer.erase(std::unique(layer.begin(), layer.end()), layer.end());
-        // A vertex also used by other geometry keeps its alpha.
-        const auto fadeable = [&](const std::uint32_t global) {
-            return global < draw.posTransformed.size() &&
-                static_cast<std::size_t>(global) * 4U + 3U < draw.normColBytes.size() &&
-                !std::binary_search(other.begin(), other.end(), global);
-        };
-        const float fraction = title_fade_fraction();
-        for (std::size_t first = 0U; first < layer.size();) {
-            std::size_t last = first;
-            float w_min = INFINITY, w_max = -INFINITY;
-            for (; last < layer.size() && layer[last].first == layer[first].first; ++last) {
-                if (!fadeable(layer[last].second))
-                    continue;
-                const float w = float(draw.posTransformed[layer[last].second].w);
-                w_min = std::min(w_min, w);
-                w_max = std::max(w_max, w);
-            }
-            if (std::isfinite(w_min) && std::isfinite(w_max) && w_max > w_min) {
-                const float span = std::max((w_max - w_min) * fraction, 1.0F);
-                for (std::size_t index = first; index < last; ++index) {
-                    const std::uint32_t global = layer[index].second;
-                    if (!fadeable(global))
-                        continue;
-                    const float w = float(draw.posTransformed[global].w);
-                    float alpha = std::clamp((w_max - w) / span, 0.0F, 1.0F);
-                    alpha = alpha * alpha * (3.0F - 2.0F * alpha);
-                    std::uint8_t& byte = draw.normColBytes[static_cast<std::size_t>(global) * 4U + 3U];
-                    byte = static_cast<std::uint8_t>(std::lround(alpha * static_cast<float>(byte)));
-                }
-            }
-            first = last;
-        }
-    }
-    layer.clear();
-    other.clear();
-}
-
 void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
     Context* context = find_context(state);
     if (context == nullptr) {
@@ -1412,7 +1260,6 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
     // setTexture() would incorrectly increment an unrelated field on every
     // DMA triangle batch.
     state->rsp->textureState.on = texture;
-    const TitleLayerBlend title_layer(*state, context->title_fade);
     for (std::size_t triangle = 0U; triangle < count; ++triangle) {
         const std::uint32_t source =
             address + static_cast<std::uint32_t>(triangle * 16U);
@@ -1619,15 +1466,6 @@ void dma_triangles(RT64::State* state, RT64::DisplayList** dl) {
                 sample.v = v;
                 if (g.corner_count < g.corners.size())
                     g.corners[g.corner_count++] = sample;
-            }
-        }
-        if (context->title_fade) {
-            for (const std::uint8_t vertex : vertices) {
-                const std::uint32_t global = state->rsp->indices[vertex];
-                if (title_layer.active())
-                    context->title_fade_layer.emplace_back(title_layer.group(), global);
-                else
-                    context->title_fade_other.push_back(global);
             }
         }
         state->rsp->drawIndexedTri(vertices[0U], vertices[1U], vertices[2U]);
@@ -2287,7 +2125,6 @@ void full_sync(RT64::State* state, RT64::DisplayList** dl) {
             scene = scene || (pair.colorImage.width >= 320U && pair.colorImage.siz == G_IM_SIZ_16b);
         }
         if (scene) frame_diagnostic_state().scene(context->vi_tick);
-        apply_title_fade(*context, *state);
         const auto history_start=std::chrono::steady_clock::now();
         prepare_interpolation(*context, *state);
         if(scene && interpolation_trace_enabled()) trace_interpolation("history-cost",context->vi_tick,
@@ -2445,10 +2282,6 @@ void Rt64F3ddkr::begin(
     impl_->context.commands = 0U;
     impl_->context.stats = {};
     impl_->context.failed = false;
-    impl_->context.title_fade_layer.clear();
-    impl_->context.title_fade_other.clear();
-    impl_->context.title_fade =
-        title_fade_task(impl_->context, *impl_->context.application->state);
     texlog_init();
     if (!texlog.started) { texlog.started = true; texlog.start = std::chrono::steady_clock::now(); }
     texlog.now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
