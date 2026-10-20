@@ -1952,6 +1952,7 @@ struct State : JfgOriginalTimingFast {
   std::filesystem::path community_capture_dir;
   std::uint32_t community_last_presented_vi = 0U;
   bool community_skip_stale_presents = true;
+  std::uint64_t community_event_ties = 0U;
   std::uint64_t community_watch_hash = 0U;
   std::uint32_t community_watch_dumps = 0U;
   std::string community_fb_summary;
@@ -12972,10 +12973,27 @@ extern "C" JFG_EXECUTION_NOINLINE void jfg_phase9_execution_probe_slow(unsigned 
         const auto completions = state.diagnostic_host_clock
             ? (std::max)(native_batch.size, std::size_t{1}) : std::size_t{1};
         for (std::size_t completion = 0; completion < completions; ++completion) {
-        const auto selected = state.diagnostic_host_clock
+        auto selected = state.diagnostic_host_clock
             ? ReferenceEventSelection{true, native_batch.size ?
                 std::optional<ReferenceEvent>{native_batch.sources[completion]} : std::nullopt}
             : reference_selected;
+        if (!selected.qualified && state.play_mode &&
+            community_env_number("JFG_STRICT_EVENT_TIES", 0U) == 0U) {
+          // Community: two devices due on the same cycle (seen: SP and AI at
+          // VI 31293 on the title, 2026-10-19) stopped the game. Complete the
+          // lower source first, in the native batch's fixed order (VI, PI,
+          // SI, Compare, SP, DP, AI); the other stays due and completes at the
+          // next boundary. JFG_STRICT_EVENT_TIES=1 restores the stop.
+          const auto tie = select_native_event_batch(events, state.cpu_count);
+          if (tie.valid && tie.size != 0U) {
+            selected = ReferenceEventSelection{true, tie.sources[0]};
+            ++state.community_event_ties;
+            if (state.community_effect_stream.is_open())
+              state.community_effect_stream << "TIE\t" << state.community_effect_frame << '\t'
+                  << state.vi_retraces << '\t' << state.cpu_count << '\t' << tie.size << '\t'
+                  << static_cast<unsigned>(tie.sources[0]) << '\n';
+          }
+        }
         if (!selected.qualified) {
           // Preserve fail-closed ordering; capture evidence instead of guessing.
           std::cerr << "guest-event-tie Count=" << state.cpu_count << " VI=" << state.vi_retraces;
