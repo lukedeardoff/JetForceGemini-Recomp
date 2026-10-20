@@ -31,6 +31,9 @@
 #endif
 #include <cstdlib>
 #include <cstdio>
+#include <cstdarg>
+#include <direct.h>
+#include <share.h>
 #include <string>
 #include <algorithm>
 #include <filesystem>
@@ -684,6 +687,59 @@ bool CaptureContext::finish() noexcept {
     }
 }
 
+namespace {
+
+// Developer-mode log of the inspector pause: diag\\inspector.txt shows what
+// the F4 pause and the inspector highlight did, so a missing purple
+// highlight can be traced.
+struct InspectorLog {
+    bool enabled = false;
+    bool failed = false;
+    unsigned lines = 0U;
+    std::FILE* file = nullptr;
+};
+
+void inspector_log(InspectorLog& log, const char* format, ...) {
+    if (!log.enabled || log.failed || log.lines >= 4000U)
+        return;
+    if (log.file == nullptr) {
+        wchar_t* base = nullptr;
+        std::size_t length = 0U;
+        if (_wdupenv_s(&base, &length, L"LOCALAPPDATA") == 0 && base != nullptr) {
+            const std::wstring folder = std::wstring(base) + L"\\JFGRecomp\\diag";
+            (void)_wmkdir(folder.c_str());
+            log.file = _wfsopen((folder + L"\\inspector.txt").c_str(), L"w", _SH_DENYNO);
+        }
+        std::free(base);
+        if (log.file == nullptr) {
+            log.failed = true;
+            return;
+        }
+    }
+    std::va_list arguments;
+    va_start(arguments, format);
+    (void)std::vfprintf(log.file, format, arguments);
+    va_end(arguments);
+    (void)std::fputc('\n', log.file);
+    (void)std::fflush(log.file);
+    ++log.lines;
+}
+
+// One line per framebuffer pair of a workload: colour image, width, calls,
+// depth use.
+void inspector_log_workload(InspectorLog& log, const RT64::Workload& workload, const char* label) {
+    for (std::uint32_t pair = 0U; pair < workload.fbPairCount; ++pair) {
+        const auto& fb_pair = workload.fbPairs[pair];
+        inspector_log(log, "  %s pair %u: color %06x width %u calls %u depth r%u w%u",
+            label, pair, static_cast<unsigned>(fb_pair.colorImage.address & 0x00FF'FFFFU),
+            static_cast<unsigned>(fb_pair.colorImage.width),
+            static_cast<unsigned>(fb_pair.gameCallCount),
+            fb_pair.depthRead ? 1U : 0U, fb_pair.depthWrite ? 1U : 0U);
+    }
+}
+
+} // namespace
+
 struct Rt64Shell::Impl {
     std::array<std::uint8_t, kRt64RequiredHeaderBytes> header{};
     std::vector<std::uint8_t> rdram =
@@ -725,6 +781,11 @@ struct Rt64Shell::Impl {
     unsigned pause_scene_target = 1U;
     std::uint32_t pause_scene_address = 0U;
     unsigned pause_wait_presents = 0U;
+    // diag\inspector.txt (developer mode): what the pause and the inspector
+    // highlight did, so a missing purple highlight can be traced.
+    InspectorLog pause_log;
+    unsigned paused_presents = 0U;
+    std::uint64_t last_highlight_key = ~0ULL;
     std::vector<Rt64RdramRange> writeback_ranges;
     std::uint64_t last_rdram_check_microseconds = 0U;
 
@@ -1201,6 +1262,7 @@ std::unique_ptr<Rt64Shell> Rt64Shell::create(
     try {
         auto impl = std::make_unique<Impl>();
         impl->developer_mode = configuration.developer_mode;
+        impl->pause_log.enabled = configuration.developer_mode;
         impl->cpu_writeback = configuration.cpu_writeback;
         impl->cpu_mask_writeback = configuration.cpu_mask_writeback;
         for (std::size_t index = 0U; index < impl->header.size(); ++index) {
@@ -1343,6 +1405,10 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
         if (impl_->pause_stage == 0 && inspector.paused) {
             inspector.paused = false;
             impl_->pause_stage = 1;
+            impl_->paused_presents = 0U;
+            impl_->last_highlight_key = ~0ULL;
+            inspector_log(impl_->pause_log, "pause requested (F4) at vi %llu",
+                static_cast<unsigned long long>(task.vi_tick));
         }
         if (inspector.paused || impl_->pause_stage == 3) {
             // Developer inspector paused (F4): RT64 skips the display list and
@@ -1456,6 +1522,11 @@ Rt64ShellError Rt64Shell::submit(const Rt64GraphicsTask& task) noexcept {
                         impl_->frame_scene_tasks >= impl_->pause_scene_target) {
                         impl_->pause_scene_address = fb_pair.colorImage.address;
                         impl_->pause_stage = 3;
+                        inspector_log(impl_->pause_log, "scene task %u of %u at vi %llu: color %06x",
+                            impl_->frame_scene_tasks, impl_->pause_scene_target,
+                            static_cast<unsigned long long>(task.vi_tick),
+                            static_cast<unsigned>(fb_pair.colorImage.address & 0x00FF'FFFFU));
+                        inspector_log_workload(impl_->pause_log, workload, "scene");
                     }
                     break;
                 }
@@ -1601,16 +1672,68 @@ Rt64ShellError Rt64Shell::present(const bool capture_frame) noexcept {
         impl_->frame_scene_tasks = 0U;
         if (impl_->pause_stage == 2 || impl_->pause_stage == 3) {
             // Pause once the VI shows the scene's buffer, so the repeated
-            // present and the re-rendered workload are the same image.
+            // present and the re-rendered workload are the same image: RT64
+            // re-renders the last workload (with the inspector's purple
+            // highlight) but keeps showing the buffer of the last present.
+            // The game alternates two buffers, so the scene's buffer comes
+            // round within a few presents; tasks after the scene are skipped
+            // meanwhile, so the scene stays the last workload. Pausing on the
+            // other buffer drew the highlight where it was never shown.
             const std::uint32_t origin =
                 *impl_->application->core.VI_ORIGIN_REG & 0x00FF'FFFFU;
-            const bool showing_scene = impl_->pause_scene_address != 0U &&
+            const bool showing_scene = impl_->pause_stage == 3 &&
                 origin >= impl_->pause_scene_address &&
                 origin < impl_->pause_scene_address + 640U * 480U * 2U;
-            if (showing_scene || impl_->pause_stage == 2 ||
-                ++impl_->pause_wait_presents > 2U) {
+            ++impl_->pause_wait_presents;
+            if (impl_->pause_stage == 2)
+                // No scene task reached the count yet; follow this frame's.
+                impl_->pause_scene_target = std::max(1U, impl_->last_frame_scene_tasks);
+            const bool timed_out = impl_->pause_wait_presents > 12U;
+            inspector_log(impl_->pause_log, "present %u while pausing: stage %d vi origin %06x scene %06x%s",
+                impl_->pause_wait_presents, impl_->pause_stage, static_cast<unsigned>(origin),
+                static_cast<unsigned>(impl_->pause_scene_address),
+                showing_scene ? " (showing the scene)" : (timed_out ? " (gave up waiting)" : ""));
+            if (showing_scene || timed_out) {
                 inspector.paused = true;
                 impl_->pause_stage = 4;
+                const auto& queue = *impl_->application->workloadQueue;
+                inspector_log(impl_->pause_log, "paused; last workload:");
+                inspector_log_workload(impl_->pause_log, queue.workloads[queue.previousWriteCursor()], "paused");
+            }
+        }
+        else if (impl_->pause_stage == 4 && inspector.paused) {
+            // While paused: which calls carry the inspector's highlight, and
+            // which buffer the repeated present shows.
+            ++impl_->paused_presents;
+            const auto& queue = *impl_->application->workloadQueue;
+            const auto& workload = queue.workloads[queue.previousWriteCursor()];
+            unsigned highlighted = 0U;
+            std::uint64_t first = 0U;
+            for (std::uint32_t f = 0U; f < workload.fbPairCount; ++f) {
+                const auto& fb_pair = workload.fbPairs[f];
+                for (std::uint32_t p = 0U; p < fb_pair.projectionCount; ++p) {
+                    const auto& projection = fb_pair.projections[p];
+                    for (std::uint32_t d = 0U; d < projection.gameCallCount; ++d) {
+                        if (projection.gameCalls[d].debuggerDesc.highlightColor == 0U)
+                            continue;
+                        if (highlighted++ == 0U)
+                            first = (std::uint64_t{f} << 40U) | (std::uint64_t{p} << 20U) | d;
+                    }
+                }
+            }
+            const auto& presents = *impl_->application->presentQueue;
+            const std::uint32_t shown =
+                presents.presents[presents.previousWriteCursor()].screenVI.fbAddress() & 0x00FF'FFFFU;
+            const std::uint64_t key = (std::uint64_t{highlighted} << 48U) ^ first ^ (std::uint64_t{shown} << 8U);
+            if (key != impl_->last_highlight_key || impl_->paused_presents % 120U == 1U) {
+                impl_->last_highlight_key = key;
+                inspector_log(impl_->pause_log, "paused present %u: shows %06x, %u highlighted call(s)%s",
+                    impl_->paused_presents, static_cast<unsigned>(shown), highlighted,
+                    highlighted == 0U ? "" : ", first:");
+                if (highlighted != 0U)
+                    inspector_log(impl_->pause_log, "  framebuffer pair %u, projection %u, call %u",
+                        static_cast<unsigned>(first >> 40U), static_cast<unsigned>((first >> 20U) & 0xFFFFFU),
+                        static_cast<unsigned>(first & 0xFFFFFU));
             }
         }
         else if (impl_->pause_stage == 1) {
@@ -1618,6 +1741,8 @@ Rt64ShellError Rt64Shell::present(const bool capture_frame) noexcept {
             impl_->pause_scene_target = std::max(1U, impl_->last_frame_scene_tasks);
             impl_->pause_scene_address = 0U;
             impl_->pause_wait_presents = 0U;
+            inspector_log(impl_->pause_log, "waiting for scene task %u of the frame",
+                impl_->pause_scene_target);
         }
         if (capture_frame && previous_present_id != 0U &&
             impl_->application->state->presentId == previous_present_id) {
