@@ -1248,11 +1248,15 @@ void geomdump_triangle(RT64::State& state, const std::uint8_t flags,
 // another texture), then a few thin hallway pieces. The floor's far tip and
 // two thin hallway pieces lie behind the wall but still show on top of it:
 // a thin dark line inside the wall next to Vela and a floor tip by Juno's
-// hand. On the title and menus the wall now writes depth and the floor and
-// the hallway pieces test against it, so the wall hides what is behind it
-// and the near floor (in front of the wall) stays. The floor and the
-// pieces write no depth, so the depth-buffered characters are tested
-// against the wall only, which is always further away than they are.
+// hand. The translucent glass tube (drawn next, also without depth) reaches
+// further than the wall too: its far end (inspector calls #108, #152, #153 on
+// the title, w ~3000-3300 against the wall's ~2300) showed on top of the wall
+// as a pinkish box between Juno and Vela. On the title and menus the wall
+// now writes depth and the floor, the hallway pieces and the glass test
+// against it, so the wall hides what is behind it while the near floor and
+// all the glass in front of the wall stay. Only the wall writes depth, so
+// the depth-buffered characters are tested against the wall only, which is
+// always further away than they are.
 // JFG_TITLE_DEPTH=0 turns it off.
 constexpr std::uint32_t kTitleOutsideOtherModeL = 0x0C192048U;
 constexpr std::uint32_t kTitleOutsideOtherModeH = 0x00192CCFU;
@@ -1262,6 +1266,7 @@ constexpr std::uint32_t kTitlePieceOtherModeL = 0xC8112048U;
 constexpr std::uint32_t kTitlePieceOtherModeH = 0x00182C0FU;
 constexpr std::uint32_t kTitlePieceCombineW0 = 0xFC121603U;
 constexpr std::uint32_t kTitlePieceCombineW1 = 0xFFFFFFF8U;
+constexpr std::uint32_t kTitleGlassOtherModeL = 0xC81041C8U;
 constexpr std::uint32_t kOtherModeZCompare = 0x10U;
 constexpr std::uint32_t kOtherModeZUpdate = 0x20U;
 constexpr std::uint32_t kFrontModeAddress = 0x000A51B0U;
@@ -1300,9 +1305,12 @@ public:
             added = rdp.texture.address == context.title_wall_texture
                 ? kOtherModeZCompare | kOtherModeZUpdate
                 : kOtherModeZCompare;
-        } else if (rdp.otherMode.L == kTitlePieceOtherModeL &&
+        } else if ((rdp.otherMode.L == kTitlePieceOtherModeL ||
+                    rdp.otherMode.L == kTitleGlassOtherModeL) &&
             rdp.otherMode.H == kTitlePieceOtherModeH &&
             cc.L == kTitlePieceCombineW0 && cc.H == kTitlePieceCombineW1) {
+            // The hallway pieces and the glass share the render state apart
+            // from the blender.
             added = kOtherModeZCompare;
         }
         if (added == 0U)
