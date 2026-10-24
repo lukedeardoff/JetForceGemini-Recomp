@@ -8207,6 +8207,49 @@ void community_effect_present(State &state,
       << std::dec << '\n';
 }
 
+// With JFG_GEOMDUMP set, each F9 start also writes the game's object table
+// and RAM to %LOCALAPPDATA%\JFGRecomp\diag\objects\press<N>-vi<VI>.*:
+// .tsv = one line per object (address, behaviour at +0x48, position at
+// +0x0C, the first 0xA4 bytes in hex); .rdram = the 4 MiB guest RAM in the
+// runtime's layout (32-bit words byte-swapped: guest byte a is at a ^ 3).
+void community_object_dump(State &state) {
+  std::array<char, MAX_PATH> base{};
+  const DWORD length = GetEnvironmentVariableA(
+      "LOCALAPPDATA", base.data(), static_cast<DWORD>(base.size()));
+  if (length == 0U || length >= base.size())
+    return;
+  const auto directory =
+      std::filesystem::path(base.data()) / "JFGRecomp" / "diag" / "objects";
+  std::error_code error;
+  std::filesystem::create_directories(directory, error);
+  if (error)
+    return;
+  const std::string stem = "press" + std::to_string(state.community_hotkey_presses) +
+                           "-vi" + std::to_string(state.vi_retraces);
+  {
+    std::ofstream ram(directory / (stem + ".rdram"), std::ios::binary);
+    ram.write(reinterpret_cast<const char *>(state.rdram),
+              static_cast<std::streamsize>(kRdramSize));
+  }
+  std::ofstream list(directory / (stem + ".tsv"));
+  if (!list)
+    return;
+  try {
+    jfg::mod::Memory memory({state.rdram, kRdramSize});
+    list << "# address\tbehavior\tx\ty\tz\tbytes0-a3\n";
+    for (const auto &actor : jfg::mod::actors(memory)) {
+      list << std::hex << actor.address << std::dec << '\t' << actor.behavior
+           << '\t' << actor.position.x << '\t' << actor.position.y << '\t'
+           << actor.position.z << '\t' << std::hex << std::setfill('0');
+      for (std::uint32_t i = 0U; i < 0xA4U; ++i)
+        list << std::setw(2) << static_cast<unsigned>(memory.u8(actor.address + i));
+      list << std::dec << std::setfill(' ') << '\n';
+    }
+  } catch (const std::runtime_error &) {
+    list << "# object table unreadable\n";
+  }
+}
+
 // F9 recording (see the header comment). Polled once per presented frame,
 // only while a window of this process has the focus.
 void community_hotkey_poll(State &state) {
@@ -8225,8 +8268,10 @@ void community_hotkey_poll(State &state) {
     ++state.community_hotkey_presses;
     // JFG_GEOMDUMP=N: also write the next N graphics tasks' geometry.
     if (const auto tasks = (std::min)(community_env_number("JFG_GEOMDUMP", 0U), 20U);
-        tasks != 0U)
+        tasks != 0U) {
       jfg::request_geometry_dump(tasks);
+      community_object_dump(state);
+    }
     if (state.community_hotkey_every != 0U) {
       // A new frames folder per recording, up to 1800 frames.
       state.community_capture_dir.clear();
