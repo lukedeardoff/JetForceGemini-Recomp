@@ -1958,6 +1958,9 @@ struct State : JfgOriginalTimingFast {
   std::string community_fb_summary;
   bool community_hide_splats = true;
   bool community_hide_reflections = false;
+  // Anubis exit cutscene: a hidden animship keeps drawing its jets.
+  bool community_hide_hidden_thrusters = true;
+  std::uint32_t community_thruster_lines = 0U;
   std::uint32_t community_capture_every = 0U;
   // F9 recording (community_hotkey_poll): every Nth presented frame while on.
   bool community_hotkey_down = false;
@@ -7526,6 +7529,8 @@ std::ofstream *community_effect_log(State &state) {
         community_env_number("JFG_HIDE_SPLATS", 1U) != 0U;
     state.community_hide_reflections =
         community_env_number("JFG_HIDE_REFLECTIONS", 0U) != 0U;
+    state.community_hide_hidden_thrusters =
+        community_env_number("JFG_HIDE_HIDDEN_THRUSTERS", 1U) != 0U;
     // Timed capture (elevator investigation): every Nth presented frame
     // between JFG_CAPTURE_FROM_S and JFG_CAPTURE_TO_S seconds of the run.
     state.community_capture_every =
@@ -7560,6 +7565,8 @@ std::ofstream *community_effect_log(State &state) {
             << "\thide_splats=" << (state.community_hide_splats ? 1 : 0)
             << "\thide_reflections="
             << (state.community_hide_reflections ? 1 : 0)
+            << "\thide_hidden_thrusters="
+            << (state.community_hide_hidden_thrusters ? 1 : 0)
             << "\tbeam_flash_ticks="
             << state.community_beam_flash_ticks << "\tbeam_bolt_style="
             << state.community_beam_bolt_style << "\tbeam_strand_speed="
@@ -7707,6 +7714,9 @@ void community_effect_frame(State &state, std::uint8_t *rdram) {
   state.community_effect_counts.clear();
 }
 
+constexpr std::uint32_t kAnimshipOverlay = 73U;
+constexpr std::uint32_t kAnimshipDrawThrustersOffset = 0x3F4U;
+constexpr std::uint16_t kObjectHiddenFlags = 0x0C00U;
 constexpr std::uint32_t kBloodOverlay = 8U;
 constexpr std::uint32_t kBloodTextSize = 0x1660U;
 constexpr std::uint32_t kBloodDrawOffset = 0xAB4U;
@@ -8004,6 +8014,29 @@ CommunityEffectCall community_effect_before(
                     << community_elapsed_ms(state) << '\t' << surfaces
                     << '\t' << (call.skip ? 1 : 0) << '\n';
       }
+    }
+    return call;
+  }
+  if (overlay == kAnimshipOverlay &&
+      target - metadata.linked_vram == kAnimshipDrawThrustersOffset) {
+    // animshipDrawThrusters(gfx, mtx, object): the ship body is skipped by
+    // objPrintObject when its flags have 0x0C00 set, but the jets are drawn
+    // from here without that check, so a hidden ship leaves its glowing
+    // jets behind (S.S. Anubis exit cutscene). Skip them for hidden ships.
+    CommunityGuest guest(rdram);
+    const auto object = static_cast<std::uint32_t>(context.r6);
+    const auto flags = static_cast<std::uint16_t>(guest.s16(object + 6U));
+    const bool hidden = (flags & kObjectHiddenFlags) != 0U;
+    std::ofstream *effect_log = community_effect_log(state);  // reads env
+    call.skip = state.community_hide_hidden_thrusters && hidden;
+    if (effect_log != nullptr && state.community_thruster_lines < 4000U) {
+      ++state.community_thruster_lines;
+      *effect_log << "AT\t" << state.community_effect_frame << '\t'
+                  << std::hex << object << '\t' << flags << '\t'
+                  << metadata.text_size << std::dec << '\t'
+                  << guest.f32(object + 12U) << ',' << guest.f32(object + 16U)
+                  << ',' << guest.f32(object + 20U) << '\t'
+                  << (call.skip ? 1 : 0) << '\n';
     }
     return call;
   }
