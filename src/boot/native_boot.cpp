@@ -1960,6 +1960,9 @@ struct State : JfgOriginalTimingFast {
   bool community_hide_reflections = false;
   // Anubis exit cutscene: a hidden animship keeps drawing its jets.
   bool community_hide_hidden_thrusters = true;
+  // Cutscene camera markers ("AnimCamera" objects) drawn as little boxes.
+  bool community_hide_anim_cameras = true;
+  std::uint32_t community_anim_camera_lines = 0U;
   std::uint32_t community_thruster_lines = 0U;
   std::uint32_t community_capture_every = 0U;
   // F9 recording (community_hotkey_poll): every Nth presented frame while on.
@@ -7531,6 +7534,8 @@ std::ofstream *community_effect_log(State &state) {
         community_env_number("JFG_HIDE_REFLECTIONS", 0U) != 0U;
     state.community_hide_hidden_thrusters =
         community_env_number("JFG_HIDE_HIDDEN_THRUSTERS", 1U) != 0U;
+    state.community_hide_anim_cameras =
+        community_env_number("JFG_HIDE_ANIM_CAMERAS", 1U) != 0U;
     // Timed capture (elevator investigation): every Nth presented frame
     // between JFG_CAPTURE_FROM_S and JFG_CAPTURE_TO_S seconds of the run.
     state.community_capture_every =
@@ -7567,6 +7572,8 @@ std::ofstream *community_effect_log(State &state) {
             << (state.community_hide_reflections ? 1 : 0)
             << "\thide_hidden_thrusters="
             << (state.community_hide_hidden_thrusters ? 1 : 0)
+            << "\thide_anim_cameras="
+            << (state.community_hide_anim_cameras ? 1 : 0)
             << "\tbeam_flash_ticks="
             << state.community_beam_flash_ticks << "\tbeam_bolt_style="
             << state.community_beam_bolt_style << "\tbeam_strand_speed="
@@ -7981,6 +7988,50 @@ void community_beam_after(State &state, std::uint8_t *rdram,
   *effect_log << '\n';
 }
 
+// Cutscene camera markers. Each cutscene camera is an object whose header
+// is named "AnimCamera"; it carries a small camera-box model (scale 0.1).
+// The cutscene engine clears the hidden flag (0x0400) when it starts using
+// a camera, so active cameras are drawn as floating grey boxes (seen in the
+// Vela cutscenes). Set the hidden flag again at the start of every update;
+// objPrintObject then skips the model. Nothing else is changed.
+void community_hide_anim_cameras(State &state, std::uint8_t *rdram) {
+  if (!state.community_hide_anim_cameras)
+    return;
+  try {
+    jfg::mod::Memory memory({rdram, kRdramSize});
+    CommunityGuest guest(rdram);
+    for (const auto &actor : jfg::mod::actors(memory)) {
+      const std::uint32_t header = memory.u32(actor.address + 0x40U);
+      if (!memory.valid(header, 0x10U))
+        continue;
+      static constexpr char kName[] = "AnimCamera";
+      bool match = true;
+      for (std::uint32_t i = 0U; i < sizeof(kName); ++i)
+        if (memory.u8(header + 4U + i) != static_cast<std::uint8_t>(kName[i])) {
+          match = false;
+          break;
+        }
+      if (!match)
+        continue;
+      const auto flags = static_cast<std::uint16_t>(memory.u16(actor.address + 6U));
+      if ((flags & kObjectHiddenFlags) != 0U)
+        continue;
+      (void)guest.write_s16(actor.address + 6U,
+                            static_cast<std::int16_t>(flags | 0x0400U));
+      if (state.community_effect_stream.is_open() &&
+          state.community_anim_camera_lines < 2000U) {
+        ++state.community_anim_camera_lines;
+        state.community_effect_stream
+            << "AC\t" << state.community_effect_frame << '\t' << std::hex
+            << actor.address << '\t' << flags << std::dec << '\t'
+            << actor.position.x << ',' << actor.position.y << ','
+            << actor.position.z << '\n';
+      }
+    }
+  } catch (const std::runtime_error &) {
+  }
+}
+
 CommunityEffectCall community_effect_before(
     State &state, std::uint8_t *rdram, recomp_context &context,
     const std::uint32_t target, const std::uint32_t section,
@@ -7988,6 +8039,8 @@ CommunityEffectCall community_effect_before(
   CommunityEffectCall call{};
   if (target == kGameUpdateEntry) {
     community_effect_frame(state, rdram);
+    (void)community_effect_log(state);  // reads JFG_HIDE_ANIM_CAMERAS
+    community_hide_anim_cameras(state, rdram);
     return call;
   }
   if (metadata.is_overlay != 1U)
