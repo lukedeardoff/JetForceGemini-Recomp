@@ -667,6 +667,14 @@ namespace JfgLauncher
         private static void Main(string[] args)
         {
             if (FrontendBridge.TryRun(args)) return;
+            if (args.Length == 2 && args[0] == "--community-map") {
+                // Community: the live map (and its exit warp) for a game started
+                // by community\play-community.ps1, without the native launcher.
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new NavigationMapWindow(LocalSetup.FullPath(args[1])));
+                return;
+            }
             if (args.Length == 2 && args[0] == "--map-view") {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
