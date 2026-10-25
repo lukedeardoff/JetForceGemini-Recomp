@@ -1,6 +1,13 @@
 # Run the newest successful build of this checkout with the community settings.
 $ErrorActionPreference = 'Stop'
-$cacheRoot = Join-Path $env:LOCALAPPDATA 'JFG\b'
+# Only this checkout's build cache (same key as scripts/build_paths.py), so
+# other checkouts such as pr-shadow are never picked up here.
+function Get-CacheKey($folder) {
+    $full = (Resolve-Path $folder).Path.ToLowerInvariant()
+    $hash = [Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($full))
+    return ([BitConverter]::ToString($hash).Replace('-', '').ToLowerInvariant()).Substring(0, 12)
+}
+$cacheRoot = Join-Path (Join-Path $env:LOCALAPPDATA 'JFG\b') (Get-CacheKey (Split-Path $PSScriptRoot))
 $status = Get-ChildItem $cacheRoot -Recurse -Filter status.json -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTime -Descending |
     Where-Object { $j = Get-Content $_.FullName -Raw | ConvertFrom-Json; $j.complete -and (Test-Path $j.executable) } |

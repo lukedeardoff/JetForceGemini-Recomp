@@ -2,8 +2,15 @@
 # Also makes sure the community shadow patch is applied to the RT64 dependency.
 $rom = "C:\Users\Owner\Downloads\Jet Force Gemini (USA).z64"
 $root = Split-Path $PSScriptRoot
-$cacheRoot = Join-Path $env:LOCALAPPDATA 'JFG\b'
-$ws = Get-ChildItem $cacheRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object { Get-ChildItem (Join-Path $_.FullName 'w') -Directory -ErrorAction SilentlyContinue } |
+# Only this checkout's build cache (same key as scripts/build_paths.py), so
+# other checkouts such as pr-shadow are never picked up here.
+function Get-CacheKey($folder) {
+    $full = (Resolve-Path $folder).Path.ToLowerInvariant()
+    $hash = [Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($full))
+    return ([BitConverter]::ToString($hash).Replace('-', '').ToLowerInvariant()).Substring(0, 12)
+}
+$cacheRoot = Join-Path (Join-Path $env:LOCALAPPDATA 'JFG\b') (Get-CacheKey $root)
+$ws = Get-ChildItem (Join-Path $cacheRoot 'w') -Directory -ErrorAction SilentlyContinue |
     Where-Object { Test-Path (Join-Path $_.FullName 'generation.json') } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $ws) { Write-Host "No build found. Run build-community.ps1 first." -ForegroundColor Red; exit 1 }
 $rt64 = Join-Path (Split-Path (Split-Path $ws.FullName)) 'd\rt64'
