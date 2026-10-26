@@ -1962,6 +1962,9 @@ struct State : JfgOriginalTimingFast {
   bool community_hide_hidden_thrusters = true;
   // Cutscene camera markers ("AnimCamera" objects) drawn as little boxes.
   bool community_hide_anim_cameras = true;
+  // Controller assignment log (Floyd auto-join investigation).
+  std::string community_port_summary;
+  std::array<std::uint16_t, 4> community_port_buttons{};
   // Game-flag investigation (pause-menu Floyd icon): log mainSetGameFlag and
   // reads of the watched flags; JFG_MENU_FLAG=<n> makes reads of flag n true.
   std::int32_t community_force_flag = -1;
@@ -2837,6 +2840,9 @@ jfg::ControllerPortSample sample_keyboard_port(const State &state,std::size_t po
   auto sample=jfg::map_pc_keyboard(jfg::effective_pc_input(false,state.pc_input[port]),down);
   return sample;
 }
+std::ofstream *community_effect_log(State &state);
+void community_log_controller_ports(State &state, const std::array<bool, jfg::kControllerDeviceCount> &available,
+                                    const std::array<int, 4> &devices);
 void sample_controller_ports(State &state,bool discover_sdl=true) {
   reload_controller_ports(state);
   state.pc_wheel_key=state.pc_wheel.sample();
@@ -2912,6 +2918,46 @@ void sample_controller_ports(State &state,bool discover_sdl=true) {
   }
   state.controller_mapping = state.controller_ports.mappings[0];
   state.controller_mapping.device = devices[0];
+  community_log_controller_ports(state, available, devices);
+}
+
+// Community diagnostic: which device each player port uses (CP lines, on
+// change) and Start presses per port (ST lines). One physical pad that shows up
+// twice (for example as an XInput slot and as an SDL device) would drive both
+// player 1 and player 2.
+void community_log_controller_ports(State &state, const std::array<bool, jfg::kControllerDeviceCount> &available,
+                                    const std::array<int, 4> &devices) {
+  std::ofstream *log = community_effect_log(state);
+  if (log == nullptr) return;
+  std::string summary;
+  for (std::size_t p = 0; p < 4; ++p)
+    summary += "p" + std::to_string(p + 1) + "=" + std::to_string(devices[p]) +
+               (state.controller_ports.samples[p].connected ? "+" : "") + " ";
+  summary += "| available:";
+  for (int d = 0; d < static_cast<int>(jfg::kControllerDeviceCount); ++d) {
+    if (!available[static_cast<std::size_t>(d)]) continue;
+    summary += " " + std::to_string(d) + "=";
+    if (d < 4) summary += "XInput" + std::to_string(d);
+    else if (const auto *info = state.controller_catalog.get(d); info != nullptr) {
+      std::string name = info->name;
+      for (char &c : name) if (c == '\t' || c == '\n' || c == '\r') c = ' ';
+      summary += "SDL(" + name + ")";
+    }
+  }
+  if (summary != state.community_port_summary) {
+    state.community_port_summary = summary;
+    *log << "CP\t" << state.community_effect_frame << '\t' << summary << '\n';
+    log->flush();
+  }
+  for (std::size_t p = 0; p < 4; ++p) {
+    const std::uint16_t buttons = state.controller_ports.samples[p].buttons;
+    if ((buttons & 0x1000U) != 0U && (state.community_port_buttons[p] & 0x1000U) == 0U) {
+      *log << "ST\t" << state.community_effect_frame << "\tport " << (p + 1) << "\tdevice "
+           << devices[p] << '\n';
+      log->flush();
+    }
+    state.community_port_buttons[p] = buttons;
+  }
 }
 
 jfg::mod::DialogueState navigation_dialogue(State &state) {
