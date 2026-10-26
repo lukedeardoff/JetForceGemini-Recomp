@@ -130,6 +130,7 @@
 #include <string_view>
 #include <system_error>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 #if defined(_WIN32)
@@ -1962,6 +1963,18 @@ struct State : JfgOriginalTimingFast {
   bool community_hide_hidden_thrusters = true;
   // Cutscene camera markers ("AnimCamera" objects) drawn as little boxes.
   bool community_hide_anim_cameras = true;
+  // One physical pad seen twice (for example a PlayStation pad as an SDL
+  // device plus Steam Input's virtual XInput pad) must not drive two players.
+  struct CommunityPadDedup {
+    bool tried = false, enabled = true;
+    std::uint64_t sample = 0U;
+    std::array<std::uint16_t, jfg::kControllerDeviceCount> held{};
+    std::array<std::array<std::uint64_t, 15>, 4> xinput_seen{};  // last sample each button was held
+    struct Pending { int device; int button; std::uint64_t at; };
+    std::vector<Pending> pending;
+    std::array<bool, jfg::kControllerDeviceCount> independent{};
+    std::array<bool, jfg::kControllerDeviceCount> suppressed{};
+  } community_pad_dedup;
   // Controller assignment log (Floyd auto-join investigation).
   std::string community_port_summary;
   std::array<std::uint16_t, 4> community_port_buttons{};
@@ -2841,6 +2854,83 @@ jfg::ControllerPortSample sample_keyboard_port(const State &state,std::size_t po
   return sample;
 }
 std::ofstream *community_effect_log(State &state);
+// Community fix: an SDL pad that only ever mirrors an XInput pad is the same
+// physical controller (Steam Input, DS4Windows and similar tools expose a
+// virtual XInput pad for PlayStation/Switch controllers). The automatic
+// player assignment then gave player 2 that copy, so player 1's Start also
+// pressed player 2's Start and Floyd joined by himself.
+//
+// While any XInput pad is connected, an SDL pad is held back from automatic
+// assignment until it shows input of its own: a button press that no XInput
+// pad shows within the next few polls. Explicitly mapped devices are not
+// affected. JFG_PAD_DEDUP=0 restores the old behaviour.
+std::array<bool, jfg::kControllerDeviceCount> community_dedup_pads(
+    State &state, const std::array<bool, jfg::kControllerDeviceCount> &available,
+    const std::array<jfg::StandardControllerSample, jfg::kControllerDeviceCount> &hardware) {
+  auto &dedup = state.community_pad_dedup;
+  if (!dedup.tried) {
+    dedup.tried = true;
+    std::array<char, 8> value{};
+    const DWORD length = GetEnvironmentVariableA("JFG_PAD_DEDUP", value.data(),
+                                                 static_cast<DWORD>(value.size()));
+    dedup.enabled = !(length == 1U && value[0] == '0');
+  }
+  if (!dedup.enabled) return available;
+  constexpr std::uint64_t kMirrorWindow = 6U;  // polls (about 0.1 s)
+  const std::uint64_t now = ++dedup.sample;
+  bool any_xinput = false;
+  for (int d = 0; d < 4; ++d) {
+    if (!available[static_cast<std::size_t>(d)]) continue;
+    any_xinput = true;
+    for (int b = 0; b < 15; ++b)
+      if (hardware[static_cast<std::size_t>(d)].buttons[static_cast<std::size_t>(b)])
+        dedup.xinput_seen[static_cast<std::size_t>(d)][static_cast<std::size_t>(b)] = now;
+  }
+  const auto xinput_shows = [&](int button, std::uint64_t since) {
+    for (int d = 0; d < 4; ++d)
+      if (available[static_cast<std::size_t>(d)] &&
+          dedup.xinput_seen[static_cast<std::size_t>(d)][static_cast<std::size_t>(button)] + kMirrorWindow >= since)
+        return true;
+    return false;
+  };
+  for (int d = 4; d < static_cast<int>(jfg::kControllerDeviceCount); ++d) {
+    const auto index = static_cast<std::size_t>(d);
+    std::uint16_t held = 0U;
+    if (available[index])
+      for (int b = 0; b < 15; ++b)
+        if (hardware[index].buttons[static_cast<std::size_t>(b)]) held |= static_cast<std::uint16_t>(1U << b);
+    const std::uint16_t pressed = static_cast<std::uint16_t>(held & ~dedup.held[index]);
+    dedup.held[index] = held;
+    if (!available[index]) { dedup.independent[index] = false; continue; }
+    if (!dedup.independent[index])
+      for (int b = 0; b < 15; ++b)
+        if ((pressed >> b) & 1U) dedup.pending.push_back({d, b, now});
+  }
+  // A press is the SDL pad's own once no XInput pad showed that button around it.
+  std::vector<std::remove_reference_t<decltype(dedup.pending)>::value_type> still;
+  for (const auto &item : dedup.pending) {
+    if (dedup.independent[static_cast<std::size_t>(item.device)]) continue;
+    if (xinput_shows(item.button, item.at)) continue;  // mirrored: same pad
+    if (now < item.at + kMirrorWindow) { still.push_back(item); continue; }
+    dedup.independent[static_cast<std::size_t>(item.device)] = true;
+  }
+  dedup.pending.swap(still);
+  auto result = available;
+  for (int d = 4; d < static_cast<int>(jfg::kControllerDeviceCount); ++d) {
+    const auto index = static_cast<std::size_t>(d);
+    const bool suppress = any_xinput && available[index] && !dedup.independent[index];
+    if (suppress) result[index] = false;
+    if (suppress != dedup.suppressed[index]) {
+      dedup.suppressed[index] = suppress;
+      if (std::ofstream *log = community_effect_log(state); log != nullptr) {
+        *log << "PD\t" << state.community_effect_frame << "\tdevice " << d
+             << (suppress ? "\theld back (may mirror an XInput pad)" : "\tavailable") << '\n';
+        log->flush();
+      }
+    }
+  }
+  return result;
+}
 void community_log_controller_ports(State &state, const std::array<bool, jfg::kControllerDeviceCount> &available,
                                     const std::array<int, 4> &devices);
 void sample_controller_ports(State &state,bool discover_sdl=true) {
@@ -2862,7 +2952,14 @@ void sample_controller_ports(State &state,bool discover_sdl=true) {
   }
   for (std::size_t p = 0; p < 4; ++p)
     available[p] = read_xinput_device(static_cast<int>(p), hardware[p]);
-  const auto devices = state.controller_ports.devices(available);
+  auto devices = state.controller_ports.devices(community_dedup_pads(state, available, hardware));
+  // Automatic players 2-4 keep a sticky device; never let them keep a pad
+  // that is being held back as a copy of player 1's.
+  for (std::size_t p = 1; p < 4; ++p)
+    if (state.controller_ports.mappings[p].device == -1 && devices[p] >= 4 &&
+        devices[p] < static_cast<int>(jfg::kControllerDeviceCount) &&
+        state.community_pad_dedup.suppressed[static_cast<std::size_t>(devices[p])])
+      devices[p] = -2;
   state.pc_devices=devices;
   jfg::mod::Memory pc_memory({state.rdram,kRdramSize});
   for (std::size_t p = 0; p < 4; ++p) {
