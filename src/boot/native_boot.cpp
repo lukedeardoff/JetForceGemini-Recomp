@@ -1962,6 +1962,11 @@ struct State : JfgOriginalTimingFast {
   bool community_hide_hidden_thrusters = true;
   // Cutscene camera markers ("AnimCamera" objects) drawn as little boxes.
   bool community_hide_anim_cameras = true;
+  // Game-flag investigation (pause-menu Floyd icon): log mainSetGameFlag and
+  // reads of the watched flags; JFG_MENU_FLAG=<n> makes reads of flag n true.
+  std::int32_t community_force_flag = -1;
+  std::uint32_t community_flag_lines = 0U;
+  std::unordered_map<std::uint64_t, std::uint32_t> community_flag_reads;
   std::uint32_t community_anim_camera_lines = 0U;
   std::uint32_t community_thruster_lines = 0U;
   std::uint32_t community_capture_every = 0U;
@@ -7536,6 +7541,11 @@ std::ofstream *community_effect_log(State &state) {
         community_env_number("JFG_HIDE_HIDDEN_THRUSTERS", 1U) != 0U;
     state.community_hide_anim_cameras =
         community_env_number("JFG_HIDE_ANIM_CAMERAS", 1U) != 0U;
+    {
+      const std::uint32_t forced = community_env_number("JFG_MENU_FLAG", 0U);
+      state.community_force_flag =
+          forced != 0U && forced < 0x480U ? static_cast<std::int32_t>(forced) : -1;
+    }
     // Timed capture (elevator investigation): every Nth presented frame
     // between JFG_CAPTURE_FROM_S and JFG_CAPTURE_TO_S seconds of the run.
     state.community_capture_every =
@@ -7721,6 +7731,8 @@ void community_effect_frame(State &state, std::uint8_t *rdram) {
   state.community_effect_counts.clear();
 }
 
+constexpr std::uint32_t kMainGetGameFlag = 0x80047ED0U;
+constexpr std::uint32_t kMainSetGameFlag = 0x80047EFCU;
 constexpr std::uint32_t kAnimshipOverlay = 73U;
 constexpr std::uint32_t kAnimshipDrawThrustersOffset = 0x3F4U;
 constexpr std::uint16_t kObjectHiddenFlags = 0x0C00U;
@@ -8041,6 +8053,36 @@ CommunityEffectCall community_effect_before(
     community_effect_frame(state, rdram);
     (void)community_effect_log(state);  // reads JFG_HIDE_ANIM_CAMERAS
     community_hide_anim_cameras(state, rdram);
+    return call;
+  }
+  if (target == kMainSetGameFlag || target == kMainGetGameFlag) {
+    // The pause-menu pod hides two icons behind game flags 95 and 100
+    // (menuScreen, overlay 18). Record who sets flags, and who reads those two.
+    std::ofstream *effect_log = community_effect_log(state);
+    const auto flag = static_cast<std::int32_t>(context.r4);
+    const auto caller = static_cast<std::uint32_t>(context.r31);
+    if (target == kMainGetGameFlag) {
+      const bool watched = flag == 95 || flag == 100 || flag == state.community_force_flag;
+      if (watched && effect_log != nullptr) {
+        const std::uint64_t key = (std::uint64_t{static_cast<std::uint32_t>(flag)} << 32U) | caller;
+        if (state.community_flag_reads[key]++ == 0U && state.community_flag_lines < 4000U) {
+          ++state.community_flag_lines;
+          *effect_log << "GG\t" << state.community_effect_frame << '\t' << flag << '\t'
+                      << std::hex << caller << std::dec << '\n';
+          effect_log->flush();
+        }
+      }
+      if (flag == state.community_force_flag) {
+        context.r2 = 1;
+        call.skip = true;
+      }
+    } else if (effect_log != nullptr && state.community_flag_lines < 4000U) {
+      ++state.community_flag_lines;
+      *effect_log << "GS\t" << state.community_effect_frame << '\t' << flag << '\t'
+                  << static_cast<std::int32_t>(context.r5) << '\t' << std::hex << caller
+                  << std::dec << '\n';
+      effect_log->flush();
+    }
     return call;
   }
   if (metadata.is_overlay != 1U)
